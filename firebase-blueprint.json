@@ -1,0 +1,209 @@
+{
+  "entities": {
+    "WatchlistItem": {
+      "title": "WatchlistItem",
+      "description": "A movie, series, anime, drama, or short saved to the user's personal watchlist.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "contentId": {
+          "type": "string",
+          "description": "CinePulse subject/content identifier."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the media item."
+        },
+        "posterUrl": {
+          "type": "string",
+          "description": "Poster artwork URL."
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["MOVIE", "SERIES", "ANIME", "DRAMA", "SHORT"],
+          "description": "Normalized content category."
+        },
+        "source": {
+          "type": "string",
+          "description": "API source identifier such as moviebox or movielinkbd."
+        },
+        "year": {
+          "type": "string",
+          "description": "Release year label."
+        },
+        "rating": {
+          "type": "string",
+          "description": "Score or rating string."
+        },
+        "languageBadge": {
+          "type": "string",
+          "description": "Audio or subtitle badge such as Hindi, Bengali, or Dual Audio."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on write."
+        }
+      },
+      "required": [
+        "userId",
+        "contentId",
+        "title",
+        "posterUrl",
+        "mediaType",
+        "source",
+        "year",
+        "rating",
+        "languageBadge",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WatchHistoryItem": {
+      "title": "WatchHistoryItem",
+      "description": "Playback progress and resume state for a user's Continue Watching shelf.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "contentId": {
+          "type": "string",
+          "description": "CinePulse subject/content identifier."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the media item."
+        },
+        "posterUrl": {
+          "type": "string",
+          "description": "Poster artwork URL."
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["MOVIE", "SERIES", "ANIME", "DRAMA", "SHORT"],
+          "description": "Normalized content category."
+        },
+        "source": {
+          "type": "string",
+          "description": "API source identifier."
+        },
+        "season": {
+          "type": "integer",
+          "description": "Last watched season number."
+        },
+        "episode": {
+          "type": "integer",
+          "description": "Last watched episode number."
+        },
+        "positionMs": {
+          "type": "integer",
+          "description": "Playback resume position in milliseconds."
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "Total stream duration in milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "contentId",
+        "title",
+        "posterUrl",
+        "mediaType",
+        "source",
+        "season",
+        "episode",
+        "positionMs",
+        "durationMs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UpcomingReminder": {
+      "title": "UpcomingReminder",
+      "description": "A user-bookmarked upcoming release reminder.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "contentId": {
+          "type": "string",
+          "description": "CinePulse upcoming release identifier."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the upcoming release."
+        },
+        "posterUrl": {
+          "type": "string",
+          "description": "Poster artwork URL."
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "Scheduled release date text."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "contentId",
+        "title",
+        "posterUrl",
+        "releaseDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/watchlist/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/WatchlistItem"
+      },
+      "description": "Per-user cloud-synced Watchlist items."
+    },
+    "/users/{userId}/history/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/WatchHistoryItem"
+      },
+      "description": "Per-user Continue Watching playback progress records."
+    },
+    "/users/{userId}/reminders/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/UpcomingReminder"
+      },
+      "description": "Per-user booked reminders for upcoming releases."
+    }
+  }
+}

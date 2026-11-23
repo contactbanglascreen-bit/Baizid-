@@ -1,0 +1,6 @@
+{
+  "name": "Cinedor",
+  "description": "Ultra-fast AMOLED streaming app for movies, TV series, anime, Asian dramas, vertical reels, and live sports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

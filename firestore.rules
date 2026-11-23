@@ -1,0 +1,159 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidMediaType(value) {
+      return value is string && value in ['MOVIE', 'SERIES', 'ANIME', 'DRAMA', 'SHORT'];
+    }
+
+    function isValidWatchlistItem(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.contentId is string && data.contentId.size() >= 1 && data.contentId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.posterUrl is string && data.posterUrl.size() <= 1000 &&
+             isValidMediaType(data.mediaType) &&
+             data.source is string && data.source.size() <= 40 &&
+             data.year is string && data.year.size() <= 16 &&
+             data.rating is string && data.rating.size() <= 16 &&
+             data.languageBadge is string && data.languageBadge.size() <= 40 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidWatchHistoryItem(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.contentId is string && data.contentId.size() >= 1 && data.contentId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.posterUrl is string && data.posterUrl.size() <= 1000 &&
+             isValidMediaType(data.mediaType) &&
+             data.source is string && data.source.size() <= 40 &&
+             data.season is int && data.season >= 0 && data.season <= 100 &&
+             data.episode is int && data.episode >= 0 && data.episode <= 10000 &&
+             data.positionMs is int && data.positionMs >= 0 && data.positionMs <= 86400000 &&
+             data.durationMs is int && data.durationMs >= 0 && data.durationMs <= 86400000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUpcomingReminder(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.contentId is string && data.contentId.size() >= 1 && data.contentId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.posterUrl is string && data.posterUrl.size() <= 1000 &&
+             data.releaseDate is string && data.releaseDate.size() <= 64 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/watchlist/{itemId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'contentId', 'title', 'posterUrl', 'mediaType',
+                         'source', 'year', 'rating', 'languageBadge', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'contentId', 'title', 'posterUrl', 'mediaType',
+                         'source', 'year', 'rating', 'languageBadge', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidWatchlistItem(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       isValidWatchlistItem(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().contentId == existing().contentId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'posterUrl', 'mediaType', 'source', 'year', 'rating', 'languageBadge', 'updatedAt'
+                       ]);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+    }
+
+    match /users/{userId}/history/{itemId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'contentId', 'title', 'posterUrl', 'mediaType',
+                         'source', 'season', 'episode', 'positionMs', 'durationMs', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'contentId', 'title', 'posterUrl', 'mediaType',
+                         'source', 'season', 'episode', 'positionMs', 'durationMs', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidWatchHistoryItem(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       isValidWatchHistoryItem(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().contentId == existing().contentId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'posterUrl', 'mediaType', 'source', 'season', 'episode',
+                         'positionMs', 'durationMs', 'updatedAt'
+                       ]);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+    }
+
+    match /users/{userId}/reminders/{itemId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'contentId', 'title', 'posterUrl', 'releaseDate', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'contentId', 'title', 'posterUrl', 'releaseDate', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUpcomingReminder(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       isValidUpcomingReminder(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().contentId == existing().contentId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'posterUrl', 'releaseDate', 'updatedAt'
+                       ]);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+    }
+  }
+}

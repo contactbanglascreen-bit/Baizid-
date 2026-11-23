@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Cinedor</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_reels">Reels</string>
+    <string name="nav_library">Library</string>
+    <string name="library_header_title">Cinedor Library</string>
+    <string name="library_local_badge">Saved On-Device • Instant Access</string>
+    <string name="search_placeholder">Search movies, series, anime, drama…</string>
+    <string name="api_key_missing_title">Cinedor API Key Needed</string>
+    <string name="api_key_missing_body">Add CINEPULSE_API_KEY in the AI Studio Secrets panel for dual-site catalogs and Reels.</string>
+    <string name="play_now">Play Now</string>
+    <string name="my_list">My List</string>
+    <string name="in_my_list">In List</string>
+    <string name="share">Share</string>
+    <string name="retry">Retry</string>
+</resources>

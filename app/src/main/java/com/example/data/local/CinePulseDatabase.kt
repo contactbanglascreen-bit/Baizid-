@@ -1,0 +1,37 @@
+package com.example.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+
+@Database(
+    entities = [
+        WatchlistItem::class,
+        WatchHistoryItem::class,
+        UpcomingReminder::class
+    ],
+    version = 1,
+    exportSchema = false
+)
+abstract class CinePulseDatabase : RoomDatabase() {
+    abstract fun libraryDao(): LibraryDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: CinePulseDatabase? = null
+
+        fun getInstance(context: Context): CinePulseDatabase {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    CinePulseDatabase::class.java,
+                    "cinepulse_library.db"
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
+                    .also { INSTANCE = it }
+            }
+        }
+    }
+}
