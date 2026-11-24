@@ -103,19 +103,19 @@ fun RatingBadge(rating: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .background(Color.Black.copy(alpha = 0.62f))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Rounded.Star,
             contentDescription = null,
             tint = CinetorRed,
-            modifier = Modifier.size(13.dp)
+            modifier = Modifier.size(11.dp)
         )
         Spacer(modifier = Modifier.width(3.dp))
         Text(
             text = rating,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
             color = OnMediaText,
             maxLines = 1
         )
@@ -130,13 +130,13 @@ private fun GlassMetaChip(text: String, modifier: Modifier = Modifier, solid: Bo
             .clip(CircleShape)
             .background(if (solid) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.14f))
             .border(1.dp, Color.White.copy(alpha = if (solid) 0f else 0.35f), CircleShape)
-            .padding(horizontal = 11.dp, vertical = 4.dp)
+            .padding(horizontal = 9.dp, vertical = 3.dp)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = if (solid) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 12.sp
+                fontSize = 11.sp
             ),
             color = if (solid) TextPrimary else OnMediaText,
             maxLines = 1
@@ -181,11 +181,11 @@ fun HeroBannerCarousel(
     ) {
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(horizontal = 48.dp),
-            pageSpacing = 8.dp,
+            contentPadding = PaddingValues(horizontal = 60.dp),
+            pageSpacing = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(420.dp)
+                .height(330.dp)
         ) { page ->
             val item = banners[page]
             val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
@@ -201,8 +201,8 @@ fun HeroBannerCarousel(
                         scaleY = s
                         alpha = 0.55f + 0.45f * fraction
                     }
-                    .shadow(16.dp, RoundedCornerShape(28.dp), spotColor = Color.Black.copy(alpha = 0.35f))
-                    .clip(RoundedCornerShape(28.dp))
+                    .shadow(12.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = 0.35f))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(MediaCardDark)
                     .clickable { onPlayClick(item) }
             ) {
@@ -231,7 +231,7 @@ fun HeroBannerCarousel(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 16.dp),
+                        .padding(horizontal = 10.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -245,21 +245,21 @@ fun HeroBannerCarousel(
                     }
                     val genres = item.genres.filter { it.isNotBlank() }.take(3)
                     if (genres.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             genres.forEach { GlassMetaChip(text = it) }
                         }
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(50.dp)
-                                .shadow(6.dp, CircleShape, spotColor = CinetorRed)
+                                .height(40.dp)
+                                .shadow(5.dp, CircleShape, spotColor = CinetorRed)
                                 .clip(CircleShape)
                                 .background(RedButtonBrush)
                                 .clickable { onPlayClick(item) }
@@ -271,19 +271,19 @@ fun HeroBannerCarousel(
                                 imageVector = Icons.Rounded.PlayArrow,
                                 contentDescription = stringResource(R.string.play_now),
                                 tint = OnAccent,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "Play",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
                                 color = OnAccent
                             )
                         }
                         Row(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(50.dp)
+                                .height(40.dp)
                                 .clip(CircleShape)
                                 .background(
                                     Brush.verticalGradient(listOf(Color.White, Color(0xFFEDE8E8)))
@@ -296,12 +296,12 @@ fun HeroBannerCarousel(
                                 imageVector = if (inWatchlist) Icons.Rounded.Check else Icons.Rounded.Add,
                                 contentDescription = if (inWatchlist) "Remove from My List" else "Add to My List",
                                 tint = TextPrimary,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "My List",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
                                 color = TextPrimary,
                                 maxLines = 1
                             )
@@ -312,19 +312,19 @@ fun HeroBannerCarousel(
         }
 
         if (banners.size > 1) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 repeat(banners.size.coerceAtMost(10)) { index ->
                     val active = pagerState.currentPage == index
-                    val w by animateDpAsState(if (active) 26.dp else 7.dp, label = "dot_w")
+                    val w by animateDpAsState(if (active) 20.dp else 6.dp, label = "dot_w")
                     val c by animateColorAsState(if (active) CinetorRed else Color(0xFFCFC8C7), label = "dot_c")
                     Box(
                         modifier = Modifier
                             .width(w)
-                            .height(7.dp)
+                            .height(6.dp)
                             .clip(CircleShape)
                             .background(c)
                     )
@@ -369,7 +369,7 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     rankNumber: Int? = null
 ) {
-    val posterWidth = 124.dp
+    val posterWidth = 106.dp
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -382,13 +382,13 @@ fun PosterCard(
                 text = rankNumber.toString(),
                 style = MaterialTheme.typography.displayMedium.copy(
                     fontWeight = FontWeight.Black,
-                    fontSize = 84.sp,
-                    lineHeight = 84.sp,
-                    drawStyle = Stroke(width = 5f)
+                    fontSize = 64.sp,
+                    lineHeight = 64.sp,
+                    drawStyle = Stroke(width = 4f)
                 ),
                 color = Color(0xFF8E6B6E),
                 modifier = Modifier
-                    .offset(x = 10.dp, y = (-26).dp)
+                    .offset(x = 8.dp, y = (-22).dp)
             )
         }
         Column(modifier = Modifier.width(posterWidth)) {
@@ -440,8 +440,8 @@ fun PosterCard(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp
                 ),
                 color = TextPrimary,
                 maxLines = 2,
@@ -465,7 +465,7 @@ fun ContinueWatchingCard(
 ) {
     Column(
         modifier = modifier
-            .width(196.dp)
+            .width(170.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .testTag("continue_watching_${history.id.take(16)}")
@@ -473,7 +473,7 @@ fun ContinueWatchingCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
+                .height(96.dp)
                 .shadow(4.dp, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(ObsidianSurfaceVariant)
@@ -562,7 +562,7 @@ fun SportsMatchCard(
 ) {
     Box(
         modifier = modifier
-            .width(280.dp)
+            .width(256.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.verticalGradient(listOf(MediaCardDark, MediaCardDarkEnd)))
             .border(
@@ -757,7 +757,7 @@ fun CategoryBannerChip(
 ) {
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(40.dp)
             .clip(CircleShape)
             .background(ObsidianCard)
             .border(1.dp, ObsidianBorder, CircleShape)
@@ -802,7 +802,7 @@ fun UpcomingReleaseCard(
 
     Column(
         modifier = modifier
-            .width(124.dp)
+            .width(106.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
     ) {
@@ -911,7 +911,7 @@ fun SectionHeaderRow(
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .height(20.dp)
+                .height(16.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(CinetorRed)
         )
@@ -920,7 +920,7 @@ fun SectionHeaderRow(
             text = title,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp
+                fontSize = 17.sp
             ),
             color = TextPrimary,
             maxLines = 1,
@@ -937,14 +937,14 @@ fun SectionHeaderRow(
             ) {
                 Text(
                     text = if (actionLabel == "All") "See all" else actionLabel,
-                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
                     color = TextSecondary
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = null,
                     tint = TextSecondary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

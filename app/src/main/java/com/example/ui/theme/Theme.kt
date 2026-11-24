@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 private val ColorAlphaOutline = ObsidianBorder.copy(alpha = 0.7f)
@@ -53,10 +56,18 @@ private val CinePulseShapes = Shapes(
 fun CinePulseTheme(
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = CinePulseLightColorScheme,
-        typography = CinePulseTypography,
-        shapes = CinePulseShapes,
-        content = content
+    // Keep layouts compact even when the phone uses a very large system font size.
+    val systemDensity = LocalDensity.current
+    val cappedDensity = Density(
+        density = systemDensity.density,
+        fontScale = systemDensity.fontScale.coerceAtMost(1.0f)
     )
+    CompositionLocalProvider(LocalDensity provides cappedDensity) {
+        MaterialTheme(
+            colorScheme = CinePulseLightColorScheme,
+            typography = CinePulseTypography,
+            shapes = CinePulseShapes,
+            content = content
+        )
+    }
 }

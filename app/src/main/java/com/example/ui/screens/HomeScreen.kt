@@ -221,7 +221,7 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 128.dp,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 100.dp,
                 bottom = 110.dp
             )
         ) {
@@ -231,7 +231,7 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(250.dp)
+                                .height(300.dp)
                                 .padding(horizontal = 48.dp)
                                 .clip(RoundedCornerShape(28.dp))
                                 .background(
@@ -656,7 +656,7 @@ fun HomeScreen(
                     )
                 )
                 .statusBarsPadding()
-                .padding(top = 8.dp, bottom = 10.dp)
+                .padding(top = 6.dp, bottom = 8.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -682,17 +682,17 @@ fun HomeScreen(
                     Image(
                         painter = painterResource(id = R.drawable.cinedor_logo),
                         contentDescription = "Cinedor",
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(26.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = buildAnnotatedString {
                             withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("CINE") }
                             withStyle(SpanStyle(fontWeight = FontWeight.Black)) { append("DOR") }
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 22.sp,
-                            letterSpacing = 5.sp
+                            fontSize = 17.sp,
+                            letterSpacing = 4.sp
                         ),
                         color = TextPrimary,
                         maxLines = 1
@@ -706,12 +706,12 @@ fun HomeScreen(
                             .clip(CircleShape)
                             .background(ObsidianSurface)
                             .border(1.dp, ObsidianBorder, CircleShape)
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .padding(horizontal = 10.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = MovieBoxTopTabs.firstOrNull { it.first == homeState.selectedTab }?.second
                                 ?: homeState.selectedTab,
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
                             color = TextSecondary,
                             maxLines = 1
                         )
@@ -723,8 +723,8 @@ fun HomeScreen(
                 // Round white search button
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
-                        .shadow(6.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
+                        .size(38.dp)
+                        .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
                         .clip(CircleShape)
                         .background(ObsidianSurface)
                         .clickable(onClick = onOpenSearch)
@@ -735,24 +735,24 @@ fun HomeScreen(
                         imageVector = Icons.Rounded.Search,
                         contentDescription = "Search ${tickerTitles[tickerIndex % tickerTitles.size]}",
                         tint = TextPrimary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Pill category tabs: selected = solid red, others = light outlined pills
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(MovieBoxTopTabs) { (tabKey, displayLabel) ->
                     val selected = homeState.selectedTab == tabKey
                     Box(
                         modifier = Modifier
-                            .height(44.dp)
+                            .height(34.dp)
                             .then(
                                 if (selected) {
                                     Modifier.shadow(4.dp, CircleShape, spotColor = CinetorRed)
@@ -764,7 +764,7 @@ fun HomeScreen(
                             .background(if (selected) CinetorRed else Color(0xFFEFE8E7))
                             .border(1.dp, if (selected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
                             .clickable { onSelectTab(tabKey) }
-                            .padding(horizontal = 20.dp)
+                            .padding(horizontal = 16.dp)
                             .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -772,7 +772,7 @@ fun HomeScreen(
                             text = if (tabKey == "All") "For You" else displayLabel,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 16.sp
+                                fontSize = 13.5.sp
                             ),
                             color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.85f),
                             maxLines = 1
@@ -799,19 +799,19 @@ private fun MovieBoxSubFilterRow(
             val isSelected = selected == tab
             Box(
                 modifier = Modifier
-                    .height(40.dp)
+                    .height(32.dp)
                     .clip(CircleShape)
                     .background(if (isSelected) CinetorRed else Color(0xFFEFE8E7))
                     .border(1.dp, if (isSelected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
                     .clickable { onSelect(tab) }
-                    .padding(horizontal = 18.dp),
+                    .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = tab,
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 15.sp
+                        fontSize = 13.sp
                     ),
                     color = if (isSelected) OnAccent else TextPrimary.copy(alpha = 0.85f)
                 )

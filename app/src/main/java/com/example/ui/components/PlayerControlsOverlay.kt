@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -355,7 +357,7 @@ internal fun CinedorPlayerControlsOverlay(
                     }
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 14.dp else 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 10.dp else 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Speed control (icon + clean label, matching MovieBox top-right style)
@@ -486,10 +488,12 @@ internal fun CinedorPlayerControlsOverlay(
                 }
 
                 // Fullscreen Center Transport (-10s • Play/Pause • +10s); Portrait stays clean like MovieBox!
-                if (isFullscreen && !isBuffering) {
+                if (!isBuffering) {
+                    val sideSize = if (isFullscreen) 52.dp else 42.dp
+                    val sideIcon = if (isFullscreen) 28.dp else 24.dp
                     Row(
                         modifier = Modifier.align(Alignment.Center),
-                        horizontalArrangement = Arrangement.spacedBy(38.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 44.dp else 30.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
@@ -498,16 +502,17 @@ internal fun CinedorPlayerControlsOverlay(
                                 onSeekBy(-10_000L)
                             },
                             modifier = Modifier
-                                .size(52.dp)
+                                .size(sideSize)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.36f))
+                                .background(Color.Black.copy(alpha = 0.38f))
+                                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
                                 .testTag("player_rewind_10")
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Replay10,
                                 contentDescription = "Rewind 10 seconds",
                                 tint = Color.White,
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(sideIcon)
                             )
                         }
 
@@ -517,16 +522,19 @@ internal fun CinedorPlayerControlsOverlay(
                                 onTogglePlayPause()
                             },
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(if (isFullscreen) 66.dp else 54.dp)
+                                .shadow(10.dp, CircleShape, spotColor = CinedorMagenta)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.45f))
+                                .background(
+                                    Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                                )
                                 .testTag("player_center_play_pause")
                         ) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
                                 tint = Color.White,
-                                modifier = Modifier.size(38.dp)
+                                modifier = Modifier.size(if (isFullscreen) 38.dp else 32.dp)
                             )
                         }
 
@@ -536,16 +544,17 @@ internal fun CinedorPlayerControlsOverlay(
                                 onSeekBy(10_000L)
                             },
                             modifier = Modifier
-                                .size(52.dp)
+                                .size(sideSize)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.36f))
+                                .background(Color.Black.copy(alpha = 0.38f))
+                                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
                                 .testTag("player_forward_10")
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Forward10,
                                 contentDescription = "Forward 10 seconds",
                                 tint = Color.White,
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(sideIcon)
                             )
                         }
                     }
@@ -559,7 +568,7 @@ internal fun CinedorPlayerControlsOverlay(
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f))
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f), Color.Black.copy(alpha = 0.88f))
                             )
                         )
                         .padding(
@@ -570,22 +579,19 @@ internal fun CinedorPlayerControlsOverlay(
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = {
-                            interactionTick++
-                            onTogglePlayPause()
-                        },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .testTag("player_play_pause")
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatPlayerTime(effectivePos),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFeatureSettings = "tnum"
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        modifier = Modifier.testTag("player_play_pause")
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     SleekVideoSeekBar(
                         positionMs = effectivePos,
@@ -610,16 +616,16 @@ internal fun CinedorPlayerControlsOverlay(
                             .height(34.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "${formatPlayerTime(effectivePos)}/${formatPlayerTime(safeDuration)}",
+                        text = formatPlayerTime(safeDuration),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             fontFeatureSettings = "tnum"
                         ),
-                        color = Color.White.copy(alpha = 0.94f),
+                        color = Color.White.copy(alpha = 0.78f),
                         maxLines = 1
                     )
 
@@ -675,29 +681,30 @@ private fun TopOverlayActionItem(
     onClick: () -> Unit,
     testTag: String
 ) {
-    val tint = if (active) CinedorPink else Color.White
-    Column(
+    Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(CircleShape)
+            .background(if (active) CinedorMagenta else Color.Black.copy(alpha = 0.42f))
+            .border(1.dp, Color.White.copy(alpha = if (active) 0f else 0.16f), CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
             .testTag(testTag),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
+            tint = Color.White,
+            modifier = Modifier.size(16.dp)
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
             ),
-            color = tint.copy(alpha = 0.92f),
+            color = Color.White,
             maxLines = 1
         )
     }
@@ -770,14 +777,14 @@ private fun SleekVideoSeekBar(
                 .fillMaxHeight()
         ) {
             val centerY = size.height / 2f
-            val trackHeight = if (isScrubbing) 4.5.dp.toPx() else 2.8.dp.toPx()
-            val thumbRadius = if (isScrubbing) 7.5.dp.toPx() else 5.5.dp.toPx()
+            val trackHeight = if (isScrubbing) 5.dp.toPx() else 3.5.dp.toPx()
+            val thumbRadius = if (isScrubbing) 8.dp.toPx() else 6.dp.toPx()
             val trackTop = centerY - trackHeight / 2f
             val corner = CornerRadius(trackHeight / 2f, trackHeight / 2f)
 
             // Unplayed track
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.28f),
+                color = Color.White.copy(alpha = 0.24f),
                 topLeft = Offset(0f, trackTop),
                 size = Size(size.width, trackHeight),
                 cornerRadius = corner
@@ -799,8 +806,7 @@ private fun SleekVideoSeekBar(
             if (playedWidth > 0f) {
                 drawRoundRect(
                     brush = Brush.horizontalGradient(
-                        colors = if (isScrubbing) listOf(CinedorMagenta, CinedorPink, Color.White)
-                        else listOf(Color.White.copy(alpha = 0.92f), Color.White)
+                        colors = listOf(Color(0xFFA80B14), CinedorMagenta, CinedorPink)
                     ),
                     topLeft = Offset(0f, trackTop),
                     size = Size(playedWidth, trackHeight),
@@ -820,6 +826,11 @@ private fun SleekVideoSeekBar(
             drawCircle(
                 color = Color.White,
                 radius = thumbRadius,
+                center = Offset(thumbX, centerY)
+            )
+            drawCircle(
+                color = CinedorMagenta,
+                radius = thumbRadius * 0.55f,
                 center = Offset(thumbX, centerY)
             )
         }

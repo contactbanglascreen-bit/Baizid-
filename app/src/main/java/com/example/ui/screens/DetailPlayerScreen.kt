@@ -94,6 +94,8 @@ import com.example.data.model.StreamOption
 import com.example.ui.components.ApiErrorOrKeyCard
 import com.example.ui.components.CinePulseVideoPlayer
 import com.example.ui.components.PosterCard
+import androidx.compose.material.icons.rounded.Download
+import com.example.ui.components.DownloadQualitySheet
 import com.example.ui.theme.OnAccent
 import com.example.ui.theme.OnMediaText
 import com.example.ui.theme.CinemaGold
@@ -150,6 +152,7 @@ fun DetailPlayerScreen(
     var qualityDropdownExpanded by remember { mutableStateOf(false) }
     var seasonDropdownExpanded by remember { mutableStateOf(false) }
     var selectedBottomTab by remember { mutableIntStateOf(0) }
+    var downloadSheetOpen by remember { mutableStateOf(false) }
 
     DisposableEffect(isFullscreen) {
         val activity = context.findActivity()
@@ -185,6 +188,21 @@ fun DetailPlayerScreen(
     }
 
     val item = state.selectedItem ?: return
+
+    if (downloadSheetOpen) {
+        val dlDetail: MediaDetail? = (state.detailState as? UiState.Success)?.data
+        val dlTitle = buildString {
+            append((dlDetail?.item ?: item).title)
+            if (dlDetail?.seasons?.isNotEmpty() == true) {
+                append(" S${state.selectedSeason}E${state.selectedEpisode}")
+            }
+        }
+        DownloadQualitySheet(
+            title = dlTitle,
+            streams = state.streams,
+            onDismiss = { downloadSheetOpen = false }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -331,7 +349,7 @@ fun DetailPlayerScreen(
                             text = displayItem.title,
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp
+                                fontSize = 19.sp
                             ),
                             color = TextPrimary,
                             maxLines = 2,
@@ -497,6 +515,15 @@ fun DetailPlayerScreen(
                     // Exact MovieBox Horizontal Rounded Action Pills Row
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item {
+                            MovieBoxActionPill(
+                                icon = Icons.Rounded.Download,
+                                label = "Download",
+                                active = true,
+                                onClick = { downloadSheetOpen = true },
+                                testTag = "detail_download_button"
+                            )
+                        }
                         item {
                             MovieBoxActionPill(
                                 icon = if (isInWatchlist) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.PlaylistAdd,
@@ -1138,16 +1165,16 @@ private fun MovieBoxActionPill(
         color = if (active) CinedorTintedSurface else ObsidianCard,
         shadowElevation = if (active) 0.dp else 2.dp,
         modifier = Modifier
-            .height(42.dp)
+            .height(36.dp)
             .border(1.dp, if (active) CinedorMagenta.copy(alpha = 0.45f) else ObsidianBorder, CircleShape)
             .clip(CircleShape)
             .clickable(onClick = onClick)
             .testTag(testTag)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 13.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
                 imageVector = icon,

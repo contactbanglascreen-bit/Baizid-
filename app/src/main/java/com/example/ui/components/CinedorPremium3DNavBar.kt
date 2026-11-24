@@ -87,20 +87,20 @@ fun CinedorPremium3DNavBar(
     onSelectDestination: (CinedorNavDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pillShape = RoundedCornerShape(36.dp)
+    val pillShape = RoundedCornerShape(30.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
+            .padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
+                .height(60.dp)
                 .shadow(
-                    elevation = 18.dp,
+                    elevation = 14.dp,
                     shape = pillShape,
                     ambientColor = CinetorRed.copy(alpha = 0.18f),
                     spotColor = Color.Black.copy(alpha = 0.28f)
@@ -177,13 +177,13 @@ private fun RowScope.NavPillSlot(
             Box(
                 modifier = Modifier
                     .scale(scale)
-                    .width(54.dp)
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .width(46.dp)
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(indicatorColor)
                     .then(
                         if (selected) {
-                            Modifier.border(1.dp, CinetorRed.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                            Modifier.border(1.dp, CinetorRed.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
                         } else {
                             Modifier
                         }
@@ -194,25 +194,25 @@ private fun RowScope.NavPillSlot(
                     imageVector = destination.icon(selected),
                     contentDescription = destination.label,
                     tint = iconColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
             if (selected) {
                 Box(
                     modifier = Modifier
-                        .width(18.dp)
-                        .height(3.dp)
+                        .width(14.dp)
+                        .height(2.5.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(CinetorRed)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = destination.label,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 12.sp
+                fontSize = 10.5.sp
             ),
             color = if (selected) TextPrimary else TextSecondary,
             maxLines = 1

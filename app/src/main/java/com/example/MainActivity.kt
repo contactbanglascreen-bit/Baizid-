@@ -226,7 +226,7 @@ fun CinedorMainShell() {
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
-                    modifier = Modifier.padding(bottom = if (useNavRail) 12.dp else 76.dp)
+                    modifier = Modifier.padding(bottom = if (useNavRail) 12.dp else 80.dp)
                 )
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
