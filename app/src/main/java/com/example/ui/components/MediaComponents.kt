@@ -439,6 +439,18 @@ fun PosterCard(
                             .padding(6.dp)
                     )
                 }
+                val (hasSub, hasDub) = remember(item.title, item.languageBadge) { subDubFlags(item) }
+                if (hasSub || hasDub) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (hasSub) SubDubPill("SUB", filled = false)
+                        if (hasDub) SubDubPill("DUB", filled = true)
+                    }
+                }
             }
             val (cleanTitle, tag) = remember(item.title) { splitTitleTag(item.title) }
             Text(
@@ -1144,4 +1156,36 @@ internal fun splitTitleTag(raw: String): Pair<String, String> {
         .replace(Regex("\\s*\\(\\d{4}\\)"), "")
         .trim().ifBlank { raw }
     return clean to tags.joinToString(" · ")
+}
+
+
+private val DubKeywords = listOf(
+    "hindi", "bengali", "bangla", "tamil", "telugu", "malayalam", "kannada", "urdu", "english",
+    "dub", "dubbed", "dual audio", "multi audio", "arabic", "spanish", "indonesian", "french"
+)
+
+/** (has subtitles, has a dubbed audio version) guessed from the title tag and language badge. */
+internal fun subDubFlags(item: MediaItem): Pair<Boolean, Boolean> {
+    val tag = splitTitleTag(item.title).second.lowercase()
+    val titleLower = item.title.lowercase()
+    val hasDub = (tag.isNotBlank() && DubKeywords.any { it in tag }) || "dub" in titleLower || "dual audio" in titleLower
+    val hasSub = item.languageBadge.isNotBlank() || "sub" in tag
+    return hasSub to hasDub
+}
+
+@Composable
+internal fun SubDubPill(label: String, filled: Boolean) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(5.dp))
+            .background(if (filled) CinetorRed else Color.Black.copy(alpha = 0.62f))
+            .border(0.75.dp, if (filled) Color.Transparent else Color.White.copy(alpha = 0.55f), RoundedCornerShape(5.dp))
+            .padding(horizontal = 5.dp, vertical = 1.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 0.5.sp),
+            color = Color.White
+        )
+    }
 }

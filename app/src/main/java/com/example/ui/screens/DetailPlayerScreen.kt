@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.material.icons.rounded.RecordVoiceOver
+import com.example.ui.theme.CinetorRedSoft
+import com.example.ui.theme.ChipBg
+import com.example.ui.components.splitTitleTag
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -574,6 +578,146 @@ fun DetailPlayerScreen(
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
+
+                    // SUB / DUB switch + dub language chips
+                    run {
+                        val currentItem = detail?.item ?: item
+                        val baseTitle = splitTitleTag(currentItem.title).first
+                        val currentTag = splitTitleTag(currentItem.title).second
+                        val isOrigAudio: (com.example.data.model.StreamOption) -> Boolean = { o ->
+                            val a = o.audioLanguage.lowercase()
+                            a.isBlank() || "orig" in a || "japanese" in a || "korean" in a
+                        }
+                        val origStreams = state.streams.filter(isOrigAudio)
+                        val dubStreams = state.streams.filterNot(isOrigAudio)
+                        val dubLangs = dubStreams.map { it.audioLanguage }.filter { it.isNotBlank() }.distinct()
+                        val relatedVersions = detail?.related.orEmpty().filter { r ->
+                            r.id != currentItem.id && splitTitleTag(r.title).first.equals(baseTitle, ignoreCase = true)
+                        }
+                        val relatedDubs = relatedVersions.filter { splitTitleTag(it.title).second.isNotBlank() }
+                        val relatedOriginal = relatedVersions.firstOrNull { splitTitleTag(it.title).second.isBlank() }
+                        val canSub = state.captions.isNotEmpty() || origStreams.isNotEmpty() || relatedOriginal != null
+                        val canDub = dubStreams.isNotEmpty() || relatedDubs.isNotEmpty() || currentTag.isNotBlank()
+                        if (canSub || canDub) {
+                            val selectedIsDub = (state.selectedStream?.let { !isOrigAudio(it) } == true) ||
+                                (currentTag.isNotBlank() && dubStreams.isEmpty() && origStreams.size == state.streams.size && state.selectedStream != null && relatedOriginal != null)
+                            val dubMode = selectedIsDub || (currentTag.isNotBlank() && dubStreams.isEmpty())
+                            Row(
+                                modifier = Modifier
+                                    .padding(bottom = 10.dp)
+                                    .clip(CircleShape)
+                                    .background(ChipBg)
+                                    .padding(4.dp)
+                            ) {
+                                listOf(false, true).forEach { dub ->
+                                    val enabled = if (dub) canDub else canSub
+                                    val sel = dub == dubMode
+                                    Row(
+                                        modifier = Modifier
+                                            .height(34.dp)
+                                            .clip(CircleShape)
+                                            .background(if (sel) CinedorMagenta else Color.Transparent)
+                                            .clickable(enabled = enabled && !sel) {
+                                                if (dub) {
+                                                    val target = dubStreams.firstOrNull { it.quality == state.selectedStream?.quality }
+                                                        ?: dubStreams.firstOrNull()
+                                                    if (target != null) onSelectStream(target)
+                                                    else relatedDubs.firstOrNull()?.let { onOpenRelated(it) }
+                                                } else {
+                                                    val target = origStreams.firstOrNull { it.quality == state.selectedStream?.quality }
+                                                        ?: origStreams.firstOrNull()
+                                                    if (currentTag.isNotBlank() && relatedOriginal != null && dubStreams.isEmpty()) {
+                                                        onOpenRelated(relatedOriginal)
+                                                    } else {
+                                                        if (target != null && target.url != state.selectedStream?.url) onSelectStream(target)
+                                                        if (state.selectedCaption == null && state.captions.isNotEmpty()) {
+                                                            val cc = state.captions.firstOrNull {
+                                                                it.language.startsWith("en", ignoreCase = true) ||
+                                                                    it.label.contains("english", ignoreCase = true)
+                                                            } ?: state.captions.first()
+                                                            onSelectCaption(cc)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            .padding(horizontal = 18.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (dub) Icons.Rounded.RecordVoiceOver else Icons.Rounded.ClosedCaption,
+                                            contentDescription = null,
+                                            tint = when {
+                                                sel -> Color.White
+                                                enabled -> TextPrimary
+                                                else -> TextMuted
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = if (dub) "DUB" else "SUB",
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
+                                            color = when {
+                                                sel -> Color.White
+                                                enabled -> TextPrimary
+                                                else -> TextMuted
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            // Dub languages: dubbed streams of this title + other dubbed versions
+                            if (dubLangs.isNotEmpty() || relatedDubs.isNotEmpty()) {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                ) {
+                                    items(dubLangs, key = { "dl_$it" }) { lang ->
+                                        val sel = state.selectedStream?.audioLanguage == lang
+                                        Box(
+                                            modifier = Modifier
+                                                .height(32.dp)
+                                                .clip(CircleShape)
+                                                .background(if (sel) CinetorRedSoft else ObsidianCard)
+                                                .border(1.dp, if (sel) CinedorMagenta else ObsidianBorder, CircleShape)
+                                                .clickable {
+                                                    val t = dubStreams.filter { it.audioLanguage == lang }
+                                                    val pick = t.firstOrNull { it.quality == state.selectedStream?.quality } ?: t.firstOrNull()
+                                                    if (pick != null) onSelectStream(pick)
+                                                }
+                                                .padding(horizontal = 14.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = lang,
+                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+                                                color = if (sel) CinedorMagenta else TextPrimary
+                                            )
+                                        }
+                                    }
+                                    items(relatedDubs, key = { "rd_" + it.id }) { r ->
+                                        Box(
+                                            modifier = Modifier
+                                                .height(32.dp)
+                                                .clip(CircleShape)
+                                                .background(ObsidianCard)
+                                                .border(1.dp, ObsidianBorder, CircleShape)
+                                                .clickable { onOpenRelated(r) }
+                                                .padding(horizontal = 14.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = splitTitleTag(r.title).second,
+                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+                                                color = TextPrimary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Quality cards (tap to switch the playing quality)
                     if (state.streams.isNotEmpty()) {
