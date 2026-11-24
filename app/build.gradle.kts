@@ -16,8 +16,10 @@ android {
     applicationId = "com.aistudio.cinepulse.kxmrvq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    // CI build number becomes the version, so every new APK is a newer update.
+    val ciBuild = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+    versionCode = ciBuild
+    versionName = "1.0.$ciBuild"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

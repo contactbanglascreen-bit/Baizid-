@@ -1032,6 +1032,24 @@ private fun AboutPage() {
         Text("Cinedor", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold), color = TextPrimary)
         Text("Version $version", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
         Spacer(modifier = Modifier.height(12.dp))
+        var checkingUpdate by remember { mutableStateOf(false) }
+        Spacer(modifier = Modifier.height(10.dp))
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(CinetorRed)
+                .clickable(enabled = !checkingUpdate) { checkingUpdate = true }
+                .padding(horizontal = 18.dp, vertical = 9.dp)
+        ) {
+            Text(
+                if (checkingUpdate) "Checking…" else "Check for updates",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = OnAccent
+            )
+        }
+        if (checkingUpdate) {
+            com.example.ui.components.AppUpdatePrompt(manualCheck = true, onFinished = { checkingUpdate = false })
+        }
         Text(
             "Movies, series, anime, dramas and live sports in one place. Download in any quality and watch offline.",
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),

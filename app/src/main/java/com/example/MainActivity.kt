@@ -200,6 +200,9 @@ fun CinedorMainShell() {
 
     var currentTab by rememberSaveable { mutableStateOf(CinedorTab.HOME) }
 
+    // Ask to update when a newer build is published on GitHub Releases.
+    com.example.ui.components.AppUpdatePrompt()
+
     // 18+ content re-locks every time the app starts: it needs the PIN again.
     LaunchedEffect(preferences.safeMode) {
         if (!preferences.safeMode && !com.example.ui.components.AdultLock.sessionUnlocked) {

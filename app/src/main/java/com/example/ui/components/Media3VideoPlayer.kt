@@ -692,6 +692,13 @@ fun CinePulseVideoPlayer(
                     if (posMs > 0L) preservedPositionMs = posMs
                     if (durMs > 0L && posMs > 0L) latestOnProgressUpdate(posMs, durMs)
                 },
+                onTick = { posMs, durMs, bufMs, playing ->
+                    currentPositionMs = posMs
+                    if (durMs > 0L) durationMs = durMs
+                    bufferedPositionMs = bufMs
+                    isPlaying = playing
+                    PipState.videoPlaying = playing
+                },
                 onError = { errDetail ->
                     Log.w(PLAYER_TAG, "Chromium fallback player failed on ${stream.url}: $errDetail | lastDiag=$lastCdnErrorDiagnostic")
                     if (!latestOnStreamExhausted(stream, 426)) {
@@ -938,76 +945,64 @@ fun CinePulseVideoPlayer(
                     pinchScale = (pinchScale * z).coerceIn(1f, 3f)
                 }
             )
-        } else if (isWebViewMode && playbackError == null) {
-            // Minimal unobtrusive back + speed + fullscreen bar when Chromium HTML5 fallback is active
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(6.dp)
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.45f))
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBackIos,
-                    contentDescription = if (isFullscreen) "Exit fullscreen" else "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
+        } else if (isWebViewMode && playbackError == null && !PipState.inPip) {
+            // HTML5 fallback engine: same Cinedor controls, driven through JavaScript
+            fun js(code: String) {
+                webViewRef?.evaluateJavascript("(function(){var v=document.getElementById('v');if(!v)return;$code})();", null)
             }
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color.Black.copy(alpha = 0.55f),
-                    onClick = {
-                        val nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.size
-                        playbackSpeed = speeds[nextIdx]
-                        webViewRef?.evaluateJavascript(
-                            "var v=document.getElementById('v');if(v){v.playbackRate=$playbackSpeed;}",
-                            null
-                        )
+            CinedorPlayerControlsOverlay(
+                title = title,
+                isPlaying = isPlaying,
+                isBuffering = isBuffering,
+                currentPositionMs = currentPositionMs,
+                bufferedPositionMs = bufferedPositionMs,
+                durationMs = durationMs,
+                isFullscreen = isFullscreen,
+                playbackSpeed = playbackSpeed,
+                resizeOption = resizeOption,
+                streams = streams,
+                selectedStream = stream,
+                captions = emptyList(),
+                selectedCaption = null,
+                onBack = onBack,
+                onTogglePlayPause = { js("if(v.paused||v.ended){v.play();}else{v.pause();}") },
+                onSeekTo = { targetMs ->
+                    val clamped = if (durationMs > 0L) targetMs.coerceIn(0L, durationMs) else targetMs.coerceAtLeast(0L)
+                    js("v.currentTime=${clamped / 1000.0};")
+                    currentPositionMs = clamped
+                },
+                onSeekBy = { deltaMs ->
+                    val target = (currentPositionMs + deltaMs).coerceAtLeast(0L)
+                    val clamped = if (durationMs > 0L) target.coerceAtMost(durationMs) else target
+                    js("v.currentTime=${clamped / 1000.0};")
+                    currentPositionMs = clamped
+                },
+                onCycleSpeed = {
+                    val nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.size
+                    playbackSpeed = speeds[nextIdx]
+                    js("v.playbackRate=$playbackSpeed;")
+                },
+                onCycleResize = {
+                    val nextIdx = (resizeOption.ordinal + 1) % VideoResizeOption.entries.size
+                    resizeOption = VideoResizeOption.entries[nextIdx]
+                    val fit = when (resizeOption) {
+                        VideoResizeOption.FIT -> "contain"
+                        VideoResizeOption.ZOOM, VideoResizeOption.CROP -> "cover"
+                        VideoResizeOption.FILL -> "fill"
                     }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Speed,
-                            contentDescription = "Playback speed",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "${playbackSpeed}x",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextPrimary
-                        )
-                    }
+                    val scale = if (resizeOption == VideoResizeOption.CROP) "1.3" else "1"
+                    js("v.style.objectFit='$fit';v.style.transform='scale($scale)';")
+                },
+                onToggleFullscreen = onToggleFullscreen,
+                onSelectStream = onSelectStream,
+                onSelectCaption = onSelectCaption,
+                modifier = Modifier.fillMaxSize(),
+                onHoldSpeed = { holding -> js("v.playbackRate=${if (holding) 2f else playbackSpeed};") },
+                onSetSpeed = { sp ->
+                    playbackSpeed = sp
+                    js("v.playbackRate=$sp;")
                 }
-                IconButton(
-                    onClick = onToggleFullscreen,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.55f))
-                ) {
-                    Icon(
-                        imageVector = if (isFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                        contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            )
         } else if (playbackError != null) {
             // Ensure user can always exit cleanly when an error overlay is shown
             IconButton(
@@ -1046,9 +1041,11 @@ private fun ChromiumFallbackVideoView(
     onBuffering: (Boolean) -> Unit,
     onProgress: (Long, Long) -> Unit,
     onError: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTick: (Long, Long, Long, Boolean) -> Unit = { _, _, _, _ -> }
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val latestOnTick by rememberUpdatedState(onTick)
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val latestOnPlaying by rememberUpdatedState(onPlaying)
     val latestOnBuffering by rememberUpdatedState(onBuffering)
@@ -1077,7 +1074,7 @@ private fun ChromiumFallbackVideoView(
           </style>
         </head>
         <body>
-          <video id="v" controls autoplay playsinline preload="auto" controlsList="nodownload" referrerpolicy="unsafe-url"></video>
+          <video id="v" autoplay playsinline preload="auto" controlsList="nodownload nofullscreen" disablepictureinpicture referrerpolicy="unsafe-url"></video>
           <script>
             (function(){
               var v = document.getElementById('v');
@@ -1108,6 +1105,13 @@ private fun ChromiumFallbackVideoView(
                   if (window.CinedorBridge) CinedorBridge.onProgress(Math.floor(v.currentTime*1000), Math.floor(v.duration*1000));
                 }
               });
+              setInterval(function(){
+                if (!window.CinedorBridge) return;
+                var buf = 0;
+                try { if (v.buffered.length > 0) buf = v.buffered.end(v.buffered.length - 1); } catch(e){}
+                var dur = isFinite(v.duration) ? v.duration : 0;
+                CinedorBridge.onTick(Math.floor(v.currentTime*1000), Math.floor(dur*1000), Math.floor(buf*1000), !v.paused && !v.ended);
+              }, 500);
               v.addEventListener('error', function(){
                 var code = v.error ? v.error.code : 0;
                 if (window.CinedorBridge) CinedorBridge.onError('media_err_' + code);
@@ -1180,6 +1184,11 @@ private fun ChromiumFallbackVideoView(
                         @JavascriptInterface
                         fun onProgress(posMs: Long, durMs: Long) {
                             mainHandler.post { latestOnProgress(posMs, durMs) }
+                        }
+
+                        @JavascriptInterface
+                        fun onTick(posMs: Long, durMs: Long, bufMs: Long, playing: Boolean) {
+                            mainHandler.post { latestOnTick(posMs, durMs, bufMs, playing) }
                         }
 
                         @JavascriptInterface

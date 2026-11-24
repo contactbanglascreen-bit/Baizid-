@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import com.example.ui.theme.ChipBg
 import com.example.ui.theme.CinetorRedSoft
@@ -320,7 +322,7 @@ fun ExploreScreen(
                     val brand = ottBrandColor(label)
                     Box(
                         modifier = Modifier
-                            .width(118.dp)
+                            .width(132.dp)
                             .height(58.dp)
                             .shadow(if (selected) 8.dp else 3.dp, RoundedCornerShape(16.dp), spotColor = brand)
                             .clip(RoundedCornerShape(16.dp))
@@ -334,14 +336,36 @@ fun ExploreScreen(
                             .testTag("platform_chip_$key"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 15.sp),
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val domain = ottDomain(label)
+                            if (domain != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(Color.White),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = "https://www.google.com/s2/favicons?domain=$domain&sz=128",
+                                        contentDescription = "$label logo",
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(7.dp))
+                            }
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 13.sp),
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                         if (selected) {
                             Box(
                                 modifier = Modifier
@@ -593,5 +617,37 @@ private fun FilterLabelRow(
         items(options) { opt ->
             ExplorePill(label = opt, selected = isSelected(opt), onClick = { onSelect(opt) })
         }
+    }
+}
+
+
+/** Official website of each OTT service, used to show its real logo icon. */
+private fun ottDomain(label: String): String? {
+    val l = label.lowercase()
+    return when {
+        "netflix" in l -> "netflix.com"
+        "hoichoi" in l -> "hoichoi.tv"
+        "prime" in l || "amazon" in l -> "primevideo.com"
+        "zee" in l -> "zee5.com"
+        "hotstar" in l -> "hotstar.com"
+        "disney" in l -> "disneyplus.com"
+        "jio" in l -> "jiocinema.com"
+        "sony" in l -> "sonyliv.com"
+        "chorki" in l -> "chorki.com"
+        "bongo" in l -> "bongobd.com"
+        "apple" in l -> "tv.apple.com"
+        "hbo" in l || "max" in l -> "max.com"
+        "crunchyroll" in l -> "crunchyroll.com"
+        "aha" in l -> "aha.video"
+        "viu" in l -> "viu.com"
+        "mx" in l -> "mxplayer.in"
+        "binge" in l -> "binge.buzz"
+        "iscreen" in l -> "iscreen.com.bd"
+        "toffee" in l -> "toffeelive.com"
+        "youtube" in l -> "youtube.com"
+        "paramount" in l -> "paramountplus.com"
+        "peacock" in l -> "peacocktv.com"
+        "hulu" in l -> "hulu.com"
+        else -> null
     }
 }

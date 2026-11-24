@@ -384,18 +384,29 @@ fun PosterCard(
         verticalAlignment = Alignment.Bottom
     ) {
         if (rankNumber != null) {
-            Text(
-                text = rankNumber.toString(),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontWeight = FontWeight.Black,
-                    fontSize = 64.sp,
-                    lineHeight = 64.sp,
-                    drawStyle = Stroke(width = 4f)
-                ),
-                color = RankOutline,
-                modifier = Modifier
-                    .offset(x = 8.dp, y = (-22).dp)
-            )
+            Box(modifier = Modifier.offset(x = 8.dp, y = (-22).dp)) {
+                Text(
+                    text = rankNumber.toString(),
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 64.sp,
+                        lineHeight = 64.sp,
+                        brush = Brush.verticalGradient(
+                            listOf(CinetorRed.copy(alpha = 0.85f), CinetorRed.copy(alpha = 0.08f))
+                        )
+                    )
+                )
+                Text(
+                    text = rankNumber.toString(),
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 64.sp,
+                        lineHeight = 64.sp,
+                        drawStyle = Stroke(width = 3f)
+                    ),
+                    color = CinetorRed.copy(alpha = 0.55f)
+                )
+            }
         }
         Column(modifier = Modifier.width(posterWidth)) {
             Box(
@@ -444,16 +455,38 @@ fun PosterCard(
                     .fillMaxWidth()
                     .padding(start = 2.dp, end = 2.dp, top = 7.dp)
             )
-            val meta = listOf(item.year, tag).filter { it.isNotBlank() }.joinToString(" · ")
-            if (meta.isNotBlank()) {
-                Text(
-                    text = meta,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                    color = TextMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
-                )
+            val shownYear = item.year.take(4).ifBlank { yearFromTitle(item.title) }
+            if (shownYear.isNotBlank() || tag.isNotBlank()) {
+                Row(
+                    modifier = Modifier.padding(start = 2.dp, end = 2.dp, top = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (shownYear.isNotBlank()) {
+                        Text(
+                            text = shownYear,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                            color = TextMuted,
+                            maxLines = 1
+                        )
+                    }
+                    if (shownYear.isNotBlank() && tag.isNotBlank()) Spacer(modifier = Modifier.width(5.dp))
+                    if (tag.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(CinetorRedSoft)
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = CinetorRed,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -923,7 +956,9 @@ fun SectionHeaderRow(
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = title,
+            text = remember(title) {
+                title.replace(Regex("[\\p{So}\\p{Sk}\\uD800-\\uDFFF\\u200D\\uFE0F]"), "").trim().ifBlank { title }
+            },
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 17.sp
@@ -1100,8 +1135,13 @@ fun EmptyLibraryCard(
 
 
 /** Splits "Masters of the Universe [Hindi]" into ("Masters of the Universe", "Hindi"). */
+internal fun yearFromTitle(raw: String): String =
+    Regex("\\((\\d{4})\\)").find(raw)?.groupValues?.get(1).orEmpty()
+
 internal fun splitTitleTag(raw: String): Pair<String, String> {
     val tags = Regex("\\[([^\\]]+)\\]").findAll(raw).map { it.groupValues[1].trim() }.filter { it.isNotBlank() }.toList()
-    val clean = raw.replace(Regex("\\s*\\[[^\\]]*\\]"), "").trim().ifBlank { raw }
+    val clean = raw.replace(Regex("\\s*\\[[^\\]]*\\]"), "")
+        .replace(Regex("\\s*\\(\\d{4}\\)"), "")
+        .trim().ifBlank { raw }
     return clean to tags.joinToString(" · ")
 }

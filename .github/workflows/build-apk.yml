@@ -20,6 +20,8 @@ jobs:
   build-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -98,6 +100,17 @@ jobs:
           name: Cinedor-debug-apk
           path: Cinedor-debug.apk
           retention-days: 30
+
+      - name: Publish update (GitHub Release)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_type == 'debug' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Cinedor 1.0.${{ github.run_number }}
+          body: "Cinedor update — version 1.0.${{ github.run_number }}"
+          target_commitish: ${{ github.sha }}
+          make_latest: "true"
+          files: Cinedor-debug.apk
 
       - name: Upload Release APK
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'release' }}
