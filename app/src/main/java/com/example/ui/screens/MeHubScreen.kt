@@ -136,7 +136,7 @@ private val AvatarShapes: List<Shape> = listOf(
     polygonShape(6, rotationDeg = -90f),
     polygonShape(4, rotationDeg = -90f),
     polygonShape(8, innerRatio = 0.72f),
-    RoundedCornerShape(topStart = 50, topEnd = 12, bottomEnd = 50, bottomStart = 12)
+    RoundedCornerShape(topStartPercent = 50, topEndPercent = 12, bottomEndPercent = 50, bottomStartPercent = 12)
 )
 
 @Composable
