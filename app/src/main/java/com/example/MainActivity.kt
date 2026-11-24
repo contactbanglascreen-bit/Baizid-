@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
+        com.example.ui.components.AdultLock.load(applicationContext)
         com.example.ui.components.PipState.requestPip = { enterPipIfAllowed() }
 
         // Lazy Coil ImageLoaderFactory: avoids synchronous DiskCache I/O on Main Thread during onCreate
@@ -198,6 +199,13 @@ fun CinedorMainShell() {
     }
 
     var currentTab by rememberSaveable { mutableStateOf(CinedorTab.HOME) }
+
+    // 18+ content re-locks every time the app starts: it needs the PIN again.
+    LaunchedEffect(preferences.safeMode) {
+        if (!preferences.safeMode && !com.example.ui.components.AdultLock.sessionUnlocked) {
+            viewModel.updateSafeMode(true)
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(toastMessage) {

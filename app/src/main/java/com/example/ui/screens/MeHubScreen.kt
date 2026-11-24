@@ -5,6 +5,12 @@ import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import com.example.ui.theme.CinedorPalettes
+import com.example.ui.components.AdultLock
+import com.example.ui.components.AdultPinDialog
+import com.example.ui.components.PinMode
+import com.example.ui.components.rememberGuardedSafeModeToggle
+import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -188,6 +194,7 @@ fun MeHubScreen(
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf(MePage.HUB) }
     var editOpen by remember { mutableStateOf(false) }
+    val guardedSafeMode = rememberGuardedSafeModeToggle(onUpdateSafeMode)
 
     BackHandler(enabled = page != MePage.HUB) { page = MePage.HUB }
 
@@ -262,6 +269,12 @@ fun MeHubScreen(
                     MenuDivider()
                     MenuRow(Icons.Rounded.Download, "Downloads", "$downloadedCount downloaded") { page = MePage.DOWNLOADS }
                     MenuDivider()
+                    AdultMenuRow(
+                        unlocked = !preferences.safeMode,
+                        hasPin = AdultLock.hasPin,
+                        onClick = { guardedSafeMode(!preferences.safeMode) }
+                    )
+                    MenuDivider()
                     MenuRow(Icons.Rounded.Settings, "Settings", "Player, downloads & privacy") { page = MePage.SETTINGS }
                     MenuDivider()
                     MenuRow(Icons.Rounded.Info, "About", "Cinedor · version & info") { page = MePage.ABOUT }
@@ -303,7 +316,8 @@ fun MeHubScreen(
             MePage.SETTINGS -> SettingsPage(
                 preferences = preferences,
                 onUpdateLanguage = onUpdateLanguage,
-                onUpdateSafeMode = onUpdateSafeMode,
+                onUpdateSafeMode = guardedSafeMode,
+                onLockNow = onUpdateSafeMode,
                 onClearHistory = onClearHistory
             )
 
@@ -730,6 +744,7 @@ private fun SettingsPage(
     preferences: UserPreferences,
     onUpdateLanguage: (ContentLanguage) -> Unit,
     onUpdateSafeMode: (Boolean) -> Unit,
+    onLockNow: (Boolean) -> Unit,
     onClearHistory: () -> Unit
 ) {
     val context = LocalContext.current
@@ -858,10 +873,45 @@ private fun SettingsPage(
     SettingsCard("Content & Privacy") {
         SettingSwitchRow(
             title = "Family-Safe Mode",
-            subtitle = "Hide mature 18+ categories and keep feeds clean",
+            subtitle = if (AdultLock.hasPin) "Hides 18+ content · PIN needed to turn off" else "Hides 18+ content · you'll set a PIN to turn off",
             checked = preferences.safeMode,
             onChange = onUpdateSafeMode
         )
+        if (AdultLock.hasPin) {
+            var pinFlow by remember { mutableStateOf<String?>(null) }
+            HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
+            SettingLinkRow("Change 18+ PIN", "Enter your current PIN, then choose a new one") { pinFlow = "change_verify" }
+            HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
+            SettingLinkRow("Remove 18+ PIN", "Turns Family-Safe Mode back on and deletes the PIN") { pinFlow = "remove_verify" }
+            when (pinFlow) {
+                "change_verify" -> AdultPinDialog(
+                    mode = PinMode.VERIFY,
+                    title = "Current PIN",
+                    onSuccess = { pinFlow = "change_new" },
+                    onDismiss = { pinFlow = null }
+                )
+                "change_new" -> AdultPinDialog(
+                    mode = PinMode.CREATE,
+                    title = "New PIN",
+                    onSuccess = {
+                        pinFlow = null
+                        Toast.makeText(context, "PIN changed", Toast.LENGTH_SHORT).show()
+                    },
+                    onDismiss = { pinFlow = null }
+                )
+                "remove_verify" -> AdultPinDialog(
+                    mode = PinMode.VERIFY,
+                    title = "Remove PIN",
+                    onSuccess = {
+                        pinFlow = null
+                        AdultLock.removePin(context)
+                        onLockNow(true)
+                        Toast.makeText(context, "PIN removed · Family-Safe Mode on", Toast.LENGTH_SHORT).show()
+                    },
+                    onDismiss = { pinFlow = null }
+                )
+            }
+        }
         HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
         Spacer(modifier = Modifier.height(8.dp))
         Text("Preferred language", style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp), color = TextPrimary)
@@ -1064,5 +1114,61 @@ private fun ThemePreviewCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+
+@Composable
+private fun AdultMenuRow(unlocked: Boolean, hasPin: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(CinetorRedSoft),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (unlocked) Icons.Rounded.LockOpen else Icons.Rounded.Lock,
+                contentDescription = null,
+                tint = CinetorRed,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Adult Content",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                color = TextPrimary
+            )
+            Text(
+                text = when {
+                    unlocked -> "Unlocked · tap to lock again"
+                    hasPin -> "Locked with PIN · tap to unlock"
+                    else -> "Locked · tap to set a PIN"
+                },
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = if (unlocked) CinetorRed else TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(CinetorRed)
+                .padding(horizontal = 8.dp, vertical = 3.dp)
+        ) {
+            Text("18+", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black), color = OnAccent)
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = TextMuted)
     }
 }

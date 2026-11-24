@@ -85,6 +85,7 @@ import com.example.ui.components.EmptyLibraryCard
 import com.example.ui.components.PosterCard
 import com.example.ui.components.SectionHeaderRow
 import com.example.ui.components.InAppDownloadsList
+import com.example.ui.components.rememberGuardedSafeModeToggle
 import com.example.ui.theme.OnAccent
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CinedorGradientColors
@@ -574,9 +575,10 @@ private fun StreamingPreferencesCard(
                             )
                         }
                     }
+                    val guardedSafeMode = rememberGuardedSafeModeToggle(onUpdateSafeMode)
                     Switch(
                         checked = preferences.safeMode,
-                        onCheckedChange = onUpdateSafeMode,
+                        onCheckedChange = guardedSafeMode,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = OnAccent,
                             checkedTrackColor = LiveEmerald
