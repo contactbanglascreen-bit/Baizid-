@@ -1,6 +1,8 @@
 package com.example.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -28,14 +30,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.LiveTv
-import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -50,8 +53,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -64,29 +70,84 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.local.WatchHistoryItem
-import com.example.data.model.MediaCategoryType
 import com.example.data.model.MediaItem
 import com.example.data.model.SportsMatch
 import com.example.ui.theme.CinemaGold
-import com.example.ui.theme.CinedorGradientColors
-import com.example.ui.theme.CinedorMagenta
-import com.example.ui.theme.CinedorPink
-import com.example.ui.theme.CinedorTintedSurface
-import com.example.ui.theme.CinedorViolet
+import com.example.ui.theme.CinetorBlush
+import com.example.ui.theme.CinetorRed
+import com.example.ui.theme.CinetorRedDark
+import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.CrimsonPrimary
+import com.example.ui.theme.MediaCardDark
+import com.example.ui.theme.MediaCardDarkEnd
 import com.example.ui.theme.ObsidianBackground
 import com.example.ui.theme.ObsidianBorder
 import com.example.ui.theme.ObsidianCard
-import com.example.ui.theme.ObsidianSurface
 import com.example.ui.theme.ObsidianSurfaceVariant
+import com.example.ui.theme.OnAccent
+import com.example.ui.theme.OnMediaText
+import com.example.ui.theme.OnMediaTextSecondary
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import kotlin.math.absoluteValue
 import kotlinx.coroutines.delay
 
+/** Red gradient used by every primary "Play" style button. */
+private val RedButtonBrush = Brush.verticalGradient(listOf(Color(0xFFE8141F), CinetorRedDark))
+
+/** Small dark translucent pill with a red star + rating (e.g. "★ 7.9"). */
+@Composable
+fun RatingBadge(rating: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.Black.copy(alpha = 0.62f))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Star,
+            contentDescription = null,
+            tint = CinetorRed,
+            modifier = Modifier.size(13.dp)
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = rating,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+            color = OnMediaText,
+            maxLines = 1
+        )
+    }
+}
+
+/** Translucent outlined chip drawn on top of artwork ("Action", "2022"...). */
+@Composable
+private fun GlassMetaChip(text: String, modifier: Modifier = Modifier, solid: Boolean = false) {
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(if (solid) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.14f))
+            .border(1.dp, Color.White.copy(alpha = if (solid) 0f else 0.35f), CircleShape)
+            .padding(horizontal = 11.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = if (solid) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 12.sp
+            ),
+            color = if (solid) TextPrimary else OnMediaText,
+            maxLines = 1
+        )
+    }
+}
+
 /**
- * 100% MovieBox-faithful Hero Banner with overlapping floating mini-poster play card carousel,
- * styled with Cinedor's Violet -> Magenta -> Pink gradient accent.
+ * Hero carousel: large rounded centre poster card with peeking neighbours,
+ * rating/year/genre chips, a red "Play" pill and a white "My List" pill,
+ * plus a page indicator (active page = long red pill).
  */
 @Composable
 fun HeroBannerCarousel(
@@ -109,153 +170,165 @@ fun HeroBannerCarousel(
         }
     }
 
-    val currentItem = banners[pagerState.currentPage.coerceIn(0, banners.lastIndex)]
-
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(352.dp)
+            .background(
+                Brush.verticalGradient(listOf(CinetorBlush, ObsidianBackground))
+            )
+            .padding(top = 10.dp, bottom = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Full-bleed Hero Artwork synced with active card
-        AsyncImage(
-            model = currentItem.backdropUrl.ifBlank { currentItem.posterUrl },
-            contentDescription = currentItem.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(310.dp)
-                .clickable { onPlayClick(currentItem) }
-        )
-
-        // Top & bottom MovieBox atmospheric vignette blending cleanly into dark background
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to ObsidianBackground.copy(alpha = 0.72f),
-                            0.25f to Color.Transparent,
-                            0.62f to Color.Transparent,
-                            0.88f to ObsidianBackground.copy(alpha = 0.88f),
-                            1.0f to ObsidianBackground
-                        )
-                    )
-                )
-        )
-
-        // Overlapping MovieBox Floating Mini-Poster Card Carousel (peeking next card on the right!)
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(start = 12.dp, end = 52.dp),
-            pageSpacing = 10.dp,
+            contentPadding = PaddingValues(horizontal = 48.dp),
+            pageSpacing = 8.dp,
             modifier = Modifier
-                .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(bottom = 4.dp)
+                .height(420.dp)
         ) { page ->
             val item = banners[page]
+            val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+            val fraction = 1f - pageOffset.coerceIn(0f, 1f)
+            val inWatchlist = watchlistIds.contains(item.id)
+
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(82.dp)
-                    .clickable { onPlayClick(item) }
-                    .testTag("hero_play_button")
-            ) {
-                // Dark rounded card body (sits slightly below the protruding mini-poster top)
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = ObsidianCard.copy(alpha = 0.94f),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(68.dp)
-                        .border(0.75.dp, ObsidianBorder.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 74.dp, end = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp
-                                ),
-                                color = TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (item.mediaType == MediaCategoryType.MOVIE) {
-                                        Icons.Rounded.Movie
-                                    } else {
-                                        Icons.Rounded.LiveTv
-                                    },
-                                    contentDescription = null,
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                val metaParts = buildList {
-                                    if (item.year.isNotBlank()) add(item.year)
-                                    add(
-                                        item.genres.firstOrNull()?.takeIf { it.isNotBlank() }
-                                            ?: item.mediaType.label
-                                    )
-                                }
-                                Text(
-                                    text = "| ${metaParts.joinToString(" | ")}",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                    color = TextSecondary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        // Cinedor Logo-Gradient Circular Play Button (replaces MovieBox green circle)
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(Brush.linearGradient(CinedorGradientColors))
-                                .clickable { onPlayClick(item) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.PlayArrow,
-                                contentDescription = stringResource(R.string.play_now),
-                                tint = ObsidianBackground,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val s = 0.86f + 0.14f * fraction
+                        scaleX = s
+                        scaleY = s
+                        alpha = 0.55f + 0.45f * fraction
                     }
-                }
-
-                // Protruding 3D Mini-Poster Thumbnail on Left
+                    .shadow(16.dp, RoundedCornerShape(28.dp), spotColor = Color.Black.copy(alpha = 0.35f))
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(MediaCardDark)
+                    .clickable { onPlayClick(item) }
+            ) {
                 AsyncImage(
                     model = item.posterUrl.ifBlank { item.backdropUrl },
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 10.dp, bottom = 6.dp)
-                        .size(width = 52.dp, height = 74.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(ObsidianSurfaceVariant)
-                        .border(0.75.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(7.dp))
+                    modifier = Modifier.fillMaxSize()
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.0f to Color.Transparent,
+                                    0.52f to Color.Transparent,
+                                    0.80f to Color.Black.copy(alpha = 0.55f),
+                                    1.0f to Color(0xFF3A0A0E).copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (item.rating.isNotBlank()) RatingBadge(rating = item.rating)
+                        if (item.year.isNotBlank()) GlassMetaChip(text = item.year)
+                        val lang = item.languageBadge
+                        if (lang.isNotBlank()) GlassMetaChip(text = lang.take(10), solid = true)
+                    }
+                    val genres = item.genres.filter { it.isNotBlank() }.take(3)
+                    if (genres.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            genres.forEach { GlassMetaChip(text = it) }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                                .shadow(6.dp, CircleShape, spotColor = CinetorRed)
+                                .clip(CircleShape)
+                                .background(RedButtonBrush)
+                                .clickable { onPlayClick(item) }
+                                .testTag("hero_play_button"),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = stringResource(R.string.play_now),
+                                tint = OnAccent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Play",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = OnAccent
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(listOf(Color.White, Color(0xFFEDE8E8)))
+                                )
+                                .clickable { onToggleWatchlist(item) },
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (inWatchlist) Icons.Rounded.Check else Icons.Rounded.Add,
+                                contentDescription = if (inWatchlist) "Remove from My List" else "Add to My List",
+                                tint = TextPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "My List",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = TextPrimary,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (banners.size > 1) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(banners.size.coerceAtMost(10)) { index ->
+                    val active = pagerState.currentPage == index
+                    val w by animateDpAsState(if (active) 26.dp else 7.dp, label = "dot_w")
+                    val c by animateColorAsState(if (active) CinetorRed else Color(0xFFCFC8C7), label = "dot_c")
+                    Box(
+                        modifier = Modifier
+                            .width(w)
+                            .height(7.dp)
+                            .clip(CircleShape)
+                            .background(c)
+                    )
+                }
             }
         }
     }
@@ -268,9 +341,9 @@ fun GlassBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = accent.copy(alpha = 0.2f),
-        modifier = modifier.border(0.75.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+        shape = RoundedCornerShape(8.dp),
+        color = accent.copy(alpha = 0.18f),
+        modifier = modifier.border(0.75.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
     ) {
         Text(
             text = text,
@@ -283,11 +356,11 @@ fun GlassBadge(
 }
 
 /**
- * 100% MovieBox-faithful Poster Card:
- * - Rounded card fusing the 2:3 poster image + dark #1B1E23 caption footer strip
- * - Top-right translucent dark language/dub badge ("Hindi", "Punjabi", "Bengali")
- * - Giant semi-transparent rank watermark ("1", "2", "3") at bottom-right of poster
- * - Clean single-line title inside the fused dark footer
+ * Poster card:
+ * - Rounded 2:3 poster with a dark rating pill (red star) top-left
+ *   and a white language pill top-right
+ * - Title underneath on the page background
+ * - Optional large outlined rank number peeking out on the left ("Top 10" rows)
  */
 @Composable
 fun PosterCard(
@@ -296,19 +369,35 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     rankNumber: Int? = null
 ) {
-    Surface(
-        shape = RoundedCornerShape(9.dp),
-        color = ObsidianCard,
+    val posterWidth = 124.dp
+    Row(
         modifier = modifier
-            .width(116.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .testTag("poster_card_${item.id.take(16)}")
+            .testTag("poster_card_${item.id.take(16)}"),
+        verticalAlignment = Alignment.Bottom
     ) {
-        Column {
+        if (rankNumber != null) {
+            Text(
+                text = rankNumber.toString(),
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 84.sp,
+                    lineHeight = 84.sp,
+                    drawStyle = Stroke(width = 5f)
+                ),
+                color = Color(0xFF8E6B6E),
+                modifier = Modifier
+                    .offset(x = 10.dp, y = (-26).dp)
+            )
+        }
+        Column(modifier = Modifier.width(posterWidth)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(0.68f)
+                    .shadow(4.dp, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(ObsidianSurfaceVariant)
             ) {
                 AsyncImage(
@@ -317,84 +406,56 @@ fun PosterCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-
-                // Top-right dark translucent language/quality badge (MovieBox exact style)
+                if (item.rating.isNotBlank()) {
+                    RatingBadge(
+                        rating = item.rating,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                    )
+                }
                 val badgeText = item.languageBadge.ifBlank { item.qualityBadge }
                 if (badgeText.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(5.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color.Black.copy(alpha = 0.65f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.95f))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = badgeText.take(10),
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
                             ),
-                            color = Color.White,
+                            color = TextPrimary,
                             maxLines = 1
                         )
                     }
                 }
-
-                // Giant Translucent Rank Watermark at bottom-right (MovieBox "1", "2", "3" style)
-                if (rankNumber != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp)
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
-                                )
-                            )
-                    )
-                    Text(
-                        text = rankNumber.toString(),
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 54.sp,
-                            lineHeight = 54.sp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.62f),
-                                    CinedorMagenta.copy(alpha = 0.28f)
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = (-4).dp, y = 6.dp)
-                    )
-                }
             }
-
-            // Fused MovieBox Dark Caption Footer Strip
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 12.sp
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    lineHeight = 17.sp
                 ),
-                color = Color(0xFFDCE0E8),
-                maxLines = 1,
+                color = TextPrimary,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ObsidianCard)
-                    .padding(horizontal = 7.dp, vertical = 8.dp)
+                    .padding(horizontal = 2.dp, vertical = 6.dp)
             )
         }
     }
 }
 
 /**
- * MovieBox-style wide landscape card (used for Viral Shorts / Music / Kids / Continue Watching).
+ * Wide landscape "Continue Watching" card with red progress bar.
  */
 @Composable
 fun ContinueWatchingCard(
@@ -402,94 +463,96 @@ fun ContinueWatchingCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = ObsidianCard,
+    Column(
         modifier = modifier
-            .width(184.dp)
+            .width(196.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .testTag("continue_watching_${history.id.take(16)}")
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(ObsidianSurfaceVariant)
+        ) {
+            AsyncImage(
+                model = history.posterUrl,
+                contentDescription = history.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(102.dp)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
             ) {
-                AsyncImage(
-                    model = history.posterUrl,
-                    contentDescription = history.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(RedButtonBrush),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(CinedorGradientColors)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
-                            contentDescription = "Resume",
-                            tint = ObsidianBackground,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-                if (history.season > 0L && history.episode > 0L) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color.Black.copy(alpha = 0.68f))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "S${history.season} E${history.episode}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = Color.White
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = "Resume",
+                        tint = OnAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
-
-            // Cinedor Gradient Progress Strip
+            if (history.season > 0L && history.episode > 0L) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.Black.copy(alpha = 0.62f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "S${history.season} E${history.episode}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                        color = OnMediaText
+                    )
+                }
+            }
             Box(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(2.5.dp)
-                    .background(ObsidianSurfaceVariant)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.35f))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(history.progressFraction.coerceIn(0.05f, 1f))
-                        .height(2.5.dp)
-                        .background(Brush.horizontalGradient(CinedorGradientColors))
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(CinetorRed)
                 )
             }
-
-            Text(
-                text = history.title,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                color = Color(0xFFDCE0E8),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
-            )
         }
+
+        Text(
+            text = history.title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            color = TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp, vertical = 6.dp)
+        )
     }
 }
 
 /**
- * 100% MovieBox-faithful Live Sports Match Card with Cinedor Violet-Magenta accent gradient!
+ * Live sports card: dark rounded tile with a red "LIVE" pill and red round play button.
  */
 @Composable
 fun SportsMatchCard(
@@ -497,58 +560,40 @@ fun SportsMatchCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cardBrush = if (match.isLive) {
-        Brush.horizontalGradient(
-            listOf(
-                Color(0xFF3A1230),
-                Color(0xFF1F1634),
-                Color(0xFF142238)
-            )
-        )
-    } else {
-        Brush.horizontalGradient(
-            listOf(
-                Color(0xFF1A1C24),
-                Color(0xFF1E1B2B)
-            )
-        )
-    }
-
     Box(
         modifier = modifier
-            .width(276.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(cardBrush)
-            .border(0.75.dp, ObsidianBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .width(280.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Brush.verticalGradient(listOf(MediaCardDark, MediaCardDarkEnd)))
+            .border(
+                1.dp,
+                if (match.isLive) CinetorRed.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.06f),
+                RoundedCornerShape(22.dp)
+            )
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(14.dp)
     ) {
         Column {
-            // Centered League Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (match.isLive) CinedorPink else CinedorViolet)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = match.league,
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                    color = Color(0xFFD5D8E2),
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp),
+                    color = OnMediaTextSecondary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+                if (match.isLive) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LivePill()
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Teams & Big Center Score
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -563,10 +608,10 @@ fun SportsMatchCard(
                     Text(
                         text = match.scoreText.ifBlank { "VS" },
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp
                         ),
-                        color = if (match.isLive) CinedorMagenta else TextPrimary
+                        color = OnMediaText
                     )
                     if (!match.isLive && match.startTime.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -586,7 +631,7 @@ fun SportsMatchCard(
                         Text(
                             text = formattedTime,
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = TextSecondary
+                            color = OnMediaTextSecondary
                         )
                     }
                 }
@@ -596,44 +641,61 @@ fun SportsMatchCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Bottom Full-Width Action Pill ("Details" or "Notify Me" in Cinedor accent)
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .height(38.dp)
+                    .clip(CircleShape)
                     .background(
-                        if (match.isLive) {
-                            Color.White.copy(alpha = 0.12f)
-                        } else {
-                            CinedorTintedSurface
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    if (!match.isLive) {
-                        Icon(
-                            imageVector = Icons.Rounded.NotificationsNone,
-                            contentDescription = null,
-                            tint = CinedorMagenta,
-                            modifier = Modifier.size(15.dp)
+                        if (match.isLive) RedButtonBrush else Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.08f))
                         )
-                    }
-                    Text(
-                        text = if (match.isLive) "Details" else "Notify Me",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
-                        ),
-                        color = if (match.isLive) TextPrimary else CinedorMagenta
-                    )
-                }
+                    ),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (match.isLive) Icons.Rounded.PlayArrow else Icons.Rounded.NotificationsNone,
+                    contentDescription = null,
+                    tint = OnAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = if (match.isLive) "Watch live" else "Notify Me",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = OnAccent
+                )
             }
         }
+    }
+}
+
+/** Red "● LIVE" pill. */
+@Composable
+fun LivePill(modifier: Modifier = Modifier, label: String = "LIVE") {
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(CinetorRed)
+            .padding(horizontal = 9.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.85f))
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+            color = OnAccent
+        )
     }
 }
 
@@ -649,7 +711,7 @@ private fun TeamColumn(
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
@@ -665,7 +727,7 @@ private fun TeamColumn(
                 Text(
                     text = name.take(2).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = TextPrimary
+                    color = OnMediaText
                 )
             }
         }
@@ -673,7 +735,7 @@ private fun TeamColumn(
         Text(
             text = name,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-            color = Color(0xFFD5D8E2),
+            color = OnMediaTextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -682,7 +744,8 @@ private fun TeamColumn(
 }
 
 /**
- * 100% MovieBox-faithful Categories Photo-Backed Banner Chip ("All", "All Movies", "All Dramas", etc.)
+ * Category chip with a faint poster preview behind a light rounded pill.
+ * [accentColors] is kept for API compatibility.
  */
 @Composable
 fun CategoryBannerChip(
@@ -694,30 +757,20 @@ fun CategoryBannerChip(
 ) {
     Box(
         modifier = modifier
-            .height(46.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(Brush.horizontalGradient(accentColors))
-            .clickable(onClick = onClick)
+            .height(48.dp)
+            .clip(CircleShape)
+            .background(ObsidianCard)
+            .border(1.dp, ObsidianBorder, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         if (!previewImageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = previewImageUrl,
                 contentDescription = label,
                 contentScale = ContentScale.Crop,
-                alpha = 0.35f,
+                alpha = 0.18f,
                 modifier = Modifier.matchParentSize()
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                accentColors.first().copy(alpha = 0.85f),
-                                accentColors.last().copy(alpha = 0.55f)
-                            )
-                        )
-                    )
             )
         }
         Text(
@@ -726,20 +779,14 @@ fun CategoryBannerChip(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp
             ),
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = 16.dp)
+            color = TextPrimary,
+            modifier = Modifier.padding(horizontal = 20.dp)
         )
     }
 }
 
 /**
- * 100% MovieBox-faithful Coming Soon Card:
- * - Top-left 2-line Cinedor-tinted date block (e.g. "Dec\n12")
- * - Top-right outline/filled reminder bell button
- * - Bottom-center booked/release text over fade
- * - Fused dark caption strip underneath
+ * Coming Soon card: rounded poster with a red date tag, reminder bell and title below.
  */
 @Composable
 fun UpcomingReleaseCard(
@@ -753,124 +800,99 @@ fun UpcomingReleaseCard(
     val topDateLine = dateTokens.firstOrNull()?.take(4) ?: "Soon"
     val bottomDateLine = dateTokens.getOrNull(1)?.take(4) ?: ""
 
-    Surface(
-        shape = RoundedCornerShape(9.dp),
-        color = ObsidianCard,
+    Column(
         modifier = modifier
-            .width(120.dp)
+            .width(124.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
     ) {
-        Column {
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(ObsidianSurfaceVariant)
+        ) {
+            AsyncImage(
+                model = item.posterUrl.ifBlank { item.backdropUrl },
+                contentDescription = item.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(0.68f)
-                    .background(ObsidianSurfaceVariant)
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CinetorRed)
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AsyncImage(
-                    model = item.posterUrl.ifBlank { item.backdropUrl },
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                Text(
+                    text = topDateLine,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                    color = OnAccent
                 )
-
-                // Top-left MovieBox stacked Date Ribbon (in Cinedor deep violet-magenta!)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .clip(RoundedCornerShape(bottomEnd = 8.dp))
-                        .background(CinedorTintedSurface.copy(alpha = 0.92f))
-                        .padding(horizontal = 7.dp, vertical = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                if (bottomDateLine.isNotBlank()) {
                     Text(
-                        text = topDateLine,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = Color.White
-                    )
-                    if (bottomDateLine.isNotBlank()) {
-                        Text(
-                            text = bottomDateLine,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            ),
-                            color = CinedorMagenta
-                        )
-                    }
-                }
-
-                // Top-right Reminder Bell Icon
-                IconButton(
-                    onClick = onToggleReminder,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isReminded) {
-                                CinedorMagenta
-                            } else {
-                                Color.Black.copy(alpha = 0.45f)
-                            }
-                        )
-                ) {
-                    Icon(
-                        imageVector = if (isReminded) {
-                            Icons.Rounded.NotificationsActive
-                        } else {
-                            Icons.Rounded.NotificationsNone
-                        },
-                        contentDescription = if (isReminded) "Remove reminder" else "Remind me",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Bottom-center subtle fade + status
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
-                            )
-                        )
-                        .padding(vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isReminded) "Reminded ✓" else item.releaseDate.ifBlank { "Coming Soon" }.take(14),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = if (isReminded) CinedorMagenta else Color.White.copy(alpha = 0.9f),
-                        maxLines = 1
+                        text = bottomDateLine,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = OnAccent
                     )
                 }
             }
 
-            // Fused MovieBox dark footer caption
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                color = Color(0xFFDCE0E8),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            IconButton(
+                onClick = onToggleReminder,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(if (isReminded) CinetorRed else Color.White.copy(alpha = 0.92f))
+            ) {
+                Icon(
+                    imageVector = if (isReminded) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsNone,
+                    contentDescription = if (isReminded) "Remove reminder" else "Remind me",
+                    tint = if (isReminded) OnAccent else TextPrimary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ObsidianCard)
-                    .padding(horizontal = 7.dp, vertical = 8.dp)
-            )
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))))
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isReminded) "Reminded ✓" else item.releaseDate.ifBlank { "Coming Soon" }.take(14),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                    color = OnMediaText,
+                    maxLines = 1
+                )
+            }
         }
+
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            color = TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp, vertical = 6.dp)
+        )
     }
 }
 
 /**
- * 100% MovieBox-faithful Section Header: Clean bold white title left + "All >" chevron link right
+ * Section header: red accent bar + bold title on the left, "See all >" on the right.
  */
 @Composable
 fun SectionHeaderRow(
@@ -882,15 +904,23 @@ fun SectionHeaderRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(20.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(CinetorRed)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp
             ),
             color = TextPrimary,
             maxLines = 1,
@@ -901,20 +931,20 @@ fun SectionHeaderRow(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(CircleShape)
                     .clickable(onClick = onActionClick)
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = actionLabel,
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                    text = if (actionLabel == "All") "See all" else actionLabel,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
                     color = TextSecondary
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = null,
                     tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -925,24 +955,24 @@ fun SectionHeaderRow(
 fun ShimmerPosterRow(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val alpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.75f,
+        initialValue = 0.45f,
+        targetValue = 0.95f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "shimmer_alpha"
     )
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         repeat(3) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(0.66f)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(ObsidianCard.copy(alpha = alpha))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFEDE6E5).copy(alpha = alpha))
             )
         }
     }
@@ -956,28 +986,27 @@ fun ApiErrorOrKeyCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         color = ObsidianCard,
+        shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
             .border(
                 1.dp,
                 if (isApiKeyMissing) CinemaGold.copy(alpha = 0.6f) else ObsidianBorder,
-                RoundedCornerShape(16.dp)
+                RoundedCornerShape(24.dp)
             )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(54.dp)
                     .clip(CircleShape)
-                    .background(
-                        (if (isApiKeyMissing) CinemaGold else CrimsonPrimary).copy(alpha = 0.16f)
-                    ),
+                    .background(if (isApiKeyMissing) CinemaGold.copy(alpha = 0.16f) else CinetorRedSoft),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -990,20 +1019,21 @@ fun ApiErrorOrKeyCard(
             Spacer(modifier = Modifier.height(14.dp))
             Text(
                 text = if (isApiKeyMissing) stringResource(R.string.api_key_missing_title) else "Unable to Load Content",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = TextPrimary
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (isApiKeyMissing) stringResource(R.string.api_key_missing_body) else message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
+                color = TextSecondary,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onRetry,
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CrimsonPrimary),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = CrimsonPrimary, contentColor = OnAccent),
                 modifier = Modifier
                     .height(48.dp)
                     .testTag("retry_api_button")
@@ -1024,30 +1054,38 @@ fun EmptyLibraryCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(24.dp),
         color = ObsidianCard,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(14.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .border(1.dp, ObsidianBorder, RoundedCornerShape(24.dp))
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(38.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .clip(CircleShape)
+                    .background(CinetorRedSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = CinetorRed,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(text = title, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = TextMuted,
                 textAlign = TextAlign.Center
             )
         }

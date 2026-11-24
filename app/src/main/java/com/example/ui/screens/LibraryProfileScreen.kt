@@ -84,6 +84,7 @@ import com.example.data.model.MediaItem
 import com.example.ui.components.EmptyLibraryCard
 import com.example.ui.components.PosterCard
 import com.example.ui.components.SectionHeaderRow
+import com.example.ui.theme.OnAccent
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CinedorGradientColors
 import com.example.ui.theme.CrimsonPrimary
@@ -511,7 +512,7 @@ private fun StreamingPreferencesCard(
                             label = { Text(src.label) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = CrimsonPrimary,
-                                selectedLabelColor = TextPrimary,
+                                selectedLabelColor = OnAccent,
                                 containerColor = ObsidianSurface,
                                 labelColor = TextSecondary
                             )
@@ -530,8 +531,8 @@ private fun StreamingPreferencesCard(
                             onClick = { onUpdateLanguage(lang) },
                             label = { Text(lang.label) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CinemaGold,
-                                selectedLabelColor = ObsidianBackground,
+                                selectedContainerColor = CrimsonPrimary,
+                                selectedLabelColor = OnAccent,
                                 containerColor = ObsidianSurface,
                                 labelColor = TextSecondary
                             )
@@ -569,7 +570,7 @@ private fun StreamingPreferencesCard(
                         checked = preferences.safeMode,
                         onCheckedChange = onUpdateSafeMode,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = ObsidianBackground,
+                            checkedThumbColor = OnAccent,
                             checkedTrackColor = LiveEmerald
                         ),
                         modifier = Modifier.testTag("safe_mode_switch")
@@ -643,7 +644,7 @@ private fun StreamingPreferencesCard(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = CrimsonPrimary,
-                            contentColor = TextPrimary
+                            contentColor = OnAccent
                         ),
                         modifier = Modifier.testTag("save_api_key_button")
                     ) {

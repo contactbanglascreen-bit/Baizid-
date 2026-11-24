@@ -67,6 +67,7 @@ import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LibraryMode
 import com.example.ui.screens.LibraryProfileScreen
 import com.example.ui.screens.ReelsScreen
+import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.CinePulseTheme
 import com.example.ui.theme.CrimsonPrimary
 import com.example.ui.theme.ObsidianBackground
@@ -101,8 +102,8 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         )
         setContent {
             CinePulseTheme {
@@ -256,7 +257,7 @@ fun CinedorMainShell() {
                                     colors = NavigationRailItemDefaults.colors(
                                         selectedIconColor = CrimsonPrimary,
                                         selectedTextColor = TextPrimary,
-                                        indicatorColor = ObsidianCard,
+                                        indicatorColor = CinetorRedSoft,
                                         unselectedIconColor = TextMuted,
                                         unselectedTextColor = TextMuted
                                     ),

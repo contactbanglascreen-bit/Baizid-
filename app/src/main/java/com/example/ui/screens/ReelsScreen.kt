@@ -87,9 +87,9 @@ import com.example.ui.components.findHttpStatusCode
 import com.example.ui.components.sharedMediaOkHttpClient
 import com.example.ui.theme.CinedorGradientColors
 import com.example.ui.theme.CrimsonPrimary
-import com.example.ui.theme.ObsidianBackground
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.MediaBackground as ObsidianBackground
+import com.example.ui.theme.MediaTextPrimary as TextPrimary
+import com.example.ui.theme.MediaTextSecondary as TextSecondary
 import com.example.ui.viewmodel.ReelsUiState
 import com.example.ui.viewmodel.UiState
 import com.example.data.model.MediaItem as CineMediaItem

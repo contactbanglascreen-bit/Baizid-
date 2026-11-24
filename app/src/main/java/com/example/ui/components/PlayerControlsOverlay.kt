@@ -73,9 +73,9 @@ import com.example.data.model.CaptionTrack
 import com.example.data.model.StreamOption
 import com.example.ui.theme.CinedorMagenta
 import com.example.ui.theme.CinedorPink
-import com.example.ui.theme.ObsidianCard
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.MediaCard as ObsidianCard
+import com.example.ui.theme.MediaTextPrimary as TextPrimary
+import com.example.ui.theme.MediaTextSecondary as TextSecondary
 import kotlinx.coroutines.delay
 
 enum class VideoResizeOption(val label: String) {

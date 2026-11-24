@@ -6,6 +6,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.example.ui.theme.CinetorBlush
+import com.example.ui.theme.CinetorRed
+import com.example.ui.theme.ObsidianBorder
+import com.example.ui.theme.OnAccent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -209,22 +221,21 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = if (isFullHomeWithHero) 0.dp else 108.dp,
-                bottom = 96.dp
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 128.dp,
+                bottom = 110.dp
             )
         ) {
             when (val feedState = homeState.feedState) {
                 is UiState.Loading -> {
                     item(key = "loading_hero") {
-                        Spacer(modifier = Modifier.height(106.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(250.dp)
-                                .padding(horizontal = 12.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .padding(horizontal = 48.dp)
+                                .clip(RoundedCornerShape(28.dp))
                                 .background(
-                                    Brush.verticalGradient(listOf(ObsidianCard, ObsidianSurface))
+                                    Brush.verticalGradient(listOf(Color(0xFFEDE6E5), Color(0xFFF5EFEE)))
                                 )
                         )
                         Spacer(modifier = Modifier.height(20.dp))
@@ -368,7 +379,7 @@ fun HomeScreen(
                                 }
                             } else {
                                 item(key = "top_spacer") {
-                                    Spacer(modifier = Modifier.height(106.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
 
@@ -631,40 +642,32 @@ fun HomeScreen(
             }
         }
 
-        // STICKY MOVIEBOX TOP HEADER (Cinedor Logo + Animated Search Bar + Text Category Tabs)
+        // STICKY TOP HEADER (logo + wordmark + round search button, then red pill category tabs)
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .background(
-                    if (isScrolled || !isFullHomeWithHero) {
-                        Brush.verticalGradient(listOf(ObsidianBackground, ObsidianBackground.copy(alpha = 0.96f)))
-                    } else {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Black.copy(alpha = 0.72f),
-                                Color.Black.copy(alpha = 0.35f),
-                                Color.Transparent
-                            )
+                    Brush.verticalGradient(
+                        listOf(
+                            ObsidianBackground,
+                            CinetorBlush.copy(alpha = if (isScrolled) 0.98f else 0.96f)
                         )
-                    }
+                    )
                 )
                 .statusBarsPadding()
-                .padding(top = 8.dp, bottom = 6.dp)
+                .padding(top = 8.dp, bottom = 10.dp)
         ) {
-            // Row 1: Cinedor Logo (Left) + MovieBox Rounded Search Bar with Rotating Ticker & "Search" button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Cinedor Logo (tap cycles source ALL / MovieBox / MovieLinkBD)
-                Box(
+                // Logo + wordmark (tap cycles source ALL / MovieBox / MovieLinkBD)
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             val next = when (preferences.source) {
                                 ContentSource.ALL -> ContentSource.MOVIEBOX
@@ -674,99 +677,107 @@ fun HomeScreen(
                             onCycleSource(next)
                         }
                         .testTag("source_switcher_chip"),
-                    contentAlignment = Alignment.Center
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.cinedor_logo),
                         contentDescription = "Cinedor",
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("CINE") }
+                            withStyle(SpanStyle(fontWeight = FontWeight.Black)) { append("DOR") }
+                        },
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 22.sp,
+                            letterSpacing = 5.sp
+                        ),
+                        color = TextPrimary,
+                        maxLines = 1
                     )
                 }
 
-                // MovieBox Rounded Search Pill with Rotating Trending Title + Cinedor Gradient "Search"
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF2A2D36).copy(alpha = if (isScrolled) 0.96f else 0.72f),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .clickable(onClick = onOpenSearch)
-                        .testTag("home_search_button")
-                ) {
-                    Row(
+                if (homeState.selectedTab != "All") {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .clip(CircleShape)
+                            .background(ObsidianSurface)
+                            .border(1.dp, ObsidianBorder, CircleShape)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = "Search",
-                            tint = Color(0xFFD5D8E2),
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(modifier = Modifier.weight(1f)) {
-                            AnimatedContent(
-                                targetState = tickerTitles[tickerIndex % tickerTitles.size],
-                                transitionSpec = {
-                                    (slideInVertically { it } + fadeIn()) togetherWith
-                                        (slideOutVertically { -it } + fadeOut())
-                                },
-                                label = "search_ticker"
-                            ) { currentTitle ->
-                                Text(
-                                    text = currentTitle,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                                    color = Color(0xFFE0E3EC),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Search",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                brush = Brush.horizontalGradient(CinedorGradientColors)
-                            )
+                            text = MovieBoxTopTabs.firstOrNull { it.first == homeState.selectedTab }?.second
+                                ?: homeState.selectedTab,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = TextSecondary,
+                            maxLines = 1
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Round white search button
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .shadow(6.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
+                        .clip(CircleShape)
+                        .background(ObsidianSurface)
+                        .clickable(onClick = onOpenSearch)
+                        .testTag("home_search_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = "Search ${tickerTitles[tickerIndex % tickerTitles.size]}",
+                        tint = TextPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Row 2: MovieBox Horizontal Text-Only Category Tabs (Trending bold white!)
+            // Pill category tabs: selected = solid red, others = light outlined pills
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(MovieBoxTopTabs) { (tabKey, displayLabel) ->
                     val selected = homeState.selectedTab == tabKey
-                    Text(
-                        text = displayLabel,
-                        style = if (selected) {
-                            MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp
-                            )
-                        } else {
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 15.sp
-                            )
-                        },
-                        color = if (selected) Color.White else Color(0xFFB5BAC6),
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .height(44.dp)
+                            .then(
+                                if (selected) {
+                                    Modifier.shadow(4.dp, CircleShape, spotColor = CinetorRed)
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .clip(CircleShape)
+                            .background(if (selected) CinetorRed else Color(0xFFEFE8E7))
+                            .border(1.dp, if (selected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
                             .clickable { onSelectTab(tabKey) }
-                            .padding(vertical = 4.dp)
-                            .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}")
-                    )
+                            .padding(horizontal = 20.dp)
+                            .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (tabKey == "All") "For You" else displayLabel,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 16.sp
+                            ),
+                            color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.85f),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
@@ -788,20 +799,21 @@ private fun MovieBoxSubFilterRow(
             val isSelected = selected == tab
             Box(
                 modifier = Modifier
+                    .height(40.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (isSelected) ObsidianSurfaceVariant else Color.Transparent
-                    )
+                    .background(if (isSelected) CinetorRed else Color(0xFFEFE8E7))
+                    .border(1.dp, if (isSelected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
                     .clickable { onSelect(tab) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp)
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = tab,
-                    style = MaterialTheme.typography.labelMedium.copy(
+                    style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 13.sp
+                        fontSize = 15.sp
                     ),
-                    color = if (isSelected) Color.White else TextSecondary
+                    color = if (isSelected) OnAccent else TextPrimary.copy(alpha = 0.85f)
                 )
             }
         }

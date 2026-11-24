@@ -86,9 +86,9 @@ import com.example.data.model.StreamOption
 import com.example.data.remote.MovieBoxDirectClient
 import com.example.ui.theme.CinedorGradientColors
 import com.example.ui.theme.CrimsonPrimary
-import com.example.ui.theme.ObsidianBackground
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.MediaBackground as ObsidianBackground
+import com.example.ui.theme.MediaTextPrimary as TextPrimary
+import com.example.ui.theme.MediaTextSecondary as TextSecondary
 import kotlinx.coroutines.delay
 import okhttp3.CipherSuite
 import okhttp3.ConnectionPool

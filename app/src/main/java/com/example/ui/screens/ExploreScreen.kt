@@ -54,6 +54,7 @@ import com.example.ui.components.EmptyLibraryCard
 import com.example.ui.components.PosterCard
 import com.example.ui.components.SectionHeaderRow
 import com.example.ui.components.ShimmerPosterRow
+import com.example.ui.theme.OnAccent
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CrimsonPrimary
 import com.example.ui.theme.ObsidianBackground
@@ -255,8 +256,8 @@ fun ExploreScreen(
                         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
                         shape = RoundedCornerShape(12.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CinemaGold,
-                            selectedLabelColor = ObsidianBackground,
+                            selectedContainerColor = CrimsonPrimary,
+                            selectedLabelColor = OnAccent,
                             containerColor = ObsidianCard,
                             labelColor = TextPrimary
                         ),
@@ -264,7 +265,7 @@ fun ExploreScreen(
                             enabled = true,
                             selected = selected,
                             borderColor = ObsidianBorder,
-                            selectedBorderColor = CinemaGold
+                            selectedBorderColor = CrimsonPrimary
                         ),
                         modifier = Modifier.testTag("platform_chip_$key")
                     )
@@ -320,7 +321,7 @@ fun ExploreScreen(
                         label = { Text(label) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = CrimsonPrimary,
-                            selectedLabelColor = TextPrimary,
+                            selectedLabelColor = OnAccent,
                             containerColor = ObsidianSurface,
                             labelColor = TextSecondary
                         ),

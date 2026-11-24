@@ -94,6 +94,8 @@ import com.example.data.model.StreamOption
 import com.example.ui.components.ApiErrorOrKeyCard
 import com.example.ui.components.CinePulseVideoPlayer
 import com.example.ui.components.PosterCard
+import com.example.ui.theme.OnAccent
+import com.example.ui.theme.OnMediaText
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CinedorGradientColors
 import com.example.ui.theme.CinedorMagenta
@@ -256,7 +258,7 @@ fun DetailPlayerScreen(
                                 Text(
                                     text = "Fetching HD stream…",
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = TextPrimary
+                                    color = OnMediaText
                                 )
                             }
                         } else {
@@ -267,7 +269,7 @@ fun DetailPlayerScreen(
                                 Text(
                                     text = state.streamError ?: "Tap retry to load stream",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextPrimary
+                                    color = OnMediaText
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Box(
@@ -278,9 +280,9 @@ fun DetailPlayerScreen(
                                         .padding(horizontal = 18.dp, vertical = 10.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = TextPrimary)
+                                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = OnAccent)
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Load Stream", style = MaterialTheme.typography.labelLarge, color = TextPrimary)
+                                        Text("Load Stream", style = MaterialTheme.typography.labelLarge, color = OnAccent)
                                     }
                                 }
                             }
@@ -328,11 +330,11 @@ fun DetailPlayerScreen(
                         Text(
                             text = displayItem.title,
                             style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 24.sp
                             ),
                             color = TextPrimary,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
@@ -891,7 +893,7 @@ fun DetailPlayerScreen(
                                             fontWeight = if (selectedBottomTab == 0) FontWeight.Bold else FontWeight.Medium,
                                             fontSize = 17.sp
                                         ),
-                                        color = if (selectedBottomTab == 0) Color.White else TextSecondary
+                                        color = if (selectedBottomTab == 0) TextPrimary else TextSecondary
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Box(
@@ -900,7 +902,7 @@ fun DetailPlayerScreen(
                                             .height(3.dp)
                                             .clip(CircleShape)
                                             .background(
-                                                if (selectedBottomTab == 0) Color.White else Color.Transparent
+                                                if (selectedBottomTab == 0) CinedorMagenta else Color.Transparent
                                             )
                                     )
                                 }
@@ -918,7 +920,7 @@ fun DetailPlayerScreen(
                                                 fontWeight = if (selectedBottomTab == 1) FontWeight.Bold else FontWeight.Medium,
                                                 fontSize = 17.sp
                                             ),
-                                            color = if (selectedBottomTab == 1) Color.White else TextSecondary
+                                            color = if (selectedBottomTab == 1) TextPrimary else TextSecondary
                                         )
                                         if (detail.comments.isNotEmpty()) {
                                             Box(
@@ -937,7 +939,7 @@ fun DetailPlayerScreen(
                                             .height(3.dp)
                                             .clip(CircleShape)
                                             .background(
-                                                if (selectedBottomTab == 1) Color.White else Color.Transparent
+                                                if (selectedBottomTab == 1) CinedorMagenta else Color.Transparent
                                             )
                                     )
                                 }
@@ -1134,13 +1136,16 @@ private fun MovieBoxActionPill(
     Surface(
         shape = CircleShape,
         color = if (active) CinedorTintedSurface else ObsidianCard,
+        shadowElevation = if (active) 0.dp else 2.dp,
         modifier = Modifier
-            .height(38.dp)
+            .height(42.dp)
+            .border(1.dp, if (active) CinedorMagenta.copy(alpha = 0.45f) else ObsidianBorder, CircleShape)
+            .clip(CircleShape)
             .clickable(onClick = onClick)
             .testTag(testTag)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -1165,11 +1170,12 @@ private fun MovieBoxActionPill(
 @Composable
 private fun CommentCard(comment: CommentItem) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(16.dp),
         color = ObsidianCard,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
+            .border(1.dp, ObsidianBorder, RoundedCornerShape(16.dp))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(

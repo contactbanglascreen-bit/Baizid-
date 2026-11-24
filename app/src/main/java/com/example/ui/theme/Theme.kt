@@ -3,23 +3,23 @@ package com.example.ui.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
 private val ColorAlphaOutline = ObsidianBorder.copy(alpha = 0.7f)
 
-private val CinePulseDarkColorScheme = darkColorScheme(
+private val CinePulseLightColorScheme = lightColorScheme(
     primary = CrimsonPrimary,
-    onPrimary = TextPrimary,
+    onPrimary = OnAccent,
     primaryContainer = CrimsonContainer,
-    onPrimaryContainer = TextPrimary,
+    onPrimaryContainer = CrimsonPrimaryDark,
     secondary = CinedorViolet,
-    onSecondary = TextPrimary,
+    onSecondary = OnAccent,
     secondaryContainer = CinemaGoldContainer,
     onSecondaryContainer = CinemaGold,
     tertiary = LiveEmerald,
-    onTertiary = ObsidianBackground,
+    onTertiary = OnAccent,
     tertiaryContainer = LiveEmeraldContainer,
     onTertiaryContainer = LiveEmerald,
     background = ObsidianBackground,
@@ -36,17 +36,17 @@ private val CinePulseDarkColorScheme = darkColorScheme(
     outline = ObsidianBorder,
     outlineVariant = ColorAlphaOutline,
     error = ErrorRed,
-    onError = ObsidianBackground,
+    onError = OnAccent,
     errorContainer = ErrorContainer,
     onErrorContainer = TextPrimary
 )
 
 private val CinePulseShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(30.dp)
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp)
 )
 
 @Composable
@@ -54,7 +54,7 @@ fun CinePulseTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = CinePulseDarkColorScheme,
+        colorScheme = CinePulseLightColorScheme,
         typography = CinePulseTypography,
         shapes = CinePulseShapes,
         content = content
