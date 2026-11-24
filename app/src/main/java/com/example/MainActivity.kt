@@ -81,6 +81,7 @@ import com.example.ui.viewmodel.UiState
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.example.ui.components.AppSettings.load(applicationContext)
 
         // Lazy Coil ImageLoaderFactory: avoids synchronous DiskCache I/O on Main Thread during onCreate
         Coil.setImageLoader {

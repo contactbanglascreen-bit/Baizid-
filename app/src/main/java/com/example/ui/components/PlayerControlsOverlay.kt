@@ -1,5 +1,11 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.Forward30
+import androidx.compose.material.icons.rounded.Forward5
+import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.Replay30
+import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedVisibility
@@ -122,9 +128,25 @@ internal fun CinedorPlayerControlsOverlay(
     onToggleFullscreen: () -> Unit,
     onSelectStream: (StreamOption) -> Unit,
     onSelectCaption: (CaptionTrack?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onHoldSpeed: (Boolean) -> Unit = {}
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
+    var isHolding2x by remember { mutableStateOf(false) }
+    val skipSec = AppSettings.doubleTapSkipSec
+    val skipMs = skipSec * 1000L
+    val rewindIcon = when (skipSec) {
+        5 -> Icons.Rounded.Replay5
+        30 -> Icons.Rounded.Replay30
+        10 -> Icons.Rounded.Replay10
+        else -> Icons.Rounded.Replay
+    }
+    val forwardIcon = when (skipSec) {
+        5 -> Icons.Rounded.Forward5
+        30 -> Icons.Rounded.Forward30
+        10 -> Icons.Rounded.Forward10
+        else -> Icons.Rounded.FastForward
+    }
     var isLocked by remember(isFullscreen) { mutableStateOf(false) }
     var interactionTick by remember { mutableIntStateOf(0) }
     var isScrubbing by remember { mutableStateOf(false) }
@@ -169,6 +191,19 @@ internal fun CinedorPlayerControlsOverlay(
             .onSizeChanged { containerWidthPx = it.width.coerceAtLeast(1) }
             .pointerInput(isLocked) {
                 detectTapGestures(
+                    onPress = {
+                        tryAwaitRelease()
+                        if (isHolding2x) {
+                            isHolding2x = false
+                            onHoldSpeed(false)
+                        }
+                    },
+                    onLongPress = {
+                        if (AppSettings.holdFor2x && !isLocked) {
+                            isHolding2x = true
+                            onHoldSpeed(true)
+                        }
+                    },
                     onTap = {
                         controlsVisible = !controlsVisible
                         interactionTick++
@@ -182,15 +217,15 @@ internal fun CinedorPlayerControlsOverlay(
                         val fraction = offset.x / containerWidthPx.toFloat()
                         when {
                             fraction < 0.36f -> {
-                                onSeekBy(-10_000L)
+                                onSeekBy(-AppSettings.doubleTapSkipSec * 1000L)
                                 seekFeedbackRight = false
-                                seekFeedbackText = "-10s"
+                                seekFeedbackText = "-${AppSettings.doubleTapSkipSec}s"
                                 seekFeedbackTick++
                             }
                             fraction > 0.64f -> {
-                                onSeekBy(10_000L)
+                                onSeekBy(AppSettings.doubleTapSkipSec * 1000L)
                                 seekFeedbackRight = true
-                                seekFeedbackText = "+10s"
+                                seekFeedbackText = "+${AppSettings.doubleTapSkipSec}s"
                                 seekFeedbackTick++
                             }
                             else -> {
@@ -222,7 +257,7 @@ internal fun CinedorPlayerControlsOverlay(
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
-                        imageVector = if (seekFeedbackRight) Icons.Rounded.Forward10 else Icons.Rounded.Replay10,
+                        imageVector = if (seekFeedbackRight) forwardIcon else rewindIcon,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -262,6 +297,32 @@ internal fun CinedorPlayerControlsOverlay(
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                 )
+            }
+        }
+
+        // Hold-for-2x badge
+        AnimatedVisibility(
+            visible = isHolding2x,
+            enter = fadeIn(tween(120)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = if (isFullscreen) 24.dp else 12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "2x",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(Icons.Rounded.FastForward, contentDescription = null, tint = CinedorMagenta, modifier = Modifier.size(18.dp))
             }
         }
 
@@ -499,7 +560,7 @@ internal fun CinedorPlayerControlsOverlay(
                         IconButton(
                             onClick = {
                                 interactionTick++
-                                onSeekBy(-10_000L)
+                                onSeekBy(-skipMs)
                             },
                             modifier = Modifier
                                 .size(sideSize)
@@ -509,8 +570,8 @@ internal fun CinedorPlayerControlsOverlay(
                                 .testTag("player_rewind_10")
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Replay10,
-                                contentDescription = "Rewind 10 seconds",
+                                imageVector = rewindIcon,
+                                contentDescription = "Rewind $skipSec seconds",
                                 tint = Color.White,
                                 modifier = Modifier.size(sideIcon)
                             )
@@ -541,7 +602,7 @@ internal fun CinedorPlayerControlsOverlay(
                         IconButton(
                             onClick = {
                                 interactionTick++
-                                onSeekBy(10_000L)
+                                onSeekBy(skipMs)
                             },
                             modifier = Modifier
                                 .size(sideSize)
@@ -551,8 +612,8 @@ internal fun CinedorPlayerControlsOverlay(
                                 .testTag("player_forward_10")
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Forward10,
-                                contentDescription = "Forward 10 seconds",
+                                imageVector = forwardIcon,
+                                contentDescription = "Forward $skipSec seconds",
                                 tint = Color.White,
                                 modifier = Modifier.size(sideIcon)
                             )

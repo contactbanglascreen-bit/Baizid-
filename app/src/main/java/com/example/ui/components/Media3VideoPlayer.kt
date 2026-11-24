@@ -836,7 +836,10 @@ fun CinePulseVideoPlayer(
                 onToggleFullscreen = onToggleFullscreen,
                 onSelectStream = onSelectStream,
                 onSelectCaption = onSelectCaption,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                onHoldSpeed = { holding ->
+                    exoPlayer.playbackParameters = PlaybackParameters(if (holding) 2f else playbackSpeed)
+                }
             )
         } else if (isWebViewMode && playbackError == null) {
             // Minimal unobtrusive back + speed + fullscreen bar when Chromium HTML5 fallback is active

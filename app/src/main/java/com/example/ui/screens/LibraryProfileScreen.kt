@@ -122,6 +122,21 @@ fun LibraryProfileScreen(
     onCheckApiStatus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (mode == LibraryMode.ME) {
+        MeHubScreen(
+            preferences = preferences,
+            watchlist = watchlist,
+            history = history,
+            onOpenMedia = onOpenMedia,
+            onResumeHistory = onResumeHistory,
+            onRemoveHistory = onRemoveHistory,
+            onClearHistory = onClearHistory,
+            onUpdateLanguage = onUpdateLanguage,
+            onUpdateSafeMode = onUpdateSafeMode,
+            modifier = modifier
+        )
+        return
+    }
     var selectedTab by remember(mode) { mutableIntStateOf(if (mode == LibraryMode.ME) 1 else 0) }
 
     LaunchedEffect(Unit) {

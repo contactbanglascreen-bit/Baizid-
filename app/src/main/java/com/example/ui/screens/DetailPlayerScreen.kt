@@ -588,67 +588,58 @@ fun DetailPlayerScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Dropdown selectors row (MovieBox "Original Audio v" style bordered dark boxes)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (state.streams.isNotEmpty()) {
-                            Box {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = ObsidianSurface,
+                    // Quality chips (tap to switch the playing quality)
+                    if (state.streams.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        ) {
+                            items(state.streams, key = { "q_" + it.url }) { opt ->
+                                val sel = state.selectedStream?.url == opt.url
+                                Row(
                                     modifier = Modifier
-                                        .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
-                                        .clickable { qualityDropdownExpanded = true }
+                                        .height(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (sel) CinedorMagenta else ObsidianCard)
+                                        .border(1.dp, if (sel) CinedorMagenta else ObsidianBorder, CircleShape)
+                                        .clickable { onSelectStream(opt) }
+                                        .padding(horizontal = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.HighQuality,
-                                            contentDescription = null,
-                                            tint = CinedorMagenta,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                    Icon(
+                                        imageVector = Icons.Rounded.HighQuality,
+                                        contentDescription = null,
+                                        tint = if (sel) Color.White else CinedorMagenta,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        ),
+                                        color = if (sel) Color.White else TextPrimary
+                                    )
+                                    if (opt.audioLanguage.isNotBlank()) {
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = state.selectedStream?.let { "${it.label} (${it.format})" }
-                                                ?: "Select Quality",
-                                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp),
-                                            color = TextPrimary
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Rounded.ExpandMore,
-                                            contentDescription = "Select quality",
-                                            tint = TextSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                                DropdownMenu(
-                                    expanded = qualityDropdownExpanded,
-                                    onDismissRequest = { qualityDropdownExpanded = false }
-                                ) {
-                                    state.streams.forEach { opt ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = "${opt.label} (${opt.format})",
-                                                    color = if (state.selectedStream?.url == opt.url) CinedorMagenta else TextPrimary
-                                                )
-                                            },
-                                            onClick = {
-                                                qualityDropdownExpanded = false
-                                                onSelectStream(opt)
-                                            }
+                                            text = "· ${opt.audioLanguage}",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                            color = if (sel) Color.White.copy(alpha = 0.85f) else TextSecondary,
+                                            maxLines = 1
                                         )
                                     }
                                 }
                             }
                         }
+                    }
 
+                    // Dropdown selectors row (MovieBox "Original Audio v" style bordered dark boxes)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         if (seasons.size > 1 && currentSeason != null) {
                             Box {
                                 Surface(

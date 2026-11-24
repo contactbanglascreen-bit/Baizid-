@@ -565,8 +565,197 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                 onToggleFullscreen = { isFullscreen = !isFullscreen },
                 onSelectStream = {},
                 onSelectCaption = {},
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                onHoldSpeed = { holding ->
+                    player.playbackParameters = PlaybackParameters(if (holding) 2f else speed)
+                }
             )
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Full Downloads page: storage usage bar + Active / Completed / Failed filters
+// ---------------------------------------------------------------------------
+
+private fun folderSize(dir: File?): Long =
+    dir?.listFiles()?.sumOf { if (it.isFile) it.length() else folderSize(it) } ?: 0L
+
+@Composable
+fun DownloadsPage(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var refreshTick by remember { mutableIntStateOf(0) }
+    var entries by remember { mutableStateOf(DownloadStore.entries(context)) }
+    var filter by remember { mutableIntStateOf(0) } // 0 active, 1 completed, 2 failed
+    var playing by remember { mutableStateOf<DownloadRecord?>(null) }
+    var pendingDelete by remember { mutableStateOf<DownloadRecord?>(null) }
+    var usedBytes by remember { mutableLongStateOf(0L) }
+    var freeBytes by remember { mutableLongStateOf(0L) }
+    var totalBytes by remember { mutableLongStateOf(1L) }
+
+    LaunchedEffect(refreshTick) {
+        while (true) {
+            entries = DownloadStore.entries(context)
+            val dir = DownloadStore.downloadDir(context)
+            usedBytes = folderSize(dir)
+            runCatching {
+                val stat = android.os.StatFs((dir ?: context.filesDir).absolutePath)
+                freeBytes = stat.availableBytes
+                totalBytes = stat.totalBytes.coerceAtLeast(1L)
+            }
+            val active = entries.any { it.state != DownloadState.DONE && it.state != DownloadState.FAILED }
+            delay(if (active) 1000L else 4000L)
+        }
+    }
+
+    // Open on Completed when nothing is running
+    LaunchedEffect(Unit) {
+        val e = DownloadStore.entries(context)
+        if (e.none { it.state != DownloadState.DONE && it.state != DownloadState.FAILED } &&
+            e.any { it.state == DownloadState.DONE }
+        ) filter = 1
+    }
+
+    val activeList = entries.filter { it.state != DownloadState.DONE && it.state != DownloadState.FAILED }
+    val doneList = entries.filter { it.state == DownloadState.DONE }
+    val failedList = entries.filter { it.state == DownloadState.FAILED }
+    val shown = when (filter) {
+        0 -> activeList
+        1 -> doneList
+        else -> failedList
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Storage bar
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            val usedOther = (totalBytes - freeBytes - usedBytes).coerceAtLeast(0L)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(CircleShape)
+                    .background(ObsidianSurfaceVariant)
+            ) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    val appFrac = (usedBytes.toFloat() / totalBytes).coerceIn(0f, 1f)
+                    val otherFrac = (usedOther.toFloat() / totalBytes).coerceIn(0f, 1f - appFrac)
+                    if (appFrac > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(appFrac.coerceAtLeast(0.01f))
+                                .height(8.dp)
+                                .background(CinetorRed)
+                        )
+                    }
+                    if (otherFrac > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(otherFrac / (1f - appFrac).coerceAtLeast(0.01f))
+                                .height(8.dp)
+                                .background(Color(0xFF6E6F78))
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(CinetorRed)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "Cinedor ${Formatter.formatShortFileSize(context, usedBytes)}",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
+                    color = TextSecondary,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "Free ${Formatter.formatShortFileSize(context, freeBytes)} of ${Formatter.formatShortFileSize(context, totalBytes)}",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
+                    color = TextSecondary
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Filter chips
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("Active" to activeList.size, "Completed" to doneList.size, "Failed" to failedList.size)
+                .forEachIndexed { idx, (label, count) ->
+                    val sel = filter == idx
+                    Box(
+                        modifier = Modifier
+                            .height(34.dp)
+                            .clip(CircleShape)
+                            .background(if (sel) CinetorRed else Color(0xFFEFE8E7))
+                            .clickable { filter = idx }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$label $count",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp
+                            ),
+                            color = if (sel) OnAccent else TextPrimary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (shown.isEmpty()) {
+            Text(
+                text = when (filter) {
+                    0 -> "Nothing downloading. Tap Download on any title."
+                    1 -> "No completed downloads yet."
+                    else -> "No failed downloads."
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = TextSecondary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp)
+            )
+        } else {
+            shown.forEach { entry ->
+                DownloadRow(
+                    entry = entry,
+                    onPlay = { playing = entry.record },
+                    onDelete = { pendingDelete = entry.record }
+                )
+            }
+        }
+    }
+
+    pendingDelete?.let { rec ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete download?") },
+            text = { Text("\"${rec.title}\" (${rec.quality}) will be removed from this device.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    DownloadStore.remove(context, rec)
+                    pendingDelete = null
+                    refreshTick++
+                }) { Text("Delete", color = CinetorRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel", color = TextSecondary) }
+            },
+            containerColor = ObsidianCard
+        )
+    }
+
+    playing?.let { rec ->
+        OfflineVideoPlayerDialog(record = rec, onClose = { playing = null })
+    }
+}
+
+/** Total size of finished downloads, for the Settings page. */
+fun downloadedBytes(context: Context): Long = folderSize(DownloadStore.downloadDir(context))

@@ -101,7 +101,7 @@ internal fun enqueueVideoDownload(
             .setTitle("$title • $quality")
             .setDescription("Cinedor download")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setAllowedOverMetered(true)
+            .setAllowedOverMetered(!AppSettings.wifiOnlyDownloads)
             .setAllowedOverRoaming(true)
         option.headers.forEach { (k, v) ->
             if (k.isNotBlank() && v.isNotBlank()) request.addRequestHeader(k, v)
