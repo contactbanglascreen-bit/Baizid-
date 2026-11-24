@@ -839,6 +839,10 @@ fun CinePulseVideoPlayer(
                 modifier = Modifier.fillMaxSize(),
                 onHoldSpeed = { holding ->
                     exoPlayer.playbackParameters = PlaybackParameters(if (holding) 2f else playbackSpeed)
+                },
+                onSetSpeed = { sp ->
+                    playbackSpeed = sp
+                    exoPlayer.playbackParameters = PlaybackParameters(sp)
                 }
             )
         } else if (isWebViewMode && playbackError == null) {

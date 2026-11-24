@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.Forward30
 import androidx.compose.material.icons.rounded.Forward5
@@ -129,8 +134,10 @@ internal fun CinedorPlayerControlsOverlay(
     onSelectStream: (StreamOption) -> Unit,
     onSelectCaption: (CaptionTrack?) -> Unit,
     modifier: Modifier = Modifier,
-    onHoldSpeed: (Boolean) -> Unit = {}
+    onHoldSpeed: (Boolean) -> Unit = {},
+    onSetSpeed: ((Float) -> Unit)? = null
 ) {
+    var openPanel by remember { mutableStateOf<PlayerPanel?>(null) }
     var controlsVisible by remember { mutableStateOf(true) }
     var isHolding2x by remember { mutableStateOf(false) }
     val skipSec = AppSettings.doubleTapSkipSec
@@ -161,8 +168,8 @@ internal fun CinedorPlayerControlsOverlay(
     var containerWidthPx by remember { mutableIntStateOf(1) }
 
     // Auto-hide controls cleanly after 3.5s while playing (exact MovieBox clean playback look)
-    LaunchedEffect(controlsVisible, isPlaying, isScrubbing, qualityMenuOpen, captionMenuOpen, interactionTick, isLocked) {
-        if (controlsVisible && isPlaying && !isScrubbing && !qualityMenuOpen && !captionMenuOpen) {
+    LaunchedEffect(controlsVisible, isPlaying, isScrubbing, qualityMenuOpen, captionMenuOpen, interactionTick, isLocked, openPanel) {
+        if (controlsVisible && isPlaying && !isScrubbing && !qualityMenuOpen && !captionMenuOpen && openPanel == null) {
             delay(if (isLocked) 2200L else 3500L)
             controlsVisible = false
         }
@@ -421,114 +428,41 @@ internal fun CinedorPlayerControlsOverlay(
                         horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 10.dp else 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Speed control (icon + clean label, matching MovieBox top-right style)
                         TopOverlayActionItem(
                             icon = Icons.Rounded.Speed,
                             label = if (playbackSpeed == 1.0f) "1.0x" else "${playbackSpeed}x",
                             active = playbackSpeed != 1.0f,
                             onClick = {
                                 interactionTick++
-                                onCycleSpeed()
+                                if (onSetSpeed != null) openPanel = PlayerPanel.SPEED else onCycleSpeed()
                             },
                             testTag = "player_speed_button"
                         )
 
-                        // Quality selector (when multiple streams exist)
                         if (streams.size > 1) {
-                            Box {
-                                TopOverlayActionItem(
-                                    icon = Icons.Rounded.HighQuality,
-                                    label = selectedStream.quality.ifBlank { "HD" },
-                                    active = qualityMenuOpen,
-                                    onClick = {
-                                        interactionTick++
-                                        qualityMenuOpen = true
-                                    },
-                                    testTag = "player_quality_button"
-                                )
-                                DropdownMenu(
-                                    expanded = qualityMenuOpen,
-                                    onDismissRequest = {
-                                        qualityMenuOpen = false
-                                        interactionTick++
-                                    },
-                                    modifier = Modifier.background(ObsidianCard)
-                                ) {
-                                    streams.forEach { opt ->
-                                        val isCurrent = opt.url == selectedStream.url
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = "${opt.label} (${opt.format})",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    color = if (isCurrent) CinedorMagenta else TextPrimary
-                                                )
-                                            },
-                                            onClick = {
-                                                qualityMenuOpen = false
-                                                interactionTick++
-                                                onSelectStream(opt)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                            TopOverlayActionItem(
+                                icon = Icons.Rounded.HighQuality,
+                                label = selectedStream.quality.ifBlank { "HD" },
+                                active = false,
+                                onClick = {
+                                    interactionTick++
+                                    openPanel = PlayerPanel.QUALITY
+                                },
+                                testTag = "player_quality_button"
+                            )
                         }
 
-                        // Subtitles selector (when captions exist)
                         if (captions.isNotEmpty()) {
-                            Box {
-                                TopOverlayActionItem(
-                                    icon = Icons.Rounded.ClosedCaption,
-                                    label = "CC",
-                                    active = selectedCaption != null,
-                                    onClick = {
-                                        interactionTick++
-                                        captionMenuOpen = true
-                                    },
-                                    testTag = "player_caption_button"
-                                )
-                                DropdownMenu(
-                                    expanded = captionMenuOpen,
-                                    onDismissRequest = {
-                                        captionMenuOpen = false
-                                        interactionTick++
-                                    },
-                                    modifier = Modifier.background(ObsidianCard)
-                                ) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = "Off",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                color = if (selectedCaption == null) CinedorMagenta else TextPrimary
-                                            )
-                                        },
-                                        onClick = {
-                                            captionMenuOpen = false
-                                            interactionTick++
-                                            onSelectCaption(null)
-                                        }
-                                    )
-                                    captions.forEach { track ->
-                                        val isCurrent = selectedCaption?.url == track.url
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = track.label,
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    color = if (isCurrent) CinedorMagenta else TextPrimary
-                                                )
-                                            },
-                                            onClick = {
-                                                captionMenuOpen = false
-                                                interactionTick++
-                                                onSelectCaption(track)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                            TopOverlayActionItem(
+                                icon = Icons.Rounded.ClosedCaption,
+                                label = "CC",
+                                active = selectedCaption != null,
+                                onClick = {
+                                    interactionTick++
+                                    openPanel = PlayerPanel.CAPTIONS
+                                },
+                                testTag = "player_caption_button"
+                            )
                         }
 
                         // Lock screen toggle in Fullscreen mode
@@ -731,6 +665,115 @@ internal fun CinedorPlayerControlsOverlay(
                 }
             }
         }
+
+        // Options panel (quality / speed / subtitles)
+        AnimatedVisibility(
+            visible = openPanel != null,
+            enter = fadeIn(tween(160)),
+            exit = fadeOut(tween(160)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val panel = openPanel
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .pointerInput(Unit) { detectTapGestures { openPanel = null; interactionTick++ } },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = when (panel) {
+                            PlayerPanel.QUALITY -> "Video quality"
+                            PlayerPanel.SPEED -> "Playback speed"
+                            PlayerPanel.CAPTIONS -> "Subtitles"
+                            null -> ""
+                        },
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(if (isFullscreen) 18.dp else 10.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp)
+                    ) {
+                        when (panel) {
+                            PlayerPanel.QUALITY -> items(streams, key = { "pq_" + it.url }) { opt ->
+                                PanelOptionCard(
+                                    title = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
+                                    badge = qualityBadge(opt.quality.ifBlank { opt.label }),
+                                    subtitle = listOf(opt.format.uppercase(), opt.audioLanguage, opt.sizeText)
+                                        .filter { it.isNotBlank() }.joinToString(" · "),
+                                    selected = opt.url == selectedStream.url,
+                                    compact = !isFullscreen,
+                                    onClick = {
+                                        openPanel = null
+                                        interactionTick++
+                                        if (opt.url != selectedStream.url) onSelectStream(opt)
+                                    }
+                                )
+                            }
+                            PlayerPanel.SPEED -> items(listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)) { sp ->
+                                PanelOptionCard(
+                                    title = if (sp == 1.0f) "Normal" else "${sp}x",
+                                    badge = null,
+                                    subtitle = if (sp == 1.0f) "1.0x" else "",
+                                    selected = sp == playbackSpeed,
+                                    compact = !isFullscreen,
+                                    onClick = {
+                                        openPanel = null
+                                        interactionTick++
+                                        onSetSpeed?.invoke(sp)
+                                    }
+                                )
+                            }
+                            PlayerPanel.CAPTIONS -> {
+                                item(key = "cc_off") {
+                                    PanelOptionCard(
+                                        title = "Off",
+                                        badge = null,
+                                        subtitle = "",
+                                        selected = selectedCaption == null,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            onSelectCaption(null)
+                                        }
+                                    )
+                                }
+                                items(captions, key = { "cc_" + it.url }) { track ->
+                                    PanelOptionCard(
+                                        title = track.label.ifBlank { track.language },
+                                        badge = null,
+                                        subtitle = track.language.uppercase().take(6),
+                                        selected = selectedCaption?.url == track.url,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            onSelectCaption(track)
+                                        }
+                                    )
+                                }
+                            }
+                            null -> {}
+                        }
+                    }
+                }
+                IconButton(
+                    onClick = { openPanel = null; interactionTick++ },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                }
+            }
+        }
     }
 }
 
@@ -893,6 +936,84 @@ private fun SleekVideoSeekBar(
                 color = CinedorMagenta,
                 radius = thumbRadius * 0.55f,
                 center = Offset(thumbX, centerY)
+            )
+        }
+    }
+}
+
+internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS }
+
+internal fun qualityBadge(label: String): String? {
+    val n = Regex("(\\d{3,4})").find(label)?.value?.toIntOrNull() ?: return null
+    return when {
+        n >= 2000 -> "4K"
+        n >= 1080 -> "FHD"
+        n >= 720 -> "HD"
+        else -> "SD"
+    }
+}
+
+@Composable
+private fun PanelOptionCard(
+    title: String,
+    badge: String?,
+    subtitle: String,
+    selected: Boolean,
+    compact: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(if (compact) 96.dp else 124.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (selected) {
+                    Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                } else {
+                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.08f)))
+                }
+            )
+            .border(1.dp, if (selected) Color.Transparent else Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = if (compact) 8.dp else 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (selected) {
+                Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(3.dp))
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = if (compact) 14.sp else 16.sp),
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (badge != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(if (selected) Color.White else CinedorMagenta)
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp),
+                    color = if (selected) CinedorMagenta else Color.White
+                )
+            }
+        }
+        if (subtitle.isNotBlank() && !compact) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = Color.White.copy(alpha = 0.78f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

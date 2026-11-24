@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.ui.draw.shadow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -577,7 +578,7 @@ fun DetailPlayerScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Resources",
+                            text = "Quality",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
@@ -588,46 +589,89 @@ fun DetailPlayerScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Quality chips (tap to switch the playing quality)
+                    // Quality cards (tap to switch the playing quality)
                     if (state.streams.isNotEmpty()) {
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(bottom = 10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.padding(bottom = 12.dp)
                         ) {
                             items(state.streams, key = { "q_" + it.url }) { opt ->
                                 val sel = state.selectedStream?.url == opt.url
-                                Row(
+                                val qLabel = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" }
+                                val qNum = Regex("(\\d{3,4})").find(qLabel)?.value?.toIntOrNull()
+                                val badge = when {
+                                    qNum == null -> null
+                                    qNum >= 2000 -> "4K"
+                                    qNum >= 1080 -> "FHD"
+                                    qNum >= 720 -> "HD"
+                                    else -> "SD"
+                                }
+                                Column(
                                     modifier = Modifier
-                                        .height(36.dp)
-                                        .clip(CircleShape)
-                                        .background(if (sel) CinedorMagenta else ObsidianCard)
-                                        .border(1.dp, if (sel) CinedorMagenta else ObsidianBorder, CircleShape)
+                                        .width(108.dp)
+                                        .shadow(if (sel) 6.dp else 1.dp, RoundedCornerShape(16.dp), spotColor = if (sel) CinedorMagenta else Color.Black)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            if (sel) {
+                                                Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                                            } else {
+                                                Brush.verticalGradient(listOf(ObsidianCard, ObsidianCard))
+                                            }
+                                        )
+                                        .border(1.dp, if (sel) Color.Transparent else ObsidianBorder, RoundedCornerShape(16.dp))
                                         .clickable { onSelectStream(opt) }
-                                        .padding(horizontal = 14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.HighQuality,
-                                        contentDescription = null,
-                                        tint = if (sel) Color.White else CinedorMagenta,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 13.sp
-                                        ),
-                                        color = if (sel) Color.White else TextPrimary
-                                    )
-                                    if (opt.audioLanguage.isNotBlank()) {
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = "· ${opt.audioLanguage}",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                            text = qLabel,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 16.sp
+                                            ),
+                                            color = if (sel) Color.White else TextPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                        if (sel) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = "Playing",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(5.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (badge != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(5.dp))
+                                                    .background(if (sel) Color.White else CinedorMagenta)
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = badge,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 9.sp
+                                                    ),
+                                                    color = if (sel) CinedorMagenta else Color.White
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                        }
+                                        Text(
+                                            text = listOf(opt.format.uppercase(), opt.sizeText, opt.audioLanguage)
+                                                .filter { it.isNotBlank() }
+                                                .joinToString(" · "),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                             color = if (sel) Color.White.copy(alpha = 0.85f) else TextSecondary,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }

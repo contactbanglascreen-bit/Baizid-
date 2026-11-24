@@ -568,6 +568,10 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                 modifier = Modifier.fillMaxSize(),
                 onHoldSpeed = { holding ->
                     player.playbackParameters = PlaybackParameters(if (holding) 2f else speed)
+                },
+                onSetSpeed = { sp ->
+                    speed = sp
+                    player.playbackParameters = PlaybackParameters(sp)
                 }
             )
         }
