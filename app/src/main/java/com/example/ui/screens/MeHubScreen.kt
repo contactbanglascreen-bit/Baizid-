@@ -9,6 +9,9 @@ import com.example.ui.components.AdultLock
 import com.example.ui.components.AdultPinDialog
 import com.example.ui.components.PinMode
 import com.example.ui.components.rememberGuardedSafeModeToggle
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.TheaterComedy
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Check
@@ -190,7 +193,8 @@ fun MeHubScreen(
     onUpdateLanguage: (ContentLanguage) -> Unit,
     onUpdateSafeMode: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    onAdultUnlocked: () -> Unit = {}
+    onAdultUnlocked: () -> Unit = {},
+    onOpenCollection: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf(MePage.HUB) }
@@ -266,6 +270,38 @@ fun MeHubScreen(
                     watchedCount = history.size,
                     onEdit = { editOpen = true }
                 )
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CollectionTile(
+                        title = "K-Drama",
+                        subtitle = "Korean",
+                        icon = Icons.Rounded.Favorite,
+                        colors = listOf(Color(0xFFFF4F8B), Color(0xFFB0124F)),
+                        onClick = { onOpenCollection("kdrama") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CollectionTile(
+                        title = "C-Drama",
+                        subtitle = "Chinese",
+                        icon = Icons.Rounded.TheaterComedy,
+                        colors = listOf(Color(0xFFFF7A3D), Color(0xFFC2260E)),
+                        onClick = { onOpenCollection("cdrama") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CollectionTile(
+                        title = "Anime",
+                        subtitle = "Sub & Dub",
+                        icon = Icons.Rounded.AutoAwesome,
+                        colors = listOf(Color(0xFF8B5CF6), Color(0xFF4C1D95)),
+                        onClick = { onOpenCollection("anime") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 Spacer(modifier = Modifier.height(14.dp))
                 val downloadedCount = remember(page) {
                     DownloadStore.entries(context).count { it.state == com.example.ui.components.DownloadState.DONE }
@@ -1196,5 +1232,49 @@ private fun AdultMenuRow(unlocked: Boolean, hasPin: Boolean, onClick: () -> Unit
         }
         Spacer(modifier = Modifier.width(6.dp))
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = TextMuted)
+    }
+}
+
+
+@Composable
+private fun CollectionTile(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    colors: List<Color>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .height(96.dp)
+            .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = colors.first())
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(colors))
+            .clickable(onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 15.sp),
+            color = Color.White,
+            maxLines = 1
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+            color = Color.White.copy(alpha = 0.85f),
+            maxLines = 1
+        )
     }
 }

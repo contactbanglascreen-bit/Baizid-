@@ -386,7 +386,33 @@ fun CinedorMainShell() {
                                 onUpdateLanguage = { viewModel.updateLanguage(it) },
                                 onUpdateSafeMode = { viewModel.updateSafeMode(it) },
                                 onSaveApiKey = { viewModel.updateCustomApiKey(it) },
-                                onCheckApiStatus = { viewModel.checkApiStatus() }
+                                onCheckApiStatus = { viewModel.checkApiStatus() },
+                                onOpenCollection = { kind ->
+                                    val chips = exploreState.categories
+                                    fun findChip(vararg keys: String) = chips.firstOrNull { c ->
+                                        keys.any { k -> c.name.contains(k, ignoreCase = true) || c.path.contains(k, ignoreCase = true) }
+                                    }
+                                    when (kind) {
+                                        "kdrama" -> {
+                                            val chip = findChip("k-drama", "kdrama", "korean drama", "korean")
+                                            if (chip != null) viewModel.selectExploreCategoryChip(chip)
+                                            else {
+                                                viewModel.onSearchQueryChanged("Korean drama")
+                                                viewModel.executeSearch("Korean drama")
+                                            }
+                                        }
+                                        "cdrama" -> {
+                                            val chip = findChip("c-drama", "cdrama", "chinese drama", "chinese")
+                                            if (chip != null) viewModel.selectExploreCategoryChip(chip)
+                                            else {
+                                                viewModel.onSearchQueryChanged("Chinese drama")
+                                                viewModel.executeSearch("Chinese drama")
+                                            }
+                                        }
+                                        else -> viewModel.updateFilter("anime", null, null)
+                                    }
+                                    currentTab = CinedorTab.EXPLORE
+                                }
                             )
                         }
                     }

@@ -439,18 +439,6 @@ fun PosterCard(
                             .padding(6.dp)
                     )
                 }
-                val (hasSub, hasDub) = remember(item.title, item.languageBadge) { subDubFlags(item) }
-                if (hasSub || hasDub) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (hasSub) SubDubPill("SUB", filled = false)
-                        if (hasDub) SubDubPill("DUB", filled = true)
-                    }
-                }
             }
             val (cleanTitle, tag) = remember(item.title) { splitTitleTag(item.title) }
             Text(
