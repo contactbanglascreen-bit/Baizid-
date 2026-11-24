@@ -1,7 +1,11 @@
 package com.example
 
 import android.graphics.Color
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -82,6 +86,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
+        com.example.ui.components.PipState.requestPip = { enterPipIfAllowed() }
 
         // Lazy Coil ImageLoaderFactory: avoids synchronous DiskCache I/O on Main Thread during onCreate
         Coil.setImageLoader {
@@ -103,14 +108,36 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
         setContent {
             CinePulseTheme {
                 CinedorMainShell()
             }
         }
+    }
+
+    private fun enterPipIfAllowed() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (!com.example.ui.components.AppSettings.pipEnabled) return
+        runCatching {
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+            )
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (com.example.ui.components.PipState.videoPlaying) enterPipIfAllowed()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        com.example.ui.components.PipState.inPip = isInPictureInPictureMode
     }
 }
 

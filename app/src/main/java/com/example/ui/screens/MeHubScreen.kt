@@ -4,6 +4,8 @@ import android.text.format.DateUtils
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import com.example.ui.theme.CinedorPalettes
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -97,6 +99,9 @@ import com.example.ui.components.DownloadsPage
 import com.example.ui.components.EmptyLibraryCard
 import com.example.ui.components.PosterCard
 import com.example.ui.components.downloadedBytes
+import com.example.ui.theme.SheetBg
+import com.example.ui.theme.CinetorRedDark
+import com.example.ui.theme.AccentBright
 import com.example.ui.theme.CinetorBlush
 import com.example.ui.theme.CinetorRed
 import com.example.ui.theme.CinetorRedSoft
@@ -146,7 +151,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
         modifier = modifier
             .size(size)
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFFEF1B26), Color(0xFFC00B15)))),
+            .background(Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -428,7 +433,7 @@ private fun EditProfileSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = Color(0xFFF6F1EF),
+        containerColor = SheetBg,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
@@ -736,6 +741,56 @@ private fun SettingsPage(
         runCatching { context.imageLoader.diskCache?.size ?: 0L }.getOrDefault(0L)
     }
 
+    SettingsCard("Appearance") {
+        CinedorPalettes.chunked(3).forEach { rowList ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowList.forEach { pal ->
+                    val idx = CinedorPalettes.indexOf(pal)
+                    ThemePreviewCard(
+                        palette = pal,
+                        selected = AppSettings.themeIndex == idx,
+                        onClick = { AppSettings.setTheme(context, idx) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                repeat(3 - rowList.size) { Spacer(modifier = Modifier.weight(1f)) }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+        val cur = CinedorPalettes[AppSettings.themeIndex]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(ObsidianSurfaceVariant)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(cur.name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = TextPrimary)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(CinetorRedSoft)
+                            .padding(horizontal = 7.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            if (cur.isDark) "Dark" else "Light",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = CinetorRed
+                        )
+                    }
+                }
+                Text(cur.description, style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = TextSecondary)
+            }
+        }
+    }
+
     SettingsCard("Player") {
         Text("Double-tap skip", style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp), color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
@@ -751,6 +806,29 @@ private fun SettingsPage(
             subtitle = "Press and hold the video to play at 2× speed",
             checked = AppSettings.holdFor2x,
             onChange = { AppSettings.setHold2x(context, it) }
+        )
+        HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
+        SettingSwitchRow(
+            title = "Floating Mini-Player / PiP",
+            subtitle = "Keep video playing in a small floating window when you leave the app",
+            checked = AppSettings.pipEnabled,
+            onChange = { AppSettings.setPip(context, it) }
+        )
+        HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Subtitle size", style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp), color = TextPrimary)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Small", "Normal", "Large", "XL").forEachIndexed { i, lbl ->
+                SmallChip(lbl, AppSettings.subtitleSize == i) { AppSettings.setSubtitleSize(context, i) }
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        SettingSwitchRow(
+            title = "Subtitle background",
+            subtitle = "Dark box behind subtitles for easier reading",
+            checked = AppSettings.subtitleBackground,
+            onChange = { AppSettings.setSubtitleBackground(context, it) }
         )
     }
 
@@ -836,7 +914,7 @@ private fun SettingsPage(
         Column {
             Text("Reset settings", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp), color = CinetorRed)
             Text(
-                "Restore player and download preferences to default. History and My List are kept.",
+                "Restore theme, player and download preferences to default. History and My List are kept.",
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                 color = TextSecondary
             )
@@ -855,7 +933,7 @@ private fun SettingsPage(
     if (confirmReset) {
         ConfirmDialog(
             title = "Reset settings?",
-            body = "Player and download preferences go back to default.",
+            body = "Theme, player and download preferences go back to default.",
             confirm = "Reset",
             onConfirm = {
                 AppSettings.reset(context)
@@ -902,5 +980,89 @@ private fun AboutPage() {
             color = TextSecondary,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+    }
+}
+
+
+@Composable
+private fun ThemePreviewCard(
+    palette: com.example.ui.theme.CinedorPalette,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .border(2.dp, if (selected) palette.accent else ObsidianBorder, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(palette.background)
+                .padding(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(palette.textPrimary.copy(alpha = 0.8f))
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.45f)
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(palette.textSecondary.copy(alpha = 0.6f))
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                listOf(palette.surfaceVariant, palette.border, palette.accent).forEach { c ->
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(c)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .width(22.dp)
+                        .height(9.dp)
+                        .clip(CircleShape)
+                        .background(palette.accent)
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (selected) {
+                Icon(
+                    androidx.compose.material.icons.Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+            }
+            Text(
+                text = palette.name,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                color = palette.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }

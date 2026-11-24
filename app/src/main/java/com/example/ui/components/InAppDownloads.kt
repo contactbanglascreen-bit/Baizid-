@@ -75,6 +75,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.example.data.model.StreamOption
+import com.example.ui.theme.ChipBg
 import com.example.ui.theme.CinetorRed
 import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.ObsidianBorder
@@ -515,7 +516,11 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                         VideoResizeOption.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                         VideoResizeOption.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         VideoResizeOption.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        VideoResizeOption.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
+                    val sc = if (resize == VideoResizeOption.CROP) 1.3f else 1f
+                    view.scaleX = sc
+                    view.scaleY = sc
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -697,7 +702,7 @@ fun DownloadsPage(modifier: Modifier = Modifier) {
                         modifier = Modifier
                             .height(34.dp)
                             .clip(CircleShape)
-                            .background(if (sel) CinetorRed else Color(0xFFEFE8E7))
+                            .background(if (sel) CinetorRed else ChipBg)
                             .clickable { filter = idx }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center

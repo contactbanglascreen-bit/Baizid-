@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -72,6 +73,10 @@ import com.example.R
 import com.example.data.local.WatchHistoryItem
 import com.example.data.model.MediaItem
 import com.example.data.model.SportsMatch
+import com.example.ui.theme.ShimmerBase
+import com.example.ui.theme.RankOutline
+import com.example.ui.theme.ChipBorder
+import com.example.ui.theme.AccentBright
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CinetorBlush
 import com.example.ui.theme.CinetorRed
@@ -94,7 +99,7 @@ import kotlin.math.absoluteValue
 import kotlinx.coroutines.delay
 
 /** Red gradient used by every primary "Play" style button. */
-private val RedButtonBrush = Brush.verticalGradient(listOf(Color(0xFFE8141F), CinetorRedDark))
+private val RedButtonBrush: Brush get() = Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
 
 /** Small dark translucent pill with a red star + rating (e.g. "★ 7.9"). */
 @Composable
@@ -221,7 +226,7 @@ fun HeroBannerCarousel(
                                     0.0f to Color.Transparent,
                                     0.52f to Color.Transparent,
                                     0.80f to Color.Black.copy(alpha = 0.55f),
-                                    1.0f to Color(0xFF3A0A0E).copy(alpha = 0.92f)
+                                    1.0f to lerp(CinetorRedDark, Color.Black, 0.65f).copy(alpha = 0.92f)
                                 )
                             )
                         )
@@ -320,7 +325,7 @@ fun HeroBannerCarousel(
                 repeat(banners.size.coerceAtMost(10)) { index ->
                     val active = pagerState.currentPage == index
                     val w by animateDpAsState(if (active) 20.dp else 6.dp, label = "dot_w")
-                    val c by animateColorAsState(if (active) CinetorRed else Color(0xFFCFC8C7), label = "dot_c")
+                    val c by animateColorAsState(if (active) CinetorRed else ChipBorder, label = "dot_c")
                     Box(
                         modifier = Modifier
                             .width(w)
@@ -386,7 +391,7 @@ fun PosterCard(
                     lineHeight = 64.sp,
                     drawStyle = Stroke(width = 4f)
                 ),
-                color = Color(0xFF8E6B6E),
+                color = RankOutline,
                 modifier = Modifier
                     .offset(x = 8.dp, y = (-22).dp)
             )
@@ -972,7 +977,7 @@ fun ShimmerPosterRow(modifier: Modifier = Modifier) {
                     .weight(1f)
                     .aspectRatio(0.66f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFEDE6E5).copy(alpha = alpha))
+                    .background(ShimmerBase.copy(alpha = alpha))
             )
         }
     }

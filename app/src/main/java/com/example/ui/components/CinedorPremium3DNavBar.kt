@@ -52,6 +52,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.ObsidianBorder
+import com.example.ui.theme.NavGlassBottom
+import com.example.ui.theme.NavGlassTop
 import com.example.ui.theme.CinetorRed
 import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.TextPrimary
@@ -109,8 +112,8 @@ fun CinedorPremium3DNavBar(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.96f),
-                            Color(0xFFF7F2F2).copy(alpha = 0.94f)
+                            NavGlassTop,
+                            NavGlassBottom
                         )
                     )
                 )
@@ -118,9 +121,9 @@ fun CinedorPremium3DNavBar(
                     width = 1.dp,
                     brush = Brush.horizontalGradient(
                         listOf(
-                            Color(0xFFE9DEDE),
+                            ObsidianBorder,
                             CinetorRed.copy(alpha = 0.28f),
-                            Color(0xFFE9DEDE)
+                            ObsidianBorder
                         )
                     ),
                     shape = pillShape
@@ -151,7 +154,7 @@ private fun RowScope.NavPillSlot(
         label = "nav_scale"
     )
     val iconColor by animateColorAsState(
-        targetValue = if (selected) CinetorRed else Color(0xFF5F6470),
+        targetValue = if (selected) CinetorRed else TextSecondary,
         label = "nav_icon_color"
     )
     val indicatorColor by animateColorAsState(

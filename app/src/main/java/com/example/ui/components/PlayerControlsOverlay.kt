@@ -1,5 +1,21 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.BrightnessMedium
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.provider.OpenableColumns
+import android.os.Build
+import android.media.AudioManager
+import android.content.Intent
+import android.content.ContextWrapper
+import android.content.Context
+import android.app.Activity
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.foundation.layout.PaddingValues
@@ -84,6 +100,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.CaptionTrack
 import com.example.data.model.StreamOption
+import com.example.ui.theme.CinetorRedDark
+import com.example.ui.theme.AccentBright
 import com.example.ui.theme.CinedorMagenta
 import com.example.ui.theme.CinedorPink
 import com.example.ui.theme.MediaCard as ObsidianCard
@@ -94,6 +112,7 @@ import kotlinx.coroutines.delay
 enum class VideoResizeOption(val label: String) {
     FIT("Fit"),
     ZOOM("Fill"),
+    CROP("Crop black bars"),
     FILL("Stretch")
 }
 
@@ -135,8 +154,53 @@ internal fun CinedorPlayerControlsOverlay(
     onSelectCaption: (CaptionTrack?) -> Unit,
     modifier: Modifier = Modifier,
     onHoldSpeed: (Boolean) -> Unit = {},
-    onSetSpeed: ((Float) -> Unit)? = null
+    onSetSpeed: ((Float) -> Unit)? = null,
+    audioTracks: List<PlayerTrackOption> = emptyList(),
+    textTracks: List<PlayerTrackOption> = emptyList(),
+    onSelectTrack: (PlayerTrackOption) -> Unit = {},
+    onDisableEmbeddedText: () -> Unit = {},
+    onPinchZoom: (Float) -> Unit = {}
 ) {
+    val ctx = LocalContext.current
+    var containerHeightPx by remember { mutableIntStateOf(1) }
+    var gestureHud by remember { mutableStateOf<Pair<ImageVector, Int>?>(null) }
+    var gestureHudTick by remember { mutableIntStateOf(0) }
+    var brightness by remember {
+        mutableFloatStateOf(
+            ctx.findHostActivityForPlayer()?.window?.attributes?.screenBrightness?.takeIf { it >= 0f } ?: 0.5f
+        )
+    }
+    val audioManager = remember { ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
+    var volumeAcc by remember { mutableFloatStateOf(0f) }
+    val streamLanguages = remember(streams) {
+        streams.map { it.audioLanguage }.filter { it.isNotBlank() }.distinct()
+    }
+    val subtitleFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                ctx.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val name = runCatching {
+                ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                    if (c.moveToFirst()) c.getString(0) else null
+                }
+            }.getOrNull() ?: "subtitle.srt"
+            onSelectCaption(
+                CaptionTrack(
+                    id = "local_${uri.hashCode()}",
+                    language = "local",
+                    label = name,
+                    url = uri.toString()
+                )
+            )
+        }
+    }
+    LaunchedEffect(gestureHudTick) {
+        if (gestureHudTick > 0) {
+            delay(800L)
+            gestureHud = null
+        }
+    }
     var openPanel by remember { mutableStateOf<PlayerPanel?>(null) }
     var controlsVisible by remember { mutableStateOf(true) }
     var isHolding2x by remember { mutableStateOf(false) }
@@ -195,7 +259,46 @@ internal fun CinedorPlayerControlsOverlay(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { containerWidthPx = it.width.coerceAtLeast(1) }
+            .onSizeChanged {
+                containerWidthPx = it.width.coerceAtLeast(1)
+                containerHeightPx = it.height.coerceAtLeast(1)
+            }
+            .pointerInput(isLocked) {
+                if (isLocked) return@pointerInput
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    if (zoom != 1f) {
+                        onPinchZoom(zoom)
+                    } else if (kotlin.math.abs(pan.y) > kotlin.math.abs(pan.x) * 1.4f) {
+                        val delta = -pan.y / containerHeightPx.toFloat()
+                        if (centroid.x < containerWidthPx / 2f) {
+                            brightness = (brightness + delta).coerceIn(0.02f, 1f)
+                            ctx.findHostActivityForPlayer()?.window?.let { w ->
+                                val lp = w.attributes
+                                lp.screenBrightness = brightness
+                                w.attributes = lp
+                            }
+                            gestureHud = Icons.Rounded.BrightnessMedium to (brightness * 100).toInt()
+                        } else if (audioManager != null) {
+                            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                            volumeAcc += delta * max * 1.2f
+                            val step = volumeAcc.toInt()
+                            if (step != 0) {
+                                volumeAcc -= step
+                                val cur = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                audioManager.setStreamVolume(
+                                    AudioManager.STREAM_MUSIC,
+                                    (cur + step).coerceIn(0, max),
+                                    0
+                                )
+                            }
+                            val now = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                            gestureHud = (if (now == 0) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp) to
+                                (now * 100 / max)
+                        }
+                        gestureHudTick++
+                    }
+                }
+            }
             .pointerInput(isLocked) {
                 detectTapGestures(
                     onPress = {
@@ -304,6 +407,44 @@ internal fun CinedorPlayerControlsOverlay(
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                 )
+            }
+        }
+
+        // Brightness / volume HUD
+        AnimatedVisibility(
+            visible = gestureHud != null,
+            enter = fadeIn(tween(100)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            val hud = gestureHud
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.Black.copy(alpha = 0.62f))
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (hud != null) {
+                    Icon(hud.first, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.25f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth((hud.second / 100f).coerceIn(0f, 1f))
+                                .height(4.dp)
+                                .background(CinedorMagenta)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("${hud.second}%", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                }
             }
         }
 
@@ -452,7 +593,20 @@ internal fun CinedorPlayerControlsOverlay(
                             )
                         }
 
-                        if (captions.isNotEmpty()) {
+                        if (audioTracks.size > 1 || streamLanguages.size > 1) {
+                            TopOverlayActionItem(
+                                icon = Icons.Rounded.Translate,
+                                label = "Audio",
+                                active = false,
+                                onClick = {
+                                    interactionTick++
+                                    openPanel = PlayerPanel.AUDIO
+                                },
+                                testTag = "player_audio_button"
+                            )
+                        }
+
+                        run {
                             TopOverlayActionItem(
                                 icon = Icons.Rounded.ClosedCaption,
                                 label = "CC",
@@ -462,6 +616,19 @@ internal fun CinedorPlayerControlsOverlay(
                                     openPanel = PlayerPanel.CAPTIONS
                                 },
                                 testTag = "player_caption_button"
+                            )
+                        }
+
+                        if (AppSettings.pipEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            TopOverlayActionItem(
+                                icon = Icons.Rounded.PictureInPictureAlt,
+                                label = "PiP",
+                                active = false,
+                                onClick = {
+                                    interactionTick++
+                                    PipState.requestPip?.invoke()
+                                },
+                                testTag = "player_pip_button"
                             )
                         }
 
@@ -521,7 +688,7 @@ internal fun CinedorPlayerControlsOverlay(
                                 .shadow(10.dp, CircleShape, spotColor = CinedorMagenta)
                                 .clip(CircleShape)
                                 .background(
-                                    Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                                    Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
                                 )
                                 .testTag("player_center_play_pause")
                         ) {
@@ -690,6 +857,7 @@ internal fun CinedorPlayerControlsOverlay(
                             PlayerPanel.QUALITY -> "Video quality"
                             PlayerPanel.SPEED -> "Playback speed"
                             PlayerPanel.CAPTIONS -> "Subtitles"
+                            PlayerPanel.AUDIO -> "Audio language"
                             null -> ""
                         },
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
@@ -736,12 +904,13 @@ internal fun CinedorPlayerControlsOverlay(
                                         title = "Off",
                                         badge = null,
                                         subtitle = "",
-                                        selected = selectedCaption == null,
+                                        selected = selectedCaption == null && textTracks.none { it.selected },
                                         compact = !isFullscreen,
                                         onClick = {
                                             openPanel = null
                                             interactionTick++
                                             onSelectCaption(null)
+                                            onDisableEmbeddedText()
                                         }
                                     )
                                 }
@@ -759,8 +928,121 @@ internal fun CinedorPlayerControlsOverlay(
                                         }
                                     )
                                 }
+                                val selectedLocal = selectedCaption?.takeIf { sc -> captions.none { it.url == sc.url } }
+                                if (selectedLocal != null) {
+                                    item(key = "cc_local_sel") {
+                                        PanelOptionCard(
+                                            title = selectedLocal.label.substringBeforeLast('.').take(14),
+                                            badge = "FILE",
+                                            subtitle = "From phone",
+                                            selected = true,
+                                            compact = !isFullscreen,
+                                            onClick = { openPanel = null; interactionTick++ }
+                                        )
+                                    }
+                                }
+                                val embedded = textTracks.filter { t -> selectedCaption == null || t.label != selectedCaption.label }
+                                items(embedded, key = { "et_" + it.key }) { t ->
+                                    PanelOptionCard(
+                                        title = t.label,
+                                        badge = "IN",
+                                        subtitle = "Built-in",
+                                        selected = t.selected && selectedCaption == null,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            if (selectedCaption != null) onSelectCaption(null)
+                                            onSelectTrack(t)
+                                        }
+                                    )
+                                }
+                                item(key = "cc_pick") {
+                                    PanelOptionCard(
+                                        title = "+ Add file",
+                                        badge = null,
+                                        subtitle = ".srt .vtt .ass",
+                                        selected = false,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            runCatching { subtitleFilePicker.launch(arrayOf("*/*")) }
+                                        }
+                                    )
+                                }
+                            }
+                            PlayerPanel.AUDIO -> {
+                                items(audioTracks, key = { "at_" + it.key }) { t ->
+                                    PanelOptionCard(
+                                        title = t.label,
+                                        badge = null,
+                                        subtitle = "Built-in audio",
+                                        selected = t.selected,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            onSelectTrack(t)
+                                        }
+                                    )
+                                }
+                                if (streamLanguages.size > 1) {
+                                    items(streamLanguages, key = { "sl_$it" }) { lang ->
+                                        PanelOptionCard(
+                                            title = lang,
+                                            badge = null,
+                                            subtitle = "Dubbed version",
+                                            selected = selectedStream.audioLanguage == lang,
+                                            compact = !isFullscreen,
+                                            onClick = {
+                                                openPanel = null
+                                                interactionTick++
+                                                if (selectedStream.audioLanguage != lang) {
+                                                    val target = streams.filter { it.audioLanguage == lang }
+                                                    val same = target.firstOrNull { it.quality == selectedStream.quality } ?: target.firstOrNull()
+                                                    if (same != null) onSelectStream(same)
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
                             }
                             null -> {}
+                        }
+                    }
+                }
+                if (panel == PlayerPanel.CAPTIONS) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = if (isFullscreen) 28.dp else 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Size", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.8f))
+                        listOf("S", "M", "L", "XL").forEachIndexed { idx, lbl ->
+                            val sel = AppSettings.subtitleSize == idx
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(if (sel) CinedorMagenta else Color.White.copy(alpha = 0.14f))
+                                    .clickable { AppSettings.setSubtitleSize(ctx, idx); interactionTick++ },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(lbl, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(if (AppSettings.subtitleBackground) CinedorMagenta else Color.White.copy(alpha = 0.14f))
+                                .clickable { AppSettings.setSubtitleBackground(ctx, !AppSettings.subtitleBackground); interactionTick++ }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text("Background", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
                         }
                     }
                 }
@@ -910,7 +1192,7 @@ private fun SleekVideoSeekBar(
             if (playedWidth > 0f) {
                 drawRoundRect(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(Color(0xFFA80B14), CinedorMagenta, CinedorPink)
+                        colors = listOf(CinetorRedDark, CinedorMagenta, CinedorPink)
                     ),
                     topLeft = Offset(0f, trackTop),
                     size = Size(playedWidth, trackHeight),
@@ -941,7 +1223,26 @@ private fun SleekVideoSeekBar(
     }
 }
 
-internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS }
+internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS, AUDIO }
+
+/** A built-in audio or subtitle track found inside the video stream. */
+data class PlayerTrackOption(
+    val key: String,
+    val label: String,
+    val isAudio: Boolean,
+    val selected: Boolean,
+    val groupIndex: Int,
+    val trackIndex: Int
+)
+
+internal fun Context.findHostActivityForPlayer(): Activity? {
+    var c: Context? = this
+    while (c is ContextWrapper) {
+        if (c is Activity) return c
+        c = c.baseContext
+    }
+    return null
+}
 
 internal fun qualityBadge(label: String): String? {
     val n = Regex("(\\d{3,4})").find(label)?.value?.toIntOrNull() ?: return null
@@ -968,7 +1269,7 @@ private fun PanelOptionCard(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 if (selected) {
-                    Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                    Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
                 } else {
                     Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.08f)))
                 }

@@ -5,6 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.example.ui.theme.CinedorPalettes
+import com.example.ui.theme.DEFAULT_THEME_INDEX
+import com.example.ui.theme.ThemeState
 
 /**
  * Small on-device settings store for UI / player / download preferences.
@@ -24,6 +27,15 @@ object AppSettings {
         private set
     var avatarStyle by mutableIntStateOf(4)
         private set
+    var themeIndex by mutableIntStateOf(DEFAULT_THEME_INDEX)
+        private set
+    var pipEnabled by mutableStateOf(true)
+        private set
+    /** 0 = small, 1 = normal, 2 = large, 3 = extra large */
+    var subtitleSize by mutableIntStateOf(1)
+        private set
+    var subtitleBackground by mutableStateOf(true)
+        private set
 
     fun load(context: Context) {
         if (loaded) return
@@ -33,6 +45,11 @@ object AppSettings {
         wifiOnlyDownloads = p.getBoolean("wifiOnly", false)
         profileName = p.getString("name", "Main") ?: "Main"
         avatarStyle = p.getInt("avatar", 4)
+        themeIndex = p.getInt("theme", DEFAULT_THEME_INDEX).coerceIn(0, CinedorPalettes.lastIndex)
+        pipEnabled = p.getBoolean("pip", true)
+        subtitleSize = p.getInt("subSize", 1).coerceIn(0, 3)
+        subtitleBackground = p.getBoolean("subBg", true)
+        ThemeState.current = CinedorPalettes[themeIndex]
         loaded = true
     }
 
@@ -43,6 +60,10 @@ object AppSettings {
             .putBoolean("wifiOnly", wifiOnlyDownloads)
             .putString("name", profileName)
             .putInt("avatar", avatarStyle)
+            .putInt("theme", themeIndex)
+            .putBoolean("pip", pipEnabled)
+            .putInt("subSize", subtitleSize)
+            .putBoolean("subBg", subtitleBackground)
             .apply()
     }
 
@@ -55,10 +76,34 @@ object AppSettings {
         save(context)
     }
 
+    fun setTheme(context: Context, index: Int) {
+        themeIndex = index.coerceIn(0, CinedorPalettes.lastIndex)
+        ThemeState.current = CinedorPalettes[themeIndex]
+        save(context)
+    }
+    fun setPip(context: Context, on: Boolean) { pipEnabled = on; save(context) }
+    fun setSubtitleSize(context: Context, size: Int) { subtitleSize = size.coerceIn(0, 3); save(context) }
+    fun setSubtitleBackground(context: Context, on: Boolean) { subtitleBackground = on; save(context) }
+
     fun reset(context: Context) {
         doubleTapSkipSec = 10
         holdFor2x = true
         wifiOnlyDownloads = false
+        pipEnabled = true
+        subtitleSize = 1
+        subtitleBackground = true
+        themeIndex = DEFAULT_THEME_INDEX
+        ThemeState.current = CinedorPalettes[themeIndex]
         save(context)
     }
+}
+
+/** Shared state for picture-in-picture. */
+object PipState {
+    /** True while a video is actively playing (enter PiP when the user leaves the app). */
+    var videoPlaying by mutableStateOf(false)
+    /** True while the activity is shown in picture-in-picture. */
+    var inPip by mutableStateOf(false)
+    /** Set by the player so the PiP button can request PiP. */
+    var requestPip: (() -> Unit)? = null
 }

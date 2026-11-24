@@ -1,5 +1,12 @@
 package com.example.ui.components
 
+import android.os.Build
+import androidx.compose.ui.draw.clipToBounds
+import androidx.media3.ui.CaptionStyleCompat
+import androidx.media3.ui.SubtitleView
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Handler
@@ -419,6 +426,9 @@ fun CinePulseVideoPlayer(
     }
     var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
     var resizeOption by remember { mutableStateOf(VideoResizeOption.FIT) }
+    var pinchScale by remember { mutableFloatStateOf(1f) }
+    var audioTrackOptions by remember { mutableStateOf<List<PlayerTrackOption>>(emptyList()) }
+    var textTrackOptions by remember { mutableStateOf<List<PlayerTrackOption>>(emptyList()) }
     var preservedPositionMs by remember(initialPositionMs) { mutableLongStateOf(initialPositionMs) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
 
@@ -478,7 +488,8 @@ fun CinePulseVideoPlayer(
                 }
             }
 
-            val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+            // DefaultDataSource lets subtitles load from phone storage (content://) as well as http.
+            val mediaSourceFactory = DefaultMediaSourceFactory(DefaultDataSource.Factory(context, dataSourceFactory))
                 .setLoadErrorHandlingPolicy(CinedorLoadErrorHandlingPolicy())
             val fastLoadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
@@ -499,11 +510,11 @@ fun CinePulseVideoPlayer(
                         activeProfile.url.contains(".m3u8", ignoreCase = true) -> itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                         activeProfile.url.contains(".mpd", ignoreCase = true) -> itemBuilder.setMimeType(MimeTypes.APPLICATION_MPD)
                     }
-                    if (effectiveCaption != null && effectiveCaption.url.startsWith("http")) {
+                    if (effectiveCaption != null && effectiveCaption.url.isNotBlank()) {
+                        val nameHint = (effectiveCaption.url + " " + effectiveCaption.label).lowercase()
                         val mime = when {
-                            effectiveCaption.url.contains(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
-                            effectiveCaption.url.contains(".ass", ignoreCase = true) ||
-                                effectiveCaption.url.contains(".ssa", ignoreCase = true) -> MimeTypes.TEXT_SSA
+                            nameHint.contains(".vtt") -> MimeTypes.TEXT_VTT
+                            nameHint.contains(".ass") || nameHint.contains(".ssa") -> MimeTypes.TEXT_SSA
                             else -> MimeTypes.APPLICATION_SUBRIP
                         }
                         val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(Uri.parse(effectiveCaption.url))
@@ -542,6 +553,37 @@ fun CinePulseVideoPlayer(
 
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
+                PipState.videoPlaying = playing
+            }
+
+            override fun onTracksChanged(tracks: Tracks) {
+                val audio = mutableListOf<PlayerTrackOption>()
+                val text = mutableListOf<PlayerTrackOption>()
+                tracks.groups.forEachIndexed { gi, group ->
+                    val isAudio = group.type == C.TRACK_TYPE_AUDIO
+                    val isText = group.type == C.TRACK_TYPE_TEXT
+                    if (!isAudio && !isText) return@forEachIndexed
+                    for (ti in 0 until group.length) {
+                        if (!group.isTrackSupported(ti)) continue
+                        val f = group.getTrackFormat(ti)
+                        val langName = f.language?.takeIf { it.isNotBlank() && it != "und" }?.let {
+                            runCatching { java.util.Locale.forLanguageTag(it).displayLanguage }.getOrNull()?.ifBlank { null } ?: it
+                        }
+                        val n = (if (isAudio) audio.size else text.size) + 1
+                        val label = f.label?.takeIf { it.isNotBlank() } ?: langName ?: (if (isAudio) "Audio $n" else "Subtitle $n")
+                        val opt = PlayerTrackOption(
+                            key = "${gi}_$ti",
+                            label = label,
+                            isAudio = isAudio,
+                            selected = group.isTrackSelected(ti),
+                            groupIndex = gi,
+                            trackIndex = ti
+                        )
+                        if (isAudio) audio.add(opt) else text.add(opt)
+                    }
+                }
+                audioTrackOptions = audio
+                textTrackOptions = text
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -579,7 +621,12 @@ fun CinePulseVideoPlayer(
         exoPlayer.addListener(listener)
 
         val lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) {
+            val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+                context.findHostActivityForPlayer()?.isInPictureInPictureMode == true
+            if (event == Lifecycle.Event.ON_PAUSE && !inPip) {
+                exoPlayer.pause()
+            }
+            if (event == Lifecycle.Event.ON_STOP) {
                 exoPlayer.pause()
             }
         }
@@ -596,6 +643,7 @@ fun CinePulseVideoPlayer(
             }
             lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
             exoPlayer.removeListener(listener)
+            PipState.videoPlaying = false
             exoPlayer.release()
         }
     }
@@ -662,8 +710,12 @@ fun CinePulseVideoPlayer(
             val targetResizeMode = when (resizeOption) {
                 VideoResizeOption.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 VideoResizeOption.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                VideoResizeOption.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 VideoResizeOption.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
             }
+            val videoScale = pinchScale * (if (resizeOption == VideoResizeOption.CROP) 1.3f else 1f)
+            val subSizeFactor = listOf(0.8f, 1f, 1.3f, 1.6f)[AppSettings.subtitleSize.coerceIn(0, 3)]
+            val subBg = AppSettings.subtitleBackground
             AndroidView(
                 factory = { ctx ->
                     (LayoutInflater.from(ctx).inflate(R.layout.cinedor_player_view, null, false) as PlayerView).apply {
@@ -687,11 +739,29 @@ fun CinePulseVideoPlayer(
                     if (view.resizeMode != targetResizeMode) {
                         view.resizeMode = targetResizeMode
                     }
+                    view.scaleX = videoScale
+                    view.scaleY = videoScale
+                    view.subtitleView?.let { sv ->
+                        sv.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subSizeFactor)
+                        sv.setApplyEmbeddedStyles(!subBg)
+                        sv.setStyle(
+                            CaptionStyleCompat(
+                                android.graphics.Color.WHITE,
+                                if (subBg) 0x99000000.toInt() else android.graphics.Color.TRANSPARENT,
+                                android.graphics.Color.TRANSPARENT,
+                                if (subBg) CaptionStyleCompat.EDGE_TYPE_NONE else CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                                android.graphics.Color.BLACK,
+                                null
+                            )
+                        )
+                    }
                 },
                 onRelease = { view ->
                     view.player = null
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clipToBounds()
             )
         }
 
@@ -787,7 +857,7 @@ fun CinePulseVideoPlayer(
         }
 
         // Custom MovieBox-faithful auto-hiding controls overlay (zero permanent clutter!)
-        if (!isWebViewMode && playbackError == null && exoPlayer != null) {
+        if (!isWebViewMode && playbackError == null && exoPlayer != null && !PipState.inPip) {
             CinedorPlayerControlsOverlay(
                 title = title,
                 isPlaying = isPlaying,
@@ -832,6 +902,7 @@ fun CinePulseVideoPlayer(
                 onCycleResize = {
                     val nextIdx = (resizeOption.ordinal + 1) % VideoResizeOption.entries.size
                     resizeOption = VideoResizeOption.entries[nextIdx]
+                    pinchScale = 1f
                 },
                 onToggleFullscreen = onToggleFullscreen,
                 onSelectStream = onSelectStream,
@@ -843,6 +914,28 @@ fun CinePulseVideoPlayer(
                 onSetSpeed = { sp ->
                     playbackSpeed = sp
                     exoPlayer.playbackParameters = PlaybackParameters(sp)
+                },
+                audioTracks = audioTrackOptions,
+                textTracks = textTrackOptions,
+                onSelectTrack = { opt ->
+                    val group = exoPlayer.currentTracks.groups.getOrNull(opt.groupIndex)
+                    if (group != null) {
+                        val type = if (opt.isAudio) C.TRACK_TYPE_AUDIO else C.TRACK_TYPE_TEXT
+                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                            .buildUpon()
+                            .setTrackTypeDisabled(type, false)
+                            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, opt.trackIndex))
+                            .build()
+                    }
+                },
+                onDisableEmbeddedText = {
+                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                        .build()
+                },
+                onPinchZoom = { z ->
+                    pinchScale = (pinchScale * z).coerceIn(1f, 3f)
                 }
             )
         } else if (isWebViewMode && playbackError == null) {

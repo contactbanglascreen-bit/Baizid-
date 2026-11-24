@@ -14,6 +14,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import com.example.ui.theme.ShimmerBase
+import com.example.ui.theme.ChipBorder
+import com.example.ui.theme.ChipBg
 import com.example.ui.theme.CinetorBlush
 import com.example.ui.theme.CinetorRed
 import com.example.ui.theme.ObsidianBorder
@@ -235,7 +238,7 @@ fun HomeScreen(
                                 .padding(horizontal = 48.dp)
                                 .clip(RoundedCornerShape(28.dp))
                                 .background(
-                                    Brush.verticalGradient(listOf(Color(0xFFEDE6E5), Color(0xFFF5EFEE)))
+                                    Brush.verticalGradient(listOf(ShimmerBase, ShimmerBase.copy(alpha = 0.6f)))
                                 )
                         )
                         Spacer(modifier = Modifier.height(20.dp))
@@ -761,8 +764,8 @@ fun HomeScreen(
                                 }
                             )
                             .clip(CircleShape)
-                            .background(if (selected) CinetorRed else Color(0xFFEFE8E7))
-                            .border(1.dp, if (selected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
+                            .background(if (selected) CinetorRed else ChipBg)
+                            .border(1.dp, if (selected) CinetorRed else ChipBorder, CircleShape)
                             .clickable { onSelectTab(tabKey) }
                             .padding(horizontal = 16.dp)
                             .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),
@@ -801,8 +804,8 @@ private fun MovieBoxSubFilterRow(
                 modifier = Modifier
                     .height(32.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) CinetorRed else Color(0xFFEFE8E7))
-                    .border(1.dp, if (isSelected) CinetorRed else Color(0xFFD9D0CF), CircleShape)
+                    .background(if (isSelected) CinetorRed else ChipBg)
+                    .border(1.dp, if (isSelected) CinetorRed else ChipBorder, CircleShape)
                     .clickable { onSelect(tab) }
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center

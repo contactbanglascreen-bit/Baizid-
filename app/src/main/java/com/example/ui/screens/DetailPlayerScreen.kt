@@ -97,6 +97,9 @@ import com.example.ui.components.CinePulseVideoPlayer
 import com.example.ui.components.PosterCard
 import androidx.compose.material.icons.rounded.Download
 import com.example.ui.components.DownloadQualitySheet
+import com.example.ui.components.PipState
+import com.example.ui.theme.CinetorRedDark
+import com.example.ui.theme.AccentBright
 import com.example.ui.theme.OnAccent
 import com.example.ui.theme.OnMediaText
 import com.example.ui.theme.CinemaGold
@@ -209,14 +212,14 @@ fun DetailPlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isFullscreen) Color.Black else ObsidianBackground)
+            .background(if (isFullscreen || PipState.inPip) Color.Black else ObsidianBackground)
             .then(
-                if (isFullscreen) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()
+                if (isFullscreen || PipState.inPip) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()
             )
     ) {
         // Single unified Media3 Video Player Area — stays mounted across fullscreen toggles without reloading!
         Box(
-            modifier = if (isFullscreen) {
+            modifier = if (isFullscreen || PipState.inPip) {
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black)
@@ -330,7 +333,7 @@ fun DetailPlayerScreen(
             }
         }
 
-        if (isFullscreen) return@Column
+        if (isFullscreen || PipState.inPip) return@Column
 
         // Scrollable MovieBox Detail Body
         LazyColumn(
@@ -342,100 +345,99 @@ fun DetailPlayerScreen(
                 val displayItem = detail?.item ?: item
 
                 Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                    // MovieBox Title + inline "Info >" Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = displayItem.title,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 19.sp
-                            ),
-                            color = TextPrimary,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                    // Poster + title + info chips
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { infoExpanded = !infoExpanded }
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                .width(92.dp)
+                                .height(134.dp)
+                                .shadow(6.dp, RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(ObsidianSurfaceVariant)
                         ) {
+                            AsyncImage(
+                                model = displayItem.posterUrl.ifBlank { item.posterUrl }.ifBlank { displayItem.backdropUrl },
+                                contentDescription = displayItem.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Info",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                                color = TextSecondary
+                                text = displayItem.title,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 19.sp,
+                                    lineHeight = 23.sp
+                                ),
+                                color = TextPrimary,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                contentDescription = "Toggle info",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val seasonCount = detail?.seasons?.size ?: 0
+                            DetailMetaChips(
+                                rating = displayItem.rating,
+                                chips = buildList {
+                                    if (displayItem.year.isNotBlank()) add(displayItem.year)
+                                    if (displayItem.country.isNotBlank()) add(displayItem.country)
+                                    if (seasonCount > 0) {
+                                        add("$seasonCount Season${if (seasonCount > 1) "s" else ""}")
+                                    } else if (detail?.durationText?.isNotBlank() == true) {
+                                        add(detail.durationText)
+                                    }
+                                    detail?.audioLanguages.orEmpty().filter { it.isNotBlank() }.take(3).forEach { add(it) }
+                                }
                             )
+                            if (displayItem.genres.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = displayItem.genres.filter { it.isNotBlank() }.take(4).joinToString("  •  "),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+                                    color = CinedorMagenta,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Exact MovieBox Pipe-Separated Metadata Line: 📺 | ⭐ 5.8 | 2019 | Japan | Anime | 1 seasons
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (displayItem.mediaType == MediaCategoryType.MOVIE) {
-                                Icons.Rounded.Movie
-                            } else {
-                                Icons.Rounded.LiveTv
-                            },
-                            contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(15.dp)
+                    // Synopsis with Show more / less
+                    val headerSynopsis = detail?.synopsis?.ifBlank { displayItem.description }.orEmpty()
+                        .ifBlank { displayItem.description }
+                    if (headerSynopsis.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = headerSynopsis,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
+                            color = TextSecondary,
+                            maxLines = if (infoExpanded) Int.MAX_VALUE else 3,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        if (displayItem.rating.isNotBlank()) {
-                            Text("|", color = ObsidianBorder, fontSize = 12.sp)
-                            Icon(
-                                imageVector = Icons.Rounded.Star,
-                                contentDescription = null,
-                                tint = CinemaGold,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = displayItem.rating,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = CinemaGold
-                            )
-                        }
-                        val metaTail = buildList {
-                            if (displayItem.year.isNotBlank()) add(displayItem.year)
-                            if (displayItem.country.isNotBlank()) add(displayItem.country)
-                            displayItem.genres.firstOrNull()?.takeIf { it.isNotBlank() }?.let { add(it) }
-                            val seasonCount = detail?.seasons?.size ?: 0
-                            if (seasonCount > 0) {
-                                add("$seasonCount season${if (seasonCount > 1) "s" else ""}")
-                            } else if (detail?.durationText?.isNotBlank() == true) {
-                                add(detail.durationText)
-                            }
-                        }
-                        if (metaTail.isNotEmpty()) {
-                            Text(
-                                text = "| ${metaTail.joinToString(" | ")}",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                color = TextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Text(
+                            text = if (infoExpanded) "Show less" else "Show more",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = CinedorMagenta,
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { infoExpanded = !infoExpanded }
+                                .padding(vertical = 2.dp)
+                        )
+                    } else if (detail?.cast?.isNotEmpty() == true) {
+                        Text(
+                            text = if (infoExpanded) "Hide cast" else "Show cast",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = CinedorMagenta,
+                            modifier = Modifier
+                                .padding(top = 10.dp)
+                                .clickable { infoExpanded = !infoExpanded }
+                        )
                     }
 
                     // Expandable Info Drawer (Synopsis + Cast, hidden by default just like MovieBox!)
-                    AnimatedVisibility(visible = infoExpanded) {
-                        val synopsis = detail?.synopsis?.ifBlank { displayItem.description }.orEmpty()
+                    AnimatedVisibility(visible = infoExpanded && detail?.cast?.isNotEmpty() == true) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -444,23 +446,7 @@ fun DetailPlayerScreen(
                                 .background(ObsidianCard)
                                 .padding(12.dp)
                         ) {
-                            if (displayItem.genres.isNotEmpty()) {
-                                Text(
-                                    text = displayItem.genres.joinToString(" • "),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = CinedorMagenta
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                            }
-                            if (synopsis.isNotBlank()) {
-                                Text(
-                                    text = synopsis,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
-                                )
-                            }
                             if (detail != null && detail.cast.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Cast & Stars",
                                     style = MaterialTheme.typography.labelLarge,
@@ -613,7 +599,7 @@ fun DetailPlayerScreen(
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(
                                             if (sel) {
-                                                Brush.verticalGradient(listOf(Color(0xFFE8141F), Color(0xFFA80B14)))
+                                                Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
                                             } else {
                                                 Brush.verticalGradient(listOf(ObsidianCard, ObsidianCard))
                                             }
@@ -1215,6 +1201,51 @@ private fun CommentCard(comment: CommentItem) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
+        }
+    }
+}
+
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun DetailMetaChips(rating: String, chips: List<String>) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (rating.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ObsidianCard)
+                    .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Rounded.Star, contentDescription = null, tint = CinemaGold, modifier = Modifier.size(13.dp))
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = rating,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                    color = TextPrimary
+                )
+            }
+        }
+        chips.forEach { c ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ObsidianCard)
+                    .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = c,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    color = TextPrimary,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
