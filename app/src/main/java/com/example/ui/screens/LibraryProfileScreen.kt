@@ -501,7 +501,6 @@ private fun StreamingPreferencesCard(
     onSaveApiKey: (String) -> Unit,
     onCheckApiStatus: () -> Unit
 ) {
-    var apiKeyDraft by remember(preferences.customApiKey) { mutableStateOf(preferences.customApiKey) }
     Column {
         SectionHeaderRow(title = "Streaming Preferences")
         Spacer(modifier = Modifier.height(12.dp))
@@ -515,26 +514,6 @@ private fun StreamingPreferencesCard(
                 .border(1.dp, ObsidianBorder, RoundedCornerShape(16.dp))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Content Source", style = MaterialTheme.typography.titleSmall, color = TextPrimary)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(ContentSource.entries) { src ->
-                        val selected = preferences.source == src
-                        FilterChip(
-                            selected = selected,
-                            onClick = { onUpdateSource(src) },
-                            label = { Text(src.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CrimsonPrimary,
-                                selectedLabelColor = OnAccent,
-                                containerColor = ObsidianSurface,
-                                labelColor = TextSecondary
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
                 Text("Preferred Language", style = MaterialTheme.typography.titleSmall, color = TextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -591,113 +570,6 @@ private fun StreamingPreferencesCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(
-                            imageVector = Icons.Rounded.Key,
-                            contentDescription = null,
-                            tint = if (isDualSiteActive) LiveEmerald else CinemaGold,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "CinePulse Dual-Site Key",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = if (isDualSiteActive) {
-                                    "Active • MovieBox + MovieLinkBD unlocked"
-                                } else {
-                                    "Paste cp_live_... key to unlock MovieLinkBD & 2nd site streams"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isDualSiteActive) LiveEmerald else CinemaGold
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = apiKeyDraft,
-                        onValueChange = { apiKeyDraft = it },
-                        placeholder = {
-                            Text(
-                                text = "cp_live_...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ObsidianSurface,
-                            unfocusedContainerColor = ObsidianSurface,
-                            focusedBorderColor = CrimsonPrimary,
-                            unfocusedBorderColor = ObsidianBorder,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("api_key_input")
-                    )
-                    Button(
-                        onClick = { onSaveApiKey(apiKeyDraft) },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = CrimsonPrimary,
-                            contentColor = OnAccent
-                        ),
-                        modifier = Modifier.testTag("save_api_key_button")
-                    ) {
-                        Text("Save")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.Speed,
-                            contentDescription = null,
-                            tint = if (apiStatus?.isOnline == true) LiveEmerald else CinemaGold,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text("Cinedor Turbo Engine", style = MaterialTheme.typography.titleSmall, color = TextPrimary)
-                            Text(
-                                text = apiStatus?.let {
-                                    if (it.isOnline) "${it.statusText} • ${it.latencyMs}ms" else it.statusText
-                                } ?: "Checking connection…",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (apiStatus?.isOnline == true) LiveEmerald else TextSecondary
-                            )
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = onCheckApiStatus,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Ping", color = TextPrimary)
-                    }
-                }
             }
         }
     }

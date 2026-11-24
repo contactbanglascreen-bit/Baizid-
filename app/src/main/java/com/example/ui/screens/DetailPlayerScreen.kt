@@ -549,15 +549,6 @@ fun DetailPlayerScreen(
                                 testTag = "detail_share_button"
                             )
                         }
-                        item {
-                            MovieBoxActionPill(
-                                icon = Icons.Rounded.Refresh,
-                                label = "Switch Server",
-                                active = false,
-                                onClick = onRetryStream,
-                                testTag = "detail_refresh_stream"
-                            )
-                        }
                         if (state.captions.isNotEmpty()) {
                             item {
                                 MovieBoxActionPill(
@@ -592,11 +583,6 @@ fun DetailPlayerScreen(
                                 fontSize = 17.sp
                             ),
                             color = TextPrimary
-                        )
-                        Text(
-                            text = "Streamed via ${(detail?.item ?: item).source.uppercase()}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TextSecondary
                         )
                     }
 
@@ -935,42 +921,6 @@ fun DetailPlayerScreen(
                                     )
                                 }
 
-                                Column(
-                                    modifier = Modifier
-                                        .clickable { selectedBottomTab = 1 }
-                                        .padding(bottom = 2.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Row(verticalAlignment = Alignment.Top) {
-                                        Text(
-                                            text = "Comments(${detail.comments.size})",
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = if (selectedBottomTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                                fontSize = 17.sp
-                                            ),
-                                            color = if (selectedBottomTab == 1) TextPrimary else TextSecondary
-                                        )
-                                        if (detail.comments.isNotEmpty()) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .padding(start = 3.dp, top = 2.dp)
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(CinedorPink)
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .width(64.dp)
-                                            .height(3.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (selectedBottomTab == 1) CinedorMagenta else Color.Transparent
-                                            )
-                                    )
-                                }
                             }
                             HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.5f))
                         }
