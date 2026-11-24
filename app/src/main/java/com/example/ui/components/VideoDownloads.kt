@@ -3,8 +3,6 @@ package com.example.ui.components
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -86,14 +84,19 @@ private fun guessExtension(option: StreamOption): String {
 }
 
 /**
- * Queues [option] with the system DownloadManager (shows progress in the notification shade,
- * survives app close). Android 10+ saves to Downloads/Cinedor; older versions save to the
- * app's own movies folder so no storage permission is needed.
+ * Queues [option] with the system DownloadManager (progress in the notification shade,
+ * survives app close). The file lives inside the app and is listed in Me / My List > Downloads.
  */
-internal fun enqueueVideoDownload(context: Context, title: String, option: StreamOption): Boolean {
+internal fun enqueueVideoDownload(
+    context: Context,
+    title: String,
+    option: StreamOption,
+    posterUrl: String = ""
+): Boolean {
     return runCatching {
         val quality = option.quality.ifBlank { option.label }.ifBlank { "HD" }
-        val fileName = "${safeFileName("$title [$quality]")}.${guessExtension(option)}"
+        val fileName = "${safeFileName("$title [$quality]")}_${System.currentTimeMillis() % 100000}.${guessExtension(option)}"
+        val dir = DownloadStore.downloadDir(context) ?: return false
         val request = DownloadManager.Request(Uri.parse(option.url))
             .setTitle("$title • $quality")
             .setDescription("Cinedor download")
@@ -109,13 +112,21 @@ internal fun enqueueVideoDownload(context: Context, title: String, option: Strea
                 "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
             )
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "Cinedor/$fileName")
-        } else {
-            request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_MOVIES, fileName)
-        }
+        // Saved in the app's private video folder; shown in the in-app Downloads tab.
+        request.setDestinationUri(Uri.fromFile(java.io.File(dir, fileName)))
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        dm.enqueue(request)
+        val id = dm.enqueue(request)
+        DownloadStore.add(
+            context,
+            DownloadRecord(
+                id = id,
+                title = title,
+                quality = quality,
+                posterUrl = posterUrl,
+                filePath = java.io.File(dir, fileName).absolutePath,
+                createdAt = System.currentTimeMillis()
+            )
+        )
         true
     }.getOrDefault(false)
 }
@@ -128,7 +139,8 @@ internal fun enqueueVideoDownload(context: Context, title: String, option: Strea
 fun DownloadQualitySheet(
     title: String,
     streams: List<StreamOption>,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    posterUrl: String = ""
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -184,6 +196,12 @@ fun DownloadQualitySheet(
                 )
             } else {
                 Text(
+                    text = "Saved inside the app • find it in Me › Downloads",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                    color = CinetorRed
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
                     text = "Choose a quality",
                     style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                     color = TextMuted
@@ -200,11 +218,11 @@ fun DownloadQualitySheet(
                                 .background(if (isStarted) CinetorRedSoft else ObsidianSurfaceVariant.copy(alpha = 0.6f))
                                 .border(1.dp, if (isStarted) CinetorRed.copy(alpha = 0.4f) else ObsidianBorder, RoundedCornerShape(14.dp))
                                 .clickable(enabled = downloadable && !isStarted) {
-                                    if (enqueueVideoDownload(context, title, opt)) {
+                                    if (enqueueVideoDownload(context, title, opt, posterUrl)) {
                                         started.add(opt.url)
                                         Toast.makeText(
                                             context,
-                                            "Downloading ${opt.quality.ifBlank { opt.label }} • see notifications",
+                                            "Downloading ${opt.quality.ifBlank { opt.label }} • open Me › Downloads",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     } else {

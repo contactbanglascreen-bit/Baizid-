@@ -47,7 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
@@ -84,6 +84,7 @@ import com.example.data.model.MediaItem
 import com.example.ui.components.EmptyLibraryCard
 import com.example.ui.components.PosterCard
 import com.example.ui.components.SectionHeaderRow
+import com.example.ui.components.InAppDownloadsList
 import com.example.ui.theme.OnAccent
 import com.example.ui.theme.CinemaGold
 import com.example.ui.theme.CinedorGradientColors
@@ -250,8 +251,9 @@ fun LibraryProfileScreen(
 
         // Library Segmented Tabs
         item(key = "library_tabs") {
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = selectedTab,
+                edgePadding = 12.dp,
                 containerColor = ObsidianBackground,
                 contentColor = TextPrimary,
                 indicator = { tabPositions ->
@@ -275,6 +277,12 @@ fun LibraryProfileScreen(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     text = { Text("Reminders (${reminders.size})") }
+                )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = { Text("Downloads") },
+                    modifier = Modifier.testTag("library_downloads_tab")
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -403,6 +411,12 @@ fun LibraryProfileScreen(
                             }
                         }
                     }
+                }
+            }
+
+            3 -> {
+                item(key = "in_app_downloads") {
+                    InAppDownloadsList()
                 }
             }
 

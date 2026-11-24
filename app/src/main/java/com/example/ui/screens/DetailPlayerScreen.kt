@@ -200,7 +200,8 @@ fun DetailPlayerScreen(
         DownloadQualitySheet(
             title = dlTitle,
             streams = state.streams,
-            onDismiss = { downloadSheetOpen = false }
+            onDismiss = { downloadSheetOpen = false },
+            posterUrl = (dlDetail?.item ?: item).posterUrl.ifBlank { item.posterUrl }
         )
     }
 
