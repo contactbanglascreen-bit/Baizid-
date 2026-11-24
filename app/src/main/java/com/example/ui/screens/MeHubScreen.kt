@@ -189,10 +189,18 @@ fun MeHubScreen(
     onClearHistory: () -> Unit,
     onUpdateLanguage: (ContentLanguage) -> Unit,
     onUpdateSafeMode: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAdultUnlocked: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf(MePage.HUB) }
+    val adultMenuToggle = rememberGuardedSafeModeToggle { on ->
+        onUpdateSafeMode(on)
+        if (!on) {
+            Toast.makeText(context, "18+ unlocked", Toast.LENGTH_SHORT).show()
+            onAdultUnlocked()
+        }
+    }
     var editOpen by remember { mutableStateOf(false) }
     val guardedSafeMode = rememberGuardedSafeModeToggle(onUpdateSafeMode)
 
@@ -272,7 +280,7 @@ fun MeHubScreen(
                     AdultMenuRow(
                         unlocked = !preferences.safeMode,
                         hasPin = AdultLock.hasPin,
-                        onClick = { guardedSafeMode(!preferences.safeMode) }
+                        onClick = { adultMenuToggle(!preferences.safeMode) }
                     )
                     MenuDivider()
                     MenuRow(Icons.Rounded.Settings, "Settings", "Player, downloads & privacy") { page = MePage.SETTINGS }

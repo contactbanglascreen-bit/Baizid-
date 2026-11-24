@@ -383,7 +383,11 @@ fun CinedorMainShell() {
                                 onUpdateLanguage = { viewModel.updateLanguage(it) },
                                 onUpdateSafeMode = { viewModel.updateSafeMode(it) },
                                 onSaveApiKey = { viewModel.updateCustomApiKey(it) },
-                                onCheckApiStatus = { viewModel.checkApiStatus() }
+                                onCheckApiStatus = { viewModel.checkApiStatus() },
+                                onAdultUnlocked = {
+                                    currentTab = CinedorTab.HOME
+                                    viewModel.selectHomeTab("All")
+                                }
                             )
                         }
                     }

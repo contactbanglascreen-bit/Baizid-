@@ -121,7 +121,8 @@ fun LibraryProfileScreen(
     onUpdateSafeMode: (Boolean) -> Unit,
     onSaveApiKey: (String) -> Unit = {},
     onCheckApiStatus: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAdultUnlocked: () -> Unit = {}
 ) {
     if (mode == LibraryMode.ME) {
         MeHubScreen(
@@ -134,7 +135,8 @@ fun LibraryProfileScreen(
             onClearHistory = onClearHistory,
             onUpdateLanguage = onUpdateLanguage,
             onUpdateSafeMode = onUpdateSafeMode,
-            modifier = modifier
+            modifier = modifier,
+            onAdultUnlocked = onAdultUnlocked
         )
         return
     }
