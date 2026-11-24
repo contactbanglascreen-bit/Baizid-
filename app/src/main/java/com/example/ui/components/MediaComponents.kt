@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -405,6 +406,14 @@ fun PosterCard(
                     .clip(RoundedCornerShape(16.dp))
                     .background(ObsidianSurfaceVariant)
             ) {
+                Icon(
+                    imageVector = Icons.Rounded.Movie,
+                    contentDescription = null,
+                    tint = TextMuted.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(30.dp)
+                )
                 AsyncImage(
                     model = item.posterUrl.ifBlank { item.backdropUrl },
                     contentDescription = item.title,
@@ -419,42 +428,34 @@ fun PosterCard(
                             .padding(6.dp)
                     )
                 }
-                val badgeText = item.languageBadge.ifBlank { item.qualityBadge }
-                if (badgeText.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.95f))
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = badgeText.take(10),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = TextPrimary,
-                            maxLines = 1
-                        )
-                    }
-                }
             }
+            val (cleanTitle, tag) = remember(item.title) { splitTitleTag(item.title) }
             Text(
-                text = item.title,
+                text = cleanTitle,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
-                    lineHeight = 15.sp
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
                 ),
                 color = TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 2.dp, vertical = 6.dp)
+                    .padding(start = 2.dp, end = 2.dp, top = 7.dp)
             )
+            val meta = listOf(item.year, tag).filter { it.isNotBlank() }.joinToString(" · ")
+            if (meta.isNotBlank()) {
+                Text(
+                    text = meta,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                    color = TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -1095,4 +1096,12 @@ fun EmptyLibraryCard(
             )
         }
     }
+}
+
+
+/** Splits "Masters of the Universe [Hindi]" into ("Masters of the Universe", "Hindi"). */
+internal fun splitTitleTag(raw: String): Pair<String, String> {
+    val tags = Regex("\\[([^\\]]+)\\]").findAll(raw).map { it.groupValues[1].trim() }.filter { it.isNotBlank() }.toList()
+    val clean = raw.replace(Regex("\\s*\\[[^\\]]*\\]"), "").trim().ifBlank { raw }
+    return clean to tags.joinToString(" · ")
 }

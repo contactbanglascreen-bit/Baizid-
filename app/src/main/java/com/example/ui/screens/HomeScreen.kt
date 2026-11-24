@@ -372,8 +372,20 @@ fun HomeScreen(
                             // 1. Hero Banner + Overlapping Floating Mini-Poster Cards
                             if (feed.banners.isNotEmpty()) {
                                 item(key = "hero_banner") {
+                                    // Newest titles first: merge banners with trending/sections and sort by year
+                                    val heroItems = remember(feed) {
+                                        (feed.banners + feed.trendingItems + feed.sections.flatMap { it.items })
+                                            .filter { it.posterUrl.isNotBlank() || it.backdropUrl.isNotBlank() }
+                                            .distinctBy { it.title.lowercase().replace(Regex("\\s*\\[[^\\]]*\\]"), "") }
+                                            .sortedWith(
+                                                compareByDescending<MediaItem> { it.year.take(4).toIntOrNull() ?: 0 }
+                                                    .thenByDescending { it.releaseDate }
+                                            )
+                                            .take(10)
+                                            .ifEmpty { feed.banners }
+                                    }
                                     HeroBannerCarousel(
-                                        banners = feed.banners,
+                                        banners = heroItems,
                                         watchlistIds = watchlistIds,
                                         onPlayClick = onOpenMedia,
                                         onToggleWatchlist = onToggleWatchlist

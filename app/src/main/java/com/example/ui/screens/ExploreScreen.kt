@@ -1,5 +1,21 @@
 package com.example.ui.screens
 
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import com.example.ui.theme.ChipBg
+import com.example.ui.theme.CinetorRedSoft
+import com.example.ui.theme.CinetorBlush
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,6 +83,7 @@ import com.example.ui.theme.TextSecondary
 import com.example.ui.viewmodel.ExploreUiState
 import com.example.ui.viewmodel.UiState
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExploreScreen(
     state: ExploreUiState,
@@ -90,29 +107,51 @@ fun ExploreScreen(
         contentPadding = PaddingValues(bottom = 112.dp)
     ) {
         item(key = "explore_title_search") {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(CinetorBlush, ObsidianBackground)))
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 14.dp, bottom = 10.dp)
+            ) {
                 Text(
-                    text = "Explore & Search",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "Search",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 26.sp),
                     color = TextPrimary
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Movies, series, anime & dramas",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = TextSecondary
+                )
+                Spacer(modifier = Modifier.height(14.dp))
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = onQueryChanged,
                     placeholder = {
                         Text(
-                            text = stringResource(R.string.search_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextMuted
+                            text = "Search titles…",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                            color = TextMuted,
+                            maxLines = 1
                         )
                     },
                     leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = CrimsonPrimary
-                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(CrimsonPrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = null,
+                                tint = OnAccent,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     },
                     trailingIcon = {
                         if (state.query.isNotEmpty()) {
@@ -126,7 +165,8 @@ fun ExploreScreen(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                    shape = RoundedCornerShape(30.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(
                         onSearch = {
@@ -136,14 +176,16 @@ fun ExploreScreen(
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = ObsidianCard,
-                        unfocusedContainerColor = ObsidianSurface,
+                        unfocusedContainerColor = ObsidianCard,
                         focusedBorderColor = CrimsonPrimary,
-                        unfocusedBorderColor = ObsidianBorder,
+                        unfocusedBorderColor = Color.Transparent,
+                        cursorColor = CrimsonPrimary,
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(30.dp), spotColor = Color.Black.copy(alpha = 0.18f))
                         .testTag("explore_search_input")
                 )
             }
@@ -152,49 +194,57 @@ fun ExploreScreen(
         // Live autocomplete suggestions
         if (state.suggestions.isNotEmpty()) {
             item(key = "search_suggestions") {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = ObsidianCard,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .border(1.dp, ObsidianBorder, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(ObsidianCard)
+                        .border(1.dp, ObsidianBorder, RoundedCornerShape(20.dp))
+                        .padding(vertical = 4.dp)
                 ) {
-                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        state.suggestions.take(6).forEach { suggestion ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        focusManager.clearFocus()
-                                        onExecuteSearch(suggestion)
-                                    }
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Search,
-                                    contentDescription = null,
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = suggestion,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextPrimary
-                                )
-                            }
+                    state.suggestions.take(6).forEach { suggestion ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    focusManager.clearFocus()
+                                    onExecuteSearch(suggestion)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = suggestion,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Hot searches
+        // Hot searches: numbered chips, top 3 highlighted
         if (state.hotSearches.isNotEmpty() && state.query.isBlank()) {
             item(key = "hot_searches") {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -202,34 +252,53 @@ fun ExploreScreen(
                     Icon(
                         imageVector = Icons.Rounded.LocalFireDepartment,
                         contentDescription = null,
-                        tint = CinemaGold,
-                        modifier = Modifier.size(18.dp)
+                        tint = CrimsonPrimary,
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Hot Searches",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = "Trending searches",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 17.sp),
                         color = TextPrimary
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+                FlowRow(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.hotSearches.take(12)) { hot ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = ObsidianCard,
+                    state.hotSearches.take(10).forEachIndexed { idx, hot ->
+                        val top = idx < 3
+                        Row(
                             modifier = Modifier
-                                .border(1.dp, ObsidianBorder, RoundedCornerShape(12.dp))
+                                .clip(CircleShape)
+                                .background(if (top) CinetorRedSoft else ObsidianCard)
+                                .border(1.dp, if (top) CrimsonPrimary.copy(alpha = 0.35f) else ObsidianBorder, CircleShape)
                                 .clickable { onExecuteSearch(hot) }
+                                .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(if (top) CrimsonPrimary else ChipBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${idx + 1}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.sp),
+                                    color = if (top) OnAccent else TextSecondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(7.dp))
                             Text(
                                 text = hot,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
                                 color = TextPrimary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -237,161 +306,129 @@ fun ExploreScreen(
             }
         }
 
-        // OTT Platforms strip
+        // OTT platform brand tiles
         item(key = "ott_platforms") {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             SectionHeaderRow(title = "OTT Hubs")
             Spacer(modifier = Modifier.height(10.dp))
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(state.filterOptions.platforms) { (key, label) ->
                     val selected = state.selectedPlatform == key
-                    FilterChip(
-                        selected = selected,
-                        onClick = {
-                            if (selected) onSelectPlatform(null, "All") else onSelectPlatform(key, label)
-                        },
-                        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CrimsonPrimary,
-                            selectedLabelColor = OnAccent,
-                            containerColor = ObsidianCard,
-                            labelColor = TextPrimary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selected,
-                            borderColor = ObsidianBorder,
-                            selectedBorderColor = CrimsonPrimary
-                        ),
-                        modifier = Modifier.testTag("platform_chip_$key")
-                    )
+                    val brand = ottBrandColor(label)
+                    Box(
+                        modifier = Modifier
+                            .width(118.dp)
+                            .height(58.dp)
+                            .shadow(if (selected) 8.dp else 3.dp, RoundedCornerShape(16.dp), spotColor = brand)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Brush.linearGradient(listOf(brand, lerp(brand, Color.Black, 0.45f))))
+                            .then(
+                                if (selected) Modifier.border(2.dp, Color.White, RoundedCornerShape(16.dp)) else Modifier
+                            )
+                            .clickable {
+                                if (selected) onSelectPlatform(null, "All") else onSelectPlatform(key, label)
+                            }
+                            .testTag("platform_chip_$key"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 15.sp),
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        if (selected) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(5.dp)
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.Check, contentDescription = null, tint = brand, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // Dynamic Categories from /api/v1/categories (OTTs, Collections, Languages, Genres, WWE)
+        // Dynamic categories from the API
         if (state.categories.isNotEmpty()) {
             item(key = "api_categories") {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(state.categories.take(40), key = { it.id }) { chip ->
-                        val selected = state.selectedCategoryChip?.id == chip.id
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (selected) CrimsonPrimary.copy(alpha = 0.22f) else ObsidianSurface,
-                            modifier = Modifier
-                                .border(
-                                    1.dp,
-                                    if (selected) CrimsonPrimary else ObsidianBorder,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable { onSelectCategoryChip(chip) }
-                        ) {
-                            Text(
-                                text = chip.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) TextPrimary else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                        }
+                        ExplorePill(
+                            label = chip.name,
+                            selected = state.selectedCategoryChip?.id == chip.id,
+                            onClick = { onSelectCategoryChip(chip) }
+                        )
                     }
                 }
             }
         }
 
-        // Multi-Filter rows: Type, Genre, Year
+        // Filters: segmented type control + genre + year rows
         item(key = "filter_rows") {
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Spacer(modifier = Modifier.height(18.dp))
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .clip(CircleShape)
+                    .background(ChipBg)
+                    .padding(4.dp)
             ) {
-                items(state.filterOptions.categories) { (key, label) ->
+                state.filterOptions.categories.forEach { (key, label) ->
                     val selected = state.selectedCategory == key && state.selectedPlatform == null && state.query.isBlank()
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onUpdateFilter(key, null, null) },
-                        label = { Text(label) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CrimsonPrimary,
-                            selectedLabelColor = OnAccent,
-                            containerColor = ObsidianSurface,
-                            labelColor = TextSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selected,
-                            borderColor = ObsidianBorder,
-                            selectedBorderColor = CrimsonPrimary
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .clip(CircleShape)
+                            .background(if (selected) CrimsonPrimary else Color.Transparent)
+                            .clickable { onUpdateFilter(key, null, null) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp
+                            ),
+                            color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                    )
+                    }
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+            FilterLabelRow(
+                label = "Genre",
+                options = listOf("All") + state.filterOptions.genres,
+                isSelected = { state.selectedGenre.equals(it, ignoreCase = true) },
+                onSelect = { onUpdateFilter(null, it, null) }
+            )
             Spacer(modifier = Modifier.height(8.dp))
-
-            val genres = listOf("All") + state.filterOptions.genres
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(genres) { genre ->
-                    val selected = state.selectedGenre.equals(genre, ignoreCase = true)
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onUpdateFilter(null, genre, null) },
-                        label = { Text(genre, style = MaterialTheme.typography.labelMedium) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CrimsonPrimary.copy(alpha = 0.25f),
-                            selectedLabelColor = CrimsonPrimary,
-                            containerColor = ObsidianSurface,
-                            labelColor = TextSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selected,
-                            borderColor = ObsidianBorder,
-                            selectedBorderColor = CrimsonPrimary
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val years = listOf("All") + state.filterOptions.years
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(years) { year ->
-                    val selected = state.selectedYear == year
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onUpdateFilter(null, null, year) },
-                        label = { Text(year, style = MaterialTheme.typography.labelMedium) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CrimsonPrimary.copy(alpha = 0.25f),
-                            selectedLabelColor = CrimsonPrimary,
-                            containerColor = ObsidianSurface,
-                            labelColor = TextSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selected,
-                            borderColor = ObsidianBorder,
-                            selectedBorderColor = CrimsonPrimary
-                        )
-                    )
-                }
-            }
+            FilterLabelRow(
+                label = "Year",
+                options = listOf("All") + state.filterOptions.years,
+                isSelected = { state.selectedYear == it },
+                onSelect = { onUpdateFilter(null, null, it) }
+            )
         }
 
         // Results Section Header
@@ -485,6 +522,76 @@ fun ExploreScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+
+private fun ottBrandColor(label: String): Color {
+    val l = label.lowercase()
+    return when {
+        "netflix" in l -> Color(0xFFE50914)
+        "hoichoi" in l -> Color(0xFFE8303A)
+        "prime" in l || "amazon" in l -> Color(0xFF00A8E1)
+        "zee" in l -> Color(0xFF8230C6)
+        "hotstar" in l || "disney" in l || "jio" in l -> Color(0xFF1F3A93)
+        "sony" in l -> Color(0xFF2B2B2B)
+        "chorki" in l -> Color(0xFFF15A24)
+        "bongo" in l -> Color(0xFF00A651)
+        "apple" in l -> Color(0xFF333333)
+        "hbo" in l || "max" in l -> Color(0xFF5B2C9F)
+        "crunchyroll" in l -> Color(0xFFF47521)
+        "aha" in l -> Color(0xFFFF6F00)
+        else -> Color(0xFF6B7280)
+    }
+}
+
+@Composable
+private fun ExplorePill(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(CircleShape)
+            .background(if (selected) CrimsonPrimary else ObsidianCard)
+            .border(1.dp, if (selected) CrimsonPrimary else ObsidianBorder, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 13.sp
+            ),
+            color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.85f),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun FilterLabelRow(
+    label: String,
+    options: List<String>,
+    isSelected: (String) -> Boolean,
+    onSelect: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                color = TextSecondary,
+                modifier = Modifier.padding(end = 2.dp)
+            )
+        }
+        items(options) { opt ->
+            ExplorePill(label = opt, selected = isSelected(opt), onClick = { onSelect(opt) })
         }
     }
 }
