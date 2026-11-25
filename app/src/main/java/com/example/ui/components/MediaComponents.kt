@@ -1214,16 +1214,36 @@ internal fun SubDubPill(label: String, filled: Boolean) {
  * much faster), and falls back to the original image if the CDN doesn't support resizing.
  */
 internal fun posterThumbUrl(url: String, width: Int): String {
-    if (url.isBlank()) return url
+    if (url.isBlank() || !url.startsWith("http")) return url
     val tmdb = Regex("(image\\.tmdb\\.org/t/p/)(original|w\\d+)(/)")
     if (tmdb.containsMatchIn(url)) {
         val size = if (width <= 360) "w342" else "w780"
         return url.replace(tmdb, "$1$size$3")
     }
-    if (url.contains("aoneroom.com", ignoreCase = true) && !url.contains("?")) {
-        return "$url?x-oss-process=image/resize,w_$width/format,webp"
+    if (url.contains("x-oss-process", ignoreCase = true)) return url
+    if (url.contains("aoneroom.com", ignoreCase = true)) {
+        val sep = if (url.contains("?")) "&" else "?"
+        return "$url${sep}x-oss-process=image/resize,w_$width/format,webp"
     }
-    return url
+    // Any other host: shrink big posters through a free image resizer (falls back to the
+    // original if it fails), so a 1-2 MB JPG becomes a ~30 KB WebP.
+    return "https://wsrv.nl/?url=" + java.net.URLEncoder.encode(url, "UTF-8") +
+        "&w=$width&output=webp&q=78"
+}
+
+/**
+ * Cache key that stays the same when a CDN adds changing tokens (?t=..., &sign=...) to the
+ * same poster, so a poster downloaded once is never downloaded again.
+ */
+internal fun posterCacheKey(url: String, width: Int): String {
+    val base = url.substringBefore("?").substringBefore("#")
+    val original = if (url.startsWith("https://wsrv.nl/")) {
+        runCatching {
+            java.net.URLDecoder.decode(url.substringAfter("url=").substringBefore("&"), "UTF-8")
+                .substringBefore("?")
+        }.getOrDefault(base)
+    } else base
+    return "poster:$original@$width"
 }
 
 @Composable
@@ -1233,10 +1253,20 @@ internal fun FastPosterImage(
     thumbWidth: Int,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val thumb = remember(url, thumbWidth) { posterThumbUrl(url, thumbWidth) }
     var useOriginal by remember(url) { mutableStateOf(thumb == url) }
+    val request = remember(url, thumb, useOriginal) {
+        val data = if (useOriginal) url else thumb
+        val key = posterCacheKey(data, if (useOriginal) 0 else thumbWidth)
+        coil.request.ImageRequest.Builder(context)
+            .data(data)
+            .diskCacheKey(key)
+            .memoryCacheKey(key)
+            .build()
+    }
     AsyncImage(
-        model = if (useOriginal) url else thumb,
+        model = request,
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
         onError = { if (!useOriginal) useOriginal = true },

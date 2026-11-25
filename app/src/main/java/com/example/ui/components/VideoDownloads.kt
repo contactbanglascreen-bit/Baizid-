@@ -205,10 +205,11 @@ fun DownloadQualitySheet(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Every quality is listed; if one isn't available the closest one is downloaded.
+                    // Only the qualities this video really has are listed.
                     val dlStreams = streams.filter { it.isDownloadable() }
                     val rows: List<Pair<Int?, StreamOption>> = if (dlStreams.isNotEmpty()) {
-                        QualityLadder.steps.mapNotNull { st -> QualityLadder.pick(dlStreams, st.value)?.let { st.value to it } }
+                        QualityLadder.shownSteps(QualityLadder.available(dlStreams))
+                            .mapNotNull { st -> QualityLadder.pick(dlStreams, st.value)?.let { st.value to it } }
                     } else {
                         streams.map { null to it }
                     }

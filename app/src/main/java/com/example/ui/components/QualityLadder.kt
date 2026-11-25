@@ -3,8 +3,8 @@ package com.example.ui.components
 import com.example.data.model.StreamOption
 
 /**
- * Fixed list of qualities shown everywhere (play + download). When the chosen quality
- * isn't available for a video, the closest available one is used.
+ * Quality steps (play + download). Only the qualities a video really has are shown;
+ * if a video's labels can't be read, the full list is shown with closest-quality fallback.
  */
 object QualityLadder {
     data class Step(val value: Int, val label: String, val badge: String)
@@ -42,6 +42,10 @@ object QualityLadder {
 
     fun available(streams: List<StreamOption>): Set<Int> =
         streams.mapNotNull { stepFor(valueOf(it))?.value }.toSet()
+
+    /** Steps to show: just the ones this video actually has. */
+    fun shownSteps(available: Set<Int>): List<Step> =
+        steps.filter { it.value in available }.ifEmpty { steps }
 
     /**
      * Best stream for [target]: exact step if present, otherwise the highest quality below it,

@@ -1,5 +1,7 @@
-- Fresh new video player: full-width seek bar with a time bubble while you drag, remaining time, smoother double-tap skip
-- All video qualities shown (2160p to 360p) with automatic fallback
+- Bigger, clearer top bar (logo, refresh, search and category tabs)
+- Quality list now shows only the qualities each video really has
+- Posters load much faster, even right after opening the app
+- New "Top 10 today" row and every row shows all titles from the server
+- Fresh new video player: full-width seek bar with a time bubble, remaining time, smoother double-tap skip
 - Stronger security: unofficial / modified copies are blocked, Console has its own PIN
 - New update screen with the Cinedor logo and live download progress
-- Bug fixes and speed improvements

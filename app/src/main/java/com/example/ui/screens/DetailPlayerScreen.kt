@@ -726,7 +726,7 @@ fun DetailPlayerScreen(
                         }
                     }
 
-                    // Quality cards: every quality is listed; unavailable ones fall back to the closest
+                    // Quality cards: only the qualities this video really has
                     if (state.streams.isNotEmpty()) {
                         val availableSteps = QualityLadder.available(state.streams)
                         val currentStep = state.selectedStream?.let { QualityLadder.stepFor(QualityLadder.valueOf(it))?.value }
@@ -735,7 +735,7 @@ fun DetailPlayerScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.padding(bottom = 12.dp)
                         ) {
-                            items(QualityLadder.steps, key = { "ql_" + it.value }) { step ->
+                            items(QualityLadder.shownSteps(availableSteps), key = { "ql_" + it.value }) { step ->
                                 val available = step.value in availableSteps
                                 val sel = currentStep == step.value
                                 val match = QualityLadder.pick(state.streams, step.value, state.selectedStream?.audioLanguage)

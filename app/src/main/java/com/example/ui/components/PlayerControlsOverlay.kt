@@ -967,7 +967,7 @@ internal fun CinedorPlayerControlsOverlay(
                                     if (videoAuto) null
                                     else videoTracks.firstOrNull { it.selected }?.let { QualityLadder.stepFor(QualityLadder.valueOf(it.label))?.value }
                                 } else QualityLadder.stepFor(QualityLadder.valueOf(selectedStream))?.value
-                                items(QualityLadder.steps, key = { "qs_" + it.value }) { step ->
+                                items(QualityLadder.shownSteps(availableSteps), key = { "qs_" + it.value }) { step ->
                                     val available = step.value in availableSteps
                                     val fallbackLabel = if (useTracks) {
                                         QualityLadder.pickTrack(videoTracks, step.value)?.label

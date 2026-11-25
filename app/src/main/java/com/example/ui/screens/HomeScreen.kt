@@ -189,18 +189,22 @@ fun HomeScreen(
     val prefetchContext = LocalContext.current
     LaunchedEffect(successFeed) {
         val feed = successFeed ?: return@LaunchedEffect
-        val urls = (feed.banners + feed.trendingItems + feed.sections.flatMap { it.items.take(12) })
+        // Banners first (big images), then every row's first posters.
+        val bannerUrls = (feed.trendingItems.take(8) + feed.banners.take(8))
             .mapNotNull { it.posterUrl.ifBlank { it.backdropUrl }.ifBlank { null } }
-            .map { com.example.ui.components.posterThumbUrl(it, 360) }
-            .distinct()
-            .take(90)
+            .map { it to 720 }
+        val posterUrls = (feed.trendingItems.take(25) + feed.sections.flatMap { it.items.take(14) })
+            .mapNotNull { it.posterUrl.ifBlank { it.backdropUrl }.ifBlank { null } }
+            .map { it to 360 }
         val loader = prefetchContext.imageLoader
-        urls.forEach { url ->
+        (bannerUrls + posterUrls).distinct().take(160).forEach { (raw, w) ->
+            val thumb = com.example.ui.components.posterThumbUrl(raw, w)
+            val key = com.example.ui.components.posterCacheKey(thumb, w)
             loader.enqueue(
                 ImageRequest.Builder(prefetchContext)
-                    .data(url)
-                    .size(360, 530)
-                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .data(thumb)
+                    .diskCacheKey(key)
+                    .memoryCacheKey(key)
                     .build()
             )
         }
@@ -261,7 +265,7 @@ fun HomeScreen(
             }
         }
         val pullState = rememberPullToRefreshState()
-        val headerOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 104.dp
+        val headerOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 124.dp
         PullToRefreshBox(
             isRefreshing = pullRefreshing,
             onRefresh = {
@@ -286,7 +290,7 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 100.dp,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp,
                 bottom = 110.dp
             )
         ) {
@@ -606,6 +610,30 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(18.dp))
                             }
 
+                            // Top 10 ranking from the API
+                            if (homeState.ranking.isNotEmpty()) {
+                                item(key = "ranking_top10") {
+                                    SectionHeaderRow(
+                                        title = "Top 10 today",
+                                        actionLabel = "All",
+                                        onActionClick = onOpenSearch
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        itemsIndexed(
+                                            homeState.ranking.distinctBy { it.id }.take(10),
+                                            key = { _, it -> "rk_${it.source}_${it.id}" }
+                                        ) { index, item ->
+                                            PosterCard(item = item, onClick = { onOpenMedia(item) }, rankNumber = index + 1)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                }
+                            }
+
                             // 7. "🔥 Fresh in Last 24h" / Hot Picks
                             if (homeState.updates24h.isNotEmpty()) {
                                 item(key = "updates_24h") {
@@ -643,7 +671,7 @@ fun HomeScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     itemsIndexed(
-                                        section.items.take(15),
+                                        section.items.distinctBy { it.id },
                                         key = { idx, item -> "${section.id}_${item.id}_$idx" }
                                     ) { idx, item ->
                                         PosterCard(
@@ -791,7 +819,7 @@ fun HomeScreen(
                     )
                 )
                 .statusBarsPadding()
-                .padding(top = 6.dp, bottom = 8.dp)
+                .padding(top = 8.dp, bottom = 10.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -817,17 +845,17 @@ fun HomeScreen(
                     Image(
                         painter = painterResource(id = R.drawable.cinedor_logo),
                         contentDescription = "Cinedor",
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(36.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = buildAnnotatedString {
                             withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("CINE") }
                             withStyle(SpanStyle(fontWeight = FontWeight.Black)) { append("DOR") }
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 17.sp,
-                            letterSpacing = 4.sp
+                            fontSize = 22.sp,
+                            letterSpacing = 5.sp
                         ),
                         color = TextPrimary,
                         maxLines = 1
@@ -858,7 +886,7 @@ fun HomeScreen(
                 // Refresh button
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(46.dp)
                         .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
                         .clip(CircleShape)
                         .background(ObsidianSurface)
@@ -873,23 +901,23 @@ fun HomeScreen(
                         CircularProgressIndicator(
                             color = CinetorRed,
                             strokeWidth = 2.dp,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
                             contentDescription = "Refresh",
                             tint = TextPrimary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 // Round white search button
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(46.dp)
                         .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
                         .clip(CircleShape)
                         .background(ObsidianSurface)
@@ -901,24 +929,24 @@ fun HomeScreen(
                         imageVector = Icons.Rounded.Search,
                         contentDescription = "Search ${tickerTitles[tickerIndex % tickerTitles.size]}",
                         tint = TextPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Pill category tabs: selected = solid red, others = light outlined pills
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(MovieBoxTopTabs) { (tabKey, displayLabel) ->
                     val selected = homeState.selectedTab == tabKey
                     Box(
                         modifier = Modifier
-                            .height(34.dp)
+                            .height(40.dp)
                             .then(
                                 if (selected) {
                                     Modifier.shadow(4.dp, CircleShape, spotColor = CinetorRed)
@@ -930,7 +958,7 @@ fun HomeScreen(
                             .background(if (selected) CinetorRed else ChipBg)
                             .border(1.dp, if (selected) CinetorRed else ChipBorder, CircleShape)
                             .clickable { onSelectTab(tabKey) }
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 20.dp)
                             .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -938,7 +966,7 @@ fun HomeScreen(
                             text = if (tabKey == "All") "For You" else displayLabel,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 13.5.sp
+                                fontSize = 15.sp
                             ),
                             color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.85f),
                             maxLines = 1

@@ -52,7 +52,8 @@ data class HomeUiState(
     val feedState: UiState<HomeFeed> = UiState.Loading,
     val filteredItems: List<MediaItem> = emptyList(),
     val isCategoryLoading: Boolean = false,
-    val updates24h: List<MediaItem> = emptyList()
+    val updates24h: List<MediaItem> = emptyList(),
+    val ranking: List<MediaItem> = emptyList()
 )
 
 data class ExploreUiState(
@@ -255,6 +256,12 @@ class CinePulseViewModel(
                     val updates = runCatching { apiClient.getUpdates24h(prefs.source, prefs.safeMode) }
                         .getOrDefault(emptyList())
                     _homeState.update { it.copy(updates24h = updates) }
+                }
+                // Top-10 ranking list from the API (shown as its own row on Home)
+                launch {
+                    val ranking = runCatching { apiClient.getRanking(prefs.source, prefs.safeMode, prefs.language.code) }
+                        .getOrDefault(emptyList())
+                    if (ranking.isNotEmpty()) _homeState.update { it.copy(ranking = ranking) }
                 }
                 val feed = apiClient.getHome(prefs.source, prefs.language, prefs.safeMode, forceRefresh)
                 shownFeedKey = feedKey
