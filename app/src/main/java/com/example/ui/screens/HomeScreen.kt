@@ -140,6 +140,7 @@ fun HomeScreen(
     onOpenMedia: (MediaItem) -> Unit,
     onResumeHistory: (WatchHistoryItem) -> Unit,
     onToggleWatchlist: (MediaItem) -> Unit,
+    onRemoveHistory: (String) -> Unit = {},
     onToggleReminder: (MediaItem) -> Unit,
     onSportsClick: (SportsMatch) -> Unit,
     onRetry: () -> Unit,
@@ -320,7 +321,7 @@ fun HomeScreen(
                     }
                     if (history.isNotEmpty()) {
                         item(key = "continue_watching_fallback") {
-                            ContinueWatchingSection(history = history, onResumeHistory = onResumeHistory)
+                            ContinueWatchingSection(history = history, onResumeHistory = onResumeHistory, onRemoveHistory = onRemoveHistory)
                         }
                     }
                 }
@@ -458,7 +459,7 @@ fun HomeScreen(
                             // 2. Continue Watching (appears automatically once user plays anything)
                             if (history.isNotEmpty()) {
                                 item(key = "continue_watching") {
-                                    ContinueWatchingSection(history = history, onResumeHistory = onResumeHistory)
+                                    ContinueWatchingSection(history = history, onResumeHistory = onResumeHistory, onRemoveHistory = onRemoveHistory)
                                     Spacer(modifier = Modifier.height(18.dp))
                                 }
                             }
@@ -988,7 +989,8 @@ private fun MovieBoxSubFilterRow(
 @Composable
 private fun ContinueWatchingSection(
     history: List<WatchHistoryItem>,
-    onResumeHistory: (WatchHistoryItem) -> Unit
+    onResumeHistory: (WatchHistoryItem) -> Unit,
+    onRemoveHistory: (String) -> Unit = {}
 ) {
     Column {
         SectionHeaderRow(title = "Continue Watching")
@@ -1000,7 +1002,8 @@ private fun ContinueWatchingSection(
             items(history.take(10), key = { it.id }) { entry ->
                 ContinueWatchingCard(
                     history = entry,
-                    onClick = { onResumeHistory(entry) }
+                    onClick = { onResumeHistory(entry) },
+                    onRemove = { onRemoveHistory(entry.id) }
                 )
             }
         }

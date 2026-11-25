@@ -348,6 +348,7 @@ fun CinedorMainShell() {
                                     )
                                 },
                                 onToggleWatchlist = { viewModel.toggleWatchlist(it) },
+                                onRemoveHistory = { viewModel.removeHistoryItem(it) },
                                 onToggleReminder = { viewModel.toggleReminder(it) },
                                 onSportsClick = { match -> viewModel.openSportsMatch(match) },
                                 onRetry = { viewModel.loadHome(forceRefresh = true) }

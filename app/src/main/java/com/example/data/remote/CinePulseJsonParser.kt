@@ -398,6 +398,40 @@ object CinePulseJsonParser {
         }
     }
 
+    /** Searches nested objects/arrays of a match for a playable live stream link. */
+    private fun findStreamUrl(node: Any?, depth: Int): String {
+        if (depth > 5 || node == null) return ""
+        when (node) {
+            is JSONObject -> {
+                val keys = node.keys().asSequence().toList()
+                // Prefer keys that sound like a stream
+                val ordered = keys.sortedByDescending { k ->
+                    val l = k.lowercase()
+                    listOf("m3u8", "hls", "stream", "live", "play", "source", "url", "link").count { it in l }
+                }
+                for (k in ordered) {
+                    val v = node.opt(k)
+                    if (v is String && v.startsWith("http")) {
+                        val l = v.lowercase()
+                        val kl = k.lowercase()
+                        val looksLikeVideo = ".m3u8" in l || ".flv" in l || ".mp4" in l || "/hls" in l || "/live" in l
+                        val keySaysStream = listOf("stream", "play", "live", "hls", "m3u8").any { it in kl }
+                        if (looksLikeVideo || (keySaysStream && !(".png" in l || ".jpg" in l || ".webp" in l))) return v
+                    }
+                }
+                for (k in ordered) {
+                    val found = findStreamUrl(node.opt(k), depth + 1)
+                    if (found.isNotBlank()) return found
+                }
+            }
+            is JSONArray -> for (i in 0 until node.length()) {
+                val found = findStreamUrl(node.opt(i), depth + 1)
+                if (found.isNotBlank()) return found
+            }
+        }
+        return ""
+    }
+
     private fun parseSportsArray(arr: JSONArray): List<SportsMatch> {
         val out = mutableListOf<SportsMatch>()
         for (i in 0 until arr.length()) {
@@ -435,7 +469,8 @@ object CinePulseJsonParser {
                     statusText = status.ifBlank { if (isLive) "LIVE" else "Upcoming" },
                     startTime = obj.firstNonBlank("startTime", "time", "kickoff", "date"),
                     isLive = isLive,
-                    streamUrl = obj.firstNonBlank("streamUrl", "url", "playUrl")
+                    streamUrl = obj.firstNonBlank("streamUrl", "url", "playUrl", "liveUrl", "hlsUrl", "m3u8", "playPath")
+                        .takeIf { it.startsWith("http") } ?: findStreamUrl(obj, 0)
                 )
             )
         }

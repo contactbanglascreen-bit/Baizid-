@@ -599,6 +599,8 @@ class CinePulseViewModel(
                 ),
                 directStreamUrl = match.streamUrl
             )
+        } else if (match.isLive) {
+            _toastMessage.value = "No live stream link for this match yet. Try again in a moment."
         } else {
             toggleReminder(
                 MediaItem(
@@ -636,7 +638,10 @@ class CinePulseViewModel(
                 label = "Live Stream • HD",
                 quality = "HD",
                 url = directStreamUrl,
-                format = if (directStreamUrl.contains(".m3u8", ignoreCase = true)) "HLS" else "MP4",
+                // Live links often have no ".m3u8" in the URL; treat everything that isn't an .mp4 as HLS.
+                format = if (directStreamUrl.contains(".mp4", ignoreCase = true) &&
+                    !directStreamUrl.contains(".m3u8", ignoreCase = true)
+                ) "MP4" else "HLS",
                 headers = mapOf(
                     "User-Agent" to MovieBoxDirectClient.CHROME_USER_AGENT,
                     "Referer" to MovieBoxDirectClient.DEFAULT_REFERER

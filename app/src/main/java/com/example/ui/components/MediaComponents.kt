@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material.icons.rounded.Movie
@@ -319,31 +320,18 @@ fun HeroBannerCarousel(
             }
         }
 
-        if (banners.size > 10) {
-            // Many trending titles: compact "3 / 25" counter instead of dots
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .width(22.dp)
-                        .height(6.dp)
-                        .clip(CircleShape)
-                        .background(CinetorRed)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "${pagerState.currentPage + 1} / ${banners.size}",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = TextSecondary
-                )
-            }
-        } else if (banners.size > 1) {
+        if (banners.size > 1) {
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                repeat(banners.size.coerceAtMost(10)) { index ->
+                // Up to 7 dots, sliding along with the current page so every page has a dot
+                val windowSize = minOf(7, banners.size)
+                val firstDot = (pagerState.currentPage - windowSize / 2)
+                    .coerceIn(0, banners.size - windowSize)
+                repeat(windowSize) { i ->
+                    val index = firstDot + i
                     val active = pagerState.currentPage == index
                     val w by animateDpAsState(if (active) 20.dp else 6.dp, label = "dot_w")
                     val c by animateColorAsState(if (active) CinetorRed else ChipBorder, label = "dot_c")
@@ -520,7 +508,8 @@ fun PosterCard(
 fun ContinueWatchingCard(
     history: WatchHistoryItem,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRemove: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -564,10 +553,31 @@ fun ContinueWatchingCard(
                     )
                 }
             }
-            if (history.season > 0L && history.episode > 0L) {
+            if (onRemove != null) {
+                // Remove from Continue Watching
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .border(0.75.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+                        .clickable(onClick = onRemove),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Remove from Continue Watching",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+            if (history.season > 0L && history.episode > 0L) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
                         .padding(6.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color.Black.copy(alpha = 0.62f))

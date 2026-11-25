@@ -507,7 +507,8 @@ fun CinePulseVideoPlayer(
                 .apply {
                     val itemBuilder = MediaItem.Builder().setUri(Uri.parse(activeProfile.url))
                     when {
-                        activeProfile.url.contains(".m3u8", ignoreCase = true) -> itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
+                        activeProfile.url.contains(".m3u8", ignoreCase = true) ||
+                            stream.format.equals("HLS", ignoreCase = true) -> itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                         activeProfile.url.contains(".mpd", ignoreCase = true) -> itemBuilder.setMimeType(MimeTypes.APPLICATION_MPD)
                     }
                     if (effectiveCaption != null && effectiveCaption.url.isNotBlank()) {
@@ -527,7 +528,8 @@ fun CinePulseVideoPlayer(
                     }
                     setMediaItem(itemBuilder.build())
                     val seekTarget = preservedPositionMs.coerceAtLeast(initialPositionMs)
-                    if (seekTarget > 0L) {
+                    // Never seek inside a live stream (it starts at the live edge).
+                    if (seekTarget > 0L && !stream.label.contains("Live", ignoreCase = true)) {
                         seekTo(seekTarget)
                     }
                     playbackParameters = PlaybackParameters(playbackSpeed)
@@ -587,6 +589,12 @@ fun CinePulseVideoPlayer(
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                // Live streams: if we fell behind the live edge, jump back to live instead of failing.
+                if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                    exoPlayer.seekToDefaultPosition()
+                    exoPlayer.prepare()
+                    return
+                }
                 val httpCode = findHttpStatusCode(error)
                 val failedUrl = findFailedRequestUrl(error)
                 val detailed = describePlaybackError(error)
