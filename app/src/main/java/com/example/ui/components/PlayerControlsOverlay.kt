@@ -161,7 +161,10 @@ internal fun CinedorPlayerControlsOverlay(
     textTracks: List<PlayerTrackOption> = emptyList(),
     onSelectTrack: (PlayerTrackOption) -> Unit = {},
     onDisableEmbeddedText: () -> Unit = {},
-    onPinchZoom: (Float) -> Unit = {}
+    onPinchZoom: (Float) -> Unit = {},
+    videoTracks: List<PlayerTrackOption> = emptyList(),
+    videoAuto: Boolean = true,
+    onSelectVideoTrack: (PlayerTrackOption?) -> Unit = {}
 ) {
     val ctx = LocalContext.current
     var containerHeightPx by remember { mutableIntStateOf(1) }
@@ -613,10 +616,14 @@ internal fun CinedorPlayerControlsOverlay(
                             testTag = "player_speed_button"
                         )
 
-                        if (streams.size > 1) {
+                        if (streams.size > 1 || videoTracks.size > 1) {
                             TopOverlayActionItem(
                                 icon = Icons.Rounded.HighQuality,
-                                label = selectedStream.quality.ifBlank { "HD" },
+                                label = when {
+                                    videoTracks.size > 1 && videoAuto -> "Auto"
+                                    videoTracks.size > 1 -> videoTracks.firstOrNull { it.selected }?.label ?: "Auto"
+                                    else -> selectedStream.quality.ifBlank { "HD" }
+                                },
                                 active = false,
                                 onClick = {
                                     interactionTick++
@@ -903,7 +910,38 @@ internal fun CinedorPlayerControlsOverlay(
                         contentPadding = PaddingValues(horizontal = 20.dp)
                     ) {
                         when (panel) {
-                            PlayerPanel.QUALITY -> items(streams, key = { "pq_" + it.url }) { opt ->
+                            PlayerPanel.QUALITY -> {
+                            if (videoTracks.size > 1) {
+                                item(key = "vt_auto") {
+                                    PanelOptionCard(
+                                        title = "Auto",
+                                        badge = null,
+                                        subtitle = "Best for your internet",
+                                        selected = videoAuto,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            onSelectVideoTrack(null)
+                                        }
+                                    )
+                                }
+                                items(videoTracks, key = { "vt_" + it.key }) { t ->
+                                    PanelOptionCard(
+                                        title = t.label,
+                                        badge = qualityBadge(t.label),
+                                        subtitle = "",
+                                        selected = !videoAuto && t.selected,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            onSelectVideoTrack(t)
+                                        }
+                                    )
+                                }
+                            }
+                            if (streams.size > 1) items(streams, key = { "pq_" + it.url }) { opt ->
                                 PanelOptionCard(
                                     title = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
                                     badge = qualityBadge(opt.quality.ifBlank { opt.label }),
@@ -917,6 +955,7 @@ internal fun CinedorPlayerControlsOverlay(
                                         if (opt.url != selectedStream.url) onSelectStream(opt)
                                     }
                                 )
+                            }
                             }
                             PlayerPanel.SPEED -> items(listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)) { sp ->
                                 PanelOptionCard(

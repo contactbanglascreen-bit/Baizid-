@@ -429,6 +429,8 @@ fun CinePulseVideoPlayer(
     var pinchScale by remember { mutableFloatStateOf(1f) }
     var audioTrackOptions by remember { mutableStateOf<List<PlayerTrackOption>>(emptyList()) }
     var textTrackOptions by remember { mutableStateOf<List<PlayerTrackOption>>(emptyList()) }
+    var videoTrackOptions by remember { mutableStateOf<List<PlayerTrackOption>>(emptyList()) }
+    var videoAuto by remember { mutableStateOf(true) }
     var preservedPositionMs by remember(initialPositionMs) { mutableLongStateOf(initialPositionMs) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
 
@@ -561,7 +563,26 @@ fun CinePulseVideoPlayer(
             override fun onTracksChanged(tracks: Tracks) {
                 val audio = mutableListOf<PlayerTrackOption>()
                 val text = mutableListOf<PlayerTrackOption>()
+                val video = mutableListOf<PlayerTrackOption>()
                 tracks.groups.forEachIndexed { gi, group ->
+                    if (group.type == C.TRACK_TYPE_VIDEO) {
+                        for (ti in 0 until group.length) {
+                            if (!group.isTrackSupported(ti)) continue
+                            val f = group.getTrackFormat(ti)
+                            val h = minOf(f.height, f.width).takeIf { it > 0 } ?: f.height
+                            if (h <= 0) continue
+                            video.add(
+                                PlayerTrackOption(
+                                    key = "v_${gi}_$ti",
+                                    label = "${h}p",
+                                    isAudio = false,
+                                    selected = group.isTrackSelected(ti),
+                                    groupIndex = gi,
+                                    trackIndex = ti
+                                )
+                            )
+                        }
+                    }
                     val isAudio = group.type == C.TRACK_TYPE_AUDIO
                     val isText = group.type == C.TRACK_TYPE_TEXT
                     if (!isAudio && !isText) return@forEachIndexed
@@ -586,6 +607,9 @@ fun CinePulseVideoPlayer(
                 }
                 audioTrackOptions = audio
                 textTrackOptions = text
+                videoTrackOptions = video
+                    .distinctBy { it.label }
+                    .sortedByDescending { it.label.removeSuffix("p").toIntOrNull() ?: 0 }
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -951,6 +975,26 @@ fun CinePulseVideoPlayer(
                 },
                 onPinchZoom = { z ->
                     pinchScale = (pinchScale * z).coerceIn(1f, 3f)
+                },
+                videoTracks = videoTrackOptions,
+                videoAuto = videoAuto,
+                onSelectVideoTrack = { opt ->
+                    if (opt == null) {
+                        videoAuto = true
+                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                            .buildUpon()
+                            .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                            .build()
+                    } else {
+                        val group = exoPlayer.currentTracks.groups.getOrNull(opt.groupIndex)
+                        if (group != null) {
+                            videoAuto = false
+                            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                .buildUpon()
+                                .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, opt.trackIndex))
+                                .build()
+                        }
+                    }
                 }
             )
         } else if (isWebViewMode && playbackError == null && !PipState.inPip && !PipState.inAppMini) {

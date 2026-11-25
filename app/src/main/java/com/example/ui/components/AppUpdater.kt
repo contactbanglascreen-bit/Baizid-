@@ -259,7 +259,7 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(170.dp)
                     .background(
                         androidx.compose.ui.graphics.Brush.linearGradient(
                             listOf(com.example.ui.theme.AccentBright, com.example.ui.theme.CinetorRedDark)
@@ -283,18 +283,36 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                         )
                     }
                 } else {
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .size(78.dp)
-                            .clip(CircleShape)
-                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f)),
-                        contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Rounded.RocketLaunch,
-                            contentDescription = null,
-                            tint = androidx.compose.ui.graphics.Color.White,
-                            modifier = Modifier.size(42.dp)
+                    // App logo with a soft glow
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        androidx.compose.foundation.layout.Box(
+                            modifier = Modifier
+                                .size(92.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.radialGradient(
+                                        listOf(
+                                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.95f),
+                                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f)
+                                        )
+                                    )
+                                ),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.cinedor_logo),
+                                contentDescription = "Cinedor",
+                                modifier = Modifier.size(70.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "CINEDOR",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = androidx.compose.ui.unit.TextUnit(4f, androidx.compose.ui.unit.TextUnitType.Sp)
+                            ),
+                            color = androidx.compose.ui.graphics.Color.White
                         )
                     }
                 }

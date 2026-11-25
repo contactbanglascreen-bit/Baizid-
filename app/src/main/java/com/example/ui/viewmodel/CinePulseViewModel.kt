@@ -586,6 +586,13 @@ class CinePulseViewModel(
     }
 
     fun openSportsMatch(match: SportsMatch) {
+        val status = match.statusText.lowercase()
+        val ended = listOf("ended", "finished", "full time", "fulltime", "final", "ft").any { status.contains(it) } &&
+            !match.isLive
+        if (ended) {
+            _toastMessage.value = "This match has ended — the live stream is no longer available."
+            return
+        }
         if (match.streamUrl.startsWith("http")) {
             openMediaDetail(
                 item = MediaItem(
@@ -633,6 +640,46 @@ class CinePulseViewModel(
         val startPos = if (resumeMs > 0L) resumeMs else (historyMatch?.positionMs ?: 0L)
 
         if (directStreamUrl.startsWith("http")) {
+            val isHls = !(directStreamUrl.contains(".mp4", ignoreCase = true) &&
+                !directStreamUrl.contains(".m3u8", ignoreCase = true))
+            if (item.source == "sports") {
+                // Live CDNs are picky about Referer/Origin: try several header sets automatically.
+                val variants = listOf(
+                    "Live • Server 1" to mapOf(
+                        "User-Agent" to MovieBoxDirectClient.CHROME_USER_AGENT
+                    ),
+                    "Live • Server 2" to mapOf(
+                        "User-Agent" to MovieBoxDirectClient.CHROME_USER_AGENT,
+                        "Referer" to "https://h5-sport.aoneroom.com/",
+                        "Origin" to "https://h5-sport.aoneroom.com"
+                    ),
+                    "Live • Server 3" to mapOf(
+                        "User-Agent" to MovieBoxDirectClient.CHROME_USER_AGENT,
+                        "Referer" to MovieBoxDirectClient.DEFAULT_REFERER
+                    )
+                )
+                val options = variants.mapIndexed { i, (label, headers) ->
+                    StreamOption(
+                        id = "live_${item.id}_$i",
+                        label = label,
+                        quality = "Auto",
+                        // Same link; the fragment only keeps the servers apart for automatic fallback.
+                        url = if (i == 0) directStreamUrl else "$directStreamUrl#cinedor-s${i + 1}",
+                        format = if (isHls) "HLS" else "MP4",
+                        headers = headers
+                    )
+                }
+                _detailState.value = DetailUiState(
+                    selectedItem = item,
+                    detailState = UiState.Success(MediaDetail(item = item, synopsis = item.description)),
+                    isMovie = true,
+                    streams = options,
+                    selectedStream = options.first(),
+                    isStreamLoading = false,
+                    resumePositionMs = 0L
+                )
+                return
+            }
             val directOption = StreamOption(
                 id = "direct_${item.id}",
                 label = "Live Stream • HD",
