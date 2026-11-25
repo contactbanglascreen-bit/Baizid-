@@ -249,6 +249,8 @@ fun CinedorMainShell() {
     com.example.ui.components.AppUpdatePrompt()
     // Premium popup, announcements and maintenance controlled from the Cinedor Console file.
     com.example.ui.components.ConsolePrompts()
+    // "Enjoying the movie?" share popup after the watch time set in the Console.
+    com.example.ui.components.SharePromptHost()
     // Download notifications (progress, speed, complete) while the app is open.
     val notifierContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { com.example.ui.components.DownloadNotifier.run(notifierContext) }

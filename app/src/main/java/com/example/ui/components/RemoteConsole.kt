@@ -70,7 +70,11 @@ data class PopupConfig(
     val buttonUrl: String,
     val perks: List<String> = emptyList(),
     val price: String = "",
-    val showEveryHours: Int = 24
+    val showEveryHours: Int = 24,
+    val secondaryText: String = "",
+    val secondaryUrl: String = "",
+    val afterMinutes: Int = 20,
+    val shareMessage: String = ""
 )
 
 data class ConsoleConfig(
@@ -78,7 +82,11 @@ data class ConsoleConfig(
     val announcement: PopupConfig?,
     val maintenanceOn: Boolean,
     val maintenanceMessage: String,
-    val minVersionCode: Int
+    val minVersionCode: Int,
+    val community: PopupConfig? = null,
+    val sharePrompt: PopupConfig? = null,
+    val audioDubsOn: Boolean = true,
+    val audioDubsTitle: String = "Audio & Dubs"
 )
 
 /**
@@ -193,7 +201,11 @@ object RemoteConsole {
             buttonUrl = o.optString("buttonUrl"),
             perks = if (perks == null) emptyList() else List(perks.length()) { perks.optString(it) }.filter { it.isNotBlank() },
             price = o.optString("price"),
-            showEveryHours = o.optInt("showEveryHours", 24)
+            showEveryHours = o.optInt("showEveryHours", 24),
+            secondaryText = o.optString("secondaryText"),
+            secondaryUrl = o.optString("secondaryUrl"),
+            afterMinutes = o.optInt("afterMinutes", 20),
+            shareMessage = o.optString("shareMessage")
         )
     }
 
@@ -204,7 +216,11 @@ object RemoteConsole {
             announcement = popup(root.optJSONObject("announcement")),
             maintenanceOn = m?.optBoolean("enabled", false) == true,
             maintenanceMessage = m?.optString("message").orEmpty(),
-            minVersionCode = root.optInt("minVersionCode", 0)
+            minVersionCode = root.optInt("minVersionCode", 0),
+            community = popup(root.optJSONObject("community")),
+            sharePrompt = popup(root.optJSONObject("sharePrompt")),
+            audioDubsOn = root.optJSONObject("audioDubs")?.optBoolean("enabled", true) ?: true,
+            audioDubsTitle = root.optJSONObject("audioDubs")?.optString("title", "Audio & Dubs") ?: "Audio & Dubs"
         )
     }
 
@@ -248,6 +264,10 @@ fun ConsolePrompts() {
     var noticeOpen by remember(cfg.announcement) {
         mutableStateOf(cfg.announcement != null && RemoteConsole.shouldShow(context, "announcement", cfg.announcement))
     }
+    var communityOpen by remember(cfg.community) {
+        mutableStateOf(cfg.community != null && RemoteConsole.shouldShow(context, "community", cfg.community))
+    }
+    val community = cfg.community
 
     val premium = cfg.premium
     val notice = cfg.announcement
@@ -277,6 +297,299 @@ fun ConsolePrompts() {
                 openLink(context, notice.buttonUrl)
             }
         )
+    } else if (communityOpen && community != null) {
+        CommunityPopup(
+            p = community,
+            onClose = {
+                RemoteConsole.markShown(context, "community", community)
+                communityOpen = false
+            },
+            onLink = { url ->
+                RemoteConsole.markShown(context, "community", community)
+                communityOpen = false
+                openLink(context, url)
+            }
+        )
+    }
+}
+
+/** "Join us" popup: Telegram + Facebook (or any two links), text set from the Console. */
+@Composable
+private fun CommunityPopup(p: PopupConfig, onClose: () -> Unit, onLink: (String) -> Unit) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            modifier = Modifier
+                .padding(22.dp)
+                .fillMaxWidth()
+                .shadow(24.dp, RoundedCornerShape(30.dp))
+                .clip(RoundedCornerShape(30.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .border(1.dp, CinetorRed.copy(alpha = 0.55f), RoundedCornerShape(30.dp))
+                .padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(top = 18.dp)
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .background(Brush.radialGradient(listOf(CinetorRed.copy(alpha = 0.45f), Color.Transparent)))
+                        .border(2.dp, CinetorRed, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Campaign, contentDescription = null, tint = AccentBright, modifier = Modifier.size(38.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                p.title,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, fontSize = 22.sp),
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+            if (p.message.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    p.message,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.5.sp),
+                    color = Color.White.copy(alpha = 0.78f),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            if (p.buttonUrl.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFF2AABEE), Color(0xFF1B6FE0))))
+                        .clickable { onLink(p.buttonUrl) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        p.buttonText.ifBlank { "Join our Telegram channel" } + "  ↗",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 15.sp),
+                        color = Color.White
+                    )
+                }
+            }
+            if (p.secondaryUrl.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.04f))
+                        .border(1.2.dp, Color(0xFF4C8DF6), RoundedCornerShape(18.dp))
+                        .clickable { onLink(p.secondaryUrl) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        p.secondaryText.ifBlank { "Visit our Facebook page" } + "  ↗",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 15.sp),
+                        color = Color(0xFF6FA6FF)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                "Close",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onClose)
+                    .padding(8.dp)
+            )
+        }
+    }
+}
+
+/**
+ * "Enjoying the movie?" share popup: appears after the viewer has watched the number of minutes
+ * set in the Console. WhatsApp share + share to any other app.
+ */
+object WatchTimeTracker {
+    private const val PREFS = "cinedor_watch_time"
+    fun addSecond(context: Context): Int {
+        val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val v = p.getInt("seconds", 0) + 1
+        p.edit().putInt("seconds", v).apply()
+        return v
+    }
+    fun reset(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt("seconds", 0).apply()
+    }
+}
+
+private fun shareText(context: Context, text: String, whatsapp: Boolean): Boolean {
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+    return runCatching {
+        if (whatsapp) {
+            val wa = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
+                runCatching { context.packageManager.getPackageInfo(pkg, 0); true }.getOrDefault(false)
+            }
+            if (wa == null) return false
+            context.startActivity(Intent(send).setPackage(wa).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } else {
+            context.startActivity(Intent.createChooser(send, "Share Cinedor").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        true
+    }.getOrDefault(false)
+}
+
+@Composable
+fun SharePromptHost() {
+    val context = LocalContext.current
+    val cfg = RemoteConsole.config
+    val p = cfg?.sharePrompt
+    var open by remember { mutableStateOf(false) }
+    LaunchedEffect(p) {
+        if (p == null || !p.enabled) return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(1000L)
+            if (open) continue
+            if (!PipState.videoPlaying) continue
+            val secs = WatchTimeTracker.addSecond(context)
+            if (secs >= p.afterMinutes.coerceAtLeast(1) * 60 && RemoteConsole.shouldShow(context, "share", p)) {
+                open = true
+            }
+        }
+    }
+    if (!open || p == null) return
+    val text = p.shareMessage.ifBlank {
+        "I'm watching movies & series free on Cinedor 🍿 Get it here: ${p.buttonUrl.ifBlank { "https://github.com/${RemoteConsole.REPO}/releases/latest" }}"
+    }
+    fun done() {
+        RemoteConsole.markShown(context, "share", p)
+        WatchTimeTracker.reset(context)
+        open = false
+    }
+    Dialog(onDismissRequest = { done() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            modifier = Modifier
+                .padding(22.dp)
+                .fillMaxWidth()
+                .shadow(24.dp, RoundedCornerShape(30.dp))
+                .clip(RoundedCornerShape(30.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .border(1.5.dp, Brush.linearGradient(listOf(AccentBright, CinetorRedDark)), RoundedCornerShape(30.dp))
+                .padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(92.dp)
+                    .shadow(14.dp, RoundedCornerShape(24.dp), spotColor = CinetorRed)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(2.dp, CinetorRed, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.cinedor_logo),
+                    contentDescription = "Cinedor",
+                    modifier = Modifier.size(66.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                p.title.ifBlank { "Enjoying the movie? 🍿" },
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, fontSize = 23.sp),
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                p.message.ifBlank { "You've enjoyed ${p.afterMinutes} free minutes! Share Cinedor with friends to keep watching." },
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.5.sp),
+                color = Color.White.copy(alpha = 0.78f),
+                textAlign = TextAlign.Center
+            )
+            val perks = p.perks.ifEmpty { listOf("✨ Full HD", "⚡ Buffer free", "🎁 100% free") }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+                    .padding(vertical = 14.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                perks.take(3).forEach { perk ->
+                    Text(
+                        perk,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF25D366))
+                    .clickable {
+                        if (!shareText(context, text, whatsapp = true)) shareText(context, text, whatsapp = false)
+                        done()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    p.buttonText.ifBlank { "💬  Share on WhatsApp" },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Brush.horizontalGradient(listOf(AccentBright, CinetorRedDark)))
+                    .clickable {
+                        shareText(context, text, whatsapp = false)
+                        done()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    p.secondaryText.ifBlank { "Share via other apps 🚀" },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Not now",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = 0.55f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { done() }
+                    .padding(8.dp)
+            )
+        }
     }
 }
 

@@ -110,6 +110,34 @@ fun AdminConsoleScreen() {
     val pr = root.optJSONObject("premium") ?: JSONObject()
     val an = root.optJSONObject("announcement") ?: JSONObject()
     val mt = root.optJSONObject("maintenance") ?: JSONObject()
+    val cm = root.optJSONObject("community") ?: JSONObject()
+    val sp = root.optJSONObject("sharePrompt") ?: JSONObject()
+    val ad = root.optJSONObject("audioDubs") ?: JSONObject()
+
+    var cOn by remember(root) { mutableStateOf(cm.optBoolean("enabled")) }
+    var cId by remember(root) { mutableStateOf(cm.optString("id", "community-1")) }
+    var cTitle by remember(root) { mutableStateOf(cm.optString("title", "🎉 Join the Cinedor family")) }
+    var cMsg by remember(root) { mutableStateOf(cm.optString("message", "Get new movies, updates and requests first on our channels.")) }
+    var cBtn by remember(root) { mutableStateOf(cm.optString("buttonText", "Join our Telegram channel")) }
+    var cUrl by remember(root) { mutableStateOf(cm.optString("buttonUrl")) }
+    var cBtn2 by remember(root) { mutableStateOf(cm.optString("secondaryText", "Visit our Facebook page")) }
+    var cUrl2 by remember(root) { mutableStateOf(cm.optString("secondaryUrl")) }
+    var cHours by remember(root) { mutableStateOf(cm.optInt("showEveryHours", 24).toString()) }
+
+    var sOn by remember(root) { mutableStateOf(sp.optBoolean("enabled")) }
+    var sId by remember(root) { mutableStateOf(sp.optString("id", "share-1")) }
+    var sTitle by remember(root) { mutableStateOf(sp.optString("title", "Enjoying the movie? 🍿")) }
+    var sMsg by remember(root) { mutableStateOf(sp.optString("message")) }
+    var sMinutes by remember(root) { mutableStateOf(sp.optInt("afterMinutes", 20).toString()) }
+    var sPerks by remember(root) {
+        mutableStateOf(sp.optJSONArray("perks")?.let { a -> List(a.length()) { a.optString(it) }.joinToString(", ") } ?: "✨ Full HD, ⚡ Buffer free, 🎁 100% free")
+    }
+    var sShare by remember(root) { mutableStateOf(sp.optString("shareMessage")) }
+    var sLink by remember(root) { mutableStateOf(sp.optString("buttonUrl")) }
+    var sHours by remember(root) { mutableStateOf(sp.optInt("showEveryHours", 24).toString()) }
+
+    var adOn by remember(root) { mutableStateOf(ad.optBoolean("enabled", true)) }
+    var adTitle by remember(root) { mutableStateOf(ad.optString("title", "Audio & Dubs")) }
 
     var pOn by remember(root) { mutableStateOf(pr.optBoolean("enabled")) }
     var pId by remember(root) { mutableStateOf(pr.optString("id", "premium-1")) }
@@ -160,6 +188,31 @@ fun AdminConsoleScreen() {
                 .put("buttonText", aBtn)
                 .put("buttonUrl", aUrl.trim())
         )
+        .put(
+            "community", JSONObject()
+                .put("enabled", cOn)
+                .put("id", cId.ifBlank { "community-1" })
+                .put("title", cTitle)
+                .put("message", cMsg)
+                .put("buttonText", cBtn)
+                .put("buttonUrl", cUrl.trim())
+                .put("secondaryText", cBtn2)
+                .put("secondaryUrl", cUrl2.trim())
+                .put("showEveryHours", cHours.toIntOrNull() ?: 24)
+        )
+        .put(
+            "sharePrompt", JSONObject()
+                .put("enabled", sOn)
+                .put("id", sId.ifBlank { "share-1" })
+                .put("title", sTitle)
+                .put("message", sMsg)
+                .put("afterMinutes", sMinutes.toIntOrNull() ?: 20)
+                .put("perks", JSONArray(sPerks.split(",").map { it.trim() }.filter { it.isNotBlank() }))
+                .put("shareMessage", sShare)
+                .put("buttonUrl", sLink.trim())
+                .put("showEveryHours", sHours.toIntOrNull() ?: 24)
+        )
+        .put("audioDubs", JSONObject().put("enabled", adOn).put("title", adTitle))
         .put("maintenance", JSONObject().put("enabled", mOn).put("message", mMsg))
         .put("minVersionCode", minVer.toIntOrNull() ?: 0)
         .toString(2)
@@ -228,6 +281,35 @@ fun AdminConsoleScreen() {
             AdminField("Button text", aBtn) { aBtn = it }
             AdminField("Button link (optional)", aUrl) { aUrl = it }
             AdminField("Announcement ID", aId) { aId = it }
+        }
+
+        AdminCard("Join us popup (Telegram / Facebook)") {
+            AdminSwitch("Show Join us popup", cOn) { cOn = it }
+            AdminField("Title", cTitle) { cTitle = it }
+            AdminField("Message", cMsg, singleLine = false) { cMsg = it }
+            AdminField("Button 1 text", cBtn) { cBtn = it }
+            AdminField("Button 1 link (Telegram)", cUrl) { cUrl = it }
+            AdminField("Button 2 text", cBtn2) { cBtn2 = it }
+            AdminField("Button 2 link (Facebook)", cUrl2) { cUrl2 = it }
+            AdminField("Show again every (hours)", cHours, number = true) { cHours = it }
+            AdminField("Popup ID (change it to show again to everyone)", cId) { cId = it }
+        }
+
+        AdminCard("Share popup (\"Enjoying the movie?\")") {
+            AdminSwitch("Ask viewers to share", sOn) { sOn = it }
+            AdminField("Show after watching (minutes)", sMinutes, number = true) { sMinutes = it }
+            AdminField("Title", sTitle) { sTitle = it }
+            AdminField("Message (empty = automatic)", sMsg, singleLine = false) { sMsg = it }
+            AdminField("Perks (comma separated, max 3)", sPerks) { sPerks = it }
+            AdminField("Text that gets shared (empty = automatic)", sShare, singleLine = false) { sShare = it }
+            AdminField("App download link in shared text", sLink) { sLink = it }
+            AdminField("Ask again every (hours)", sHours, number = true) { sHours = it }
+            AdminField("Popup ID", sId) { sId = it }
+        }
+
+        AdminCard("Audio & Dubs section") {
+            AdminSwitch("Show Audio & Dubs on title pages", adOn) { adOn = it }
+            AdminField("Section title", adTitle) { adTitle = it }
         }
 
         AdminCard("App control") {

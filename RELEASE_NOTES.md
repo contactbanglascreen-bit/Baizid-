@@ -1,5 +1,7 @@
+- New "Audio & Dubs" section on every title: original audio, all dubbed languages and dubbed versions
+- Join us popup with Telegram & Facebook buttons
+- "Enjoying the movie?" share popup with WhatsApp and other apps
 - Coming Soon now shows upcoming titles
-- Anime tab shows real anime only (no music videos or clips)
-- Liquid-glass posters with a soft shine and glass rating badges
-- Compact top bar; search button never gets squeezed
-- Online-only: without internet you get your Downloads, everything else needs a connection
+- Anime tab shows real anime only
+- Liquid-glass posters, compact top bar
+- Online-only: without internet you get your Downloads
