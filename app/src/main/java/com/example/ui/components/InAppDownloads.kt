@@ -11,6 +11,8 @@ import android.os.Environment
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.background
@@ -171,7 +173,9 @@ object DownloadStore {
     }
 
     fun remove(context: Context, record: DownloadRecord) {
-        runCatching {
+        if (CinedorDownloader.isOwn(record.id)) {
+            CinedorDownloader.delete(context, record.id)
+        } else runCatching {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             dm.remove(record.id)
         }
@@ -186,7 +190,9 @@ object DownloadStore {
         val statusById = HashMap<Long, Triple<Int, Long, Long>>()
         runCatching {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val query = DownloadManager.Query().setFilterById(*records.map { it.id }.toLongArray())
+            val dmIds = records.map { it.id }.filter { it > 0 }
+            if (dmIds.isEmpty()) return@runCatching
+            val query = DownloadManager.Query().setFilterById(*dmIds.toLongArray())
             dm.query(query)?.use { c ->
                 while (c.moveToNext()) {
                     val id = c.getLong(c.getColumnIndex(DownloadManager.COLUMN_ID))
@@ -198,6 +204,10 @@ object DownloadStore {
             }
         }
         return records.map { r ->
+            if (CinedorDownloader.isOwn(r.id)) {
+                val (st, done, total) = CinedorDownloader.status(context, r.id)
+                return@map DownloadEntry(r, st, if (st == DownloadState.DONE && total > 0) total else done, total)
+            }
             val file = File(r.filePath)
             val s = statusById[r.id]
             val state = when (s?.first) {
@@ -362,7 +372,7 @@ private fun DownloadRow(
                 val stateText = when (entry.state) {
                     DownloadState.QUEUED -> "Waiting…"
                     DownloadState.RUNNING -> "Downloading ${(entry.progress * 100).toInt()}%"
-                    DownloadState.PAUSED -> "Paused (waiting for network)"
+                    DownloadState.PAUSED -> "Paused"
                     DownloadState.DONE -> "Downloaded"
                     DownloadState.FAILED -> "Failed"
                 }
@@ -420,6 +430,35 @@ private fun DownloadRow(
                             .clip(CircleShape)
                     )
                 }
+            }
+        }
+        if (CinedorDownloader.isOwn(rec.id) && !done) {
+            val running = entry.state == DownloadState.RUNNING || entry.state == DownloadState.QUEUED
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(if (running) CinetorRedSoft else CinetorRed)
+                    .clickable {
+                        if (running) CinedorDownloader.pause(context, rec.id)
+                        else CinedorDownloader.resume(context, rec.id)
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when {
+                        running -> Icons.Rounded.Pause
+                        entry.state == DownloadState.FAILED -> Icons.Rounded.Refresh
+                        else -> Icons.Rounded.PlayArrow
+                    },
+                    contentDescription = when {
+                        running -> "Pause"
+                        entry.state == DownloadState.FAILED -> "Retry"
+                        else -> "Resume"
+                    },
+                    tint = if (running) CinetorRed else OnAccent,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
         IconButton(onClick = onDelete) {

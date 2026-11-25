@@ -97,26 +97,11 @@ internal fun enqueueVideoDownload(
         val quality = option.quality.ifBlank { option.label }.ifBlank { "HD" }
         val fileName = "${safeFileName("$title [$quality]")}_${System.currentTimeMillis() % 100000}.${guessExtension(option)}"
         val dir = DownloadStore.downloadDir(context) ?: return false
-        val request = DownloadManager.Request(Uri.parse(option.url))
-            .setTitle("$title • $quality")
-            .setDescription("Cinedor download")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
-            .setAllowedOverMetered(!AppSettings.wifiOnlyDownloads)
-            .setAllowedOverRoaming(true)
-        option.headers.forEach { (k, v) ->
-            if (k.isNotBlank() && v.isNotBlank()) request.addRequestHeader(k, v)
-        }
-        if (option.headers.keys.none { it.equals("User-Agent", ignoreCase = true) }) {
-            request.addRequestHeader(
-                "User-Agent",
-                "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
-            )
-        }
-        // Saved in the app's private video folder; shown in the in-app Downloads tab.
-        request.setDestinationUri(Uri.fromFile(java.io.File(dir, fileName)))
-        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val id = dm.enqueue(request)
-        // Only Cinedor's own notification is shown (the system one is hidden).
+        val file = java.io.File(dir, fileName)
+        val headers = LinkedHashMap<String, String>()
+        option.headers.forEach { (k, v) -> if (k.isNotBlank() && v.isNotBlank()) headers[k] = v }
+        // Cinedor's own downloader: 4 parallel parts, pause / resume, single notification.
+        val id = CinedorDownloader.create(context, option.url, headers, file.absolutePath)
         DownloadStore.add(
             context,
             DownloadRecord(

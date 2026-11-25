@@ -66,7 +66,7 @@ object DownloadNotifier {
     fun ensureRunning(context: Context) {
         val app = context.applicationContext
         val active = runCatching { DownloadStore.entries(app) }.getOrDefault(emptyList())
-            .any { it.state != DownloadState.DONE && it.state != DownloadState.FAILED }
+            .any { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED }
         if (!active || DownloadWatchService.running) return
         ensureChannel(app)
         runCatching {
@@ -149,6 +149,7 @@ class DownloadWatchService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         running = true
+        CinedorDownloader.resumeInterrupted(this)
         val placeholder = NotificationCompat.Builder(this, DownloadNotifier.CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentTitle("Cinedor downloads")
@@ -178,7 +179,8 @@ class DownloadWatchService : Service() {
         while (true) {
             val entries = runCatching { DownloadStore.entries(this) }.getOrDefault(emptyList())
             DownloadSpeedTracker.update(entries)
-            val active = entries.filter { it.state != DownloadState.DONE && it.state != DownloadState.FAILED }
+            // Paused downloads don't keep the notification/service running.
+            val active = entries.filter { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED }
             active.forEach { seenActive.add(it.record.id) }
 
             if (DownloadNotifier.canNotify(this)) {

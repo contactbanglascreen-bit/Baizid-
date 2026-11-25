@@ -97,6 +97,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
+        // Continue downloads that were running when the app was closed.
+        com.example.ui.components.CinedorDownloader.resumeInterrupted(applicationContext)
         // PiP button: shrink the player to a floating window inside the app (keep browsing).
         // Leaving the app with Home still uses Android's system picture-in-picture.
         com.example.ui.components.PipState.requestPip = { com.example.ui.components.PipState.inAppMini = true }
