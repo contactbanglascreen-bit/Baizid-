@@ -90,21 +90,34 @@ class MainActivity : ComponentActivity() {
         com.example.ui.components.PipState.requestPip = { enterPipIfAllowed() }
 
         // Lazy Coil ImageLoaderFactory: avoids synchronous DiskCache I/O on Main Thread during onCreate
+        // Fast poster loading: many parallel image requests, large memory + disk cache,
+        // RGB565 bitmaps (half the memory) and a very short fade-in.
         Coil.setImageLoader {
+            val imageClient = okhttp3.OkHttpClient.Builder()
+                .dispatcher(okhttp3.Dispatcher().apply {
+                    maxRequests = 64
+                    maxRequestsPerHost = 24
+                })
+                .connectionPool(okhttp3.ConnectionPool(24, 5, java.util.concurrent.TimeUnit.MINUTES))
+                .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
             ImageLoader.Builder(applicationContext)
+                .okHttpClient(imageClient)
                 .memoryCache {
                     MemoryCache.Builder(applicationContext)
-                        .maxSizePercent(0.25)
+                        .maxSizePercent(0.30)
                         .build()
                 }
                 .diskCache {
                     DiskCache.Builder()
                         .directory(cacheDir.resolve("cinedor_image_cache"))
-                        .maxSizeBytes(100L * 1024L * 1024L)
+                        .maxSizeBytes(300L * 1024L * 1024L)
                         .build()
                 }
                 .respectCacheHeaders(false)
-                .crossfade(160)
+                .allowRgb565(true)
+                .crossfade(90)
                 .build()
         }
 
@@ -217,6 +230,16 @@ fun CinedorMainShell() {
             snackbarHostState.showSnackbar(msg)
             viewModel.consumeToast()
         }
+    }
+
+    // Full-screen offline player for downloaded videos
+    val offlineRecord = com.example.ui.components.OfflinePlayback.record
+    if (offlineRecord != null) {
+        com.example.ui.components.OfflinePlayerScreen(
+            record = offlineRecord,
+            onClose = { com.example.ui.components.OfflinePlayback.record = null }
+        )
+        return
     }
 
     // Full-screen overlay when a media detail/player is active

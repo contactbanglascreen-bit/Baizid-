@@ -11,6 +11,8 @@ import android.os.Environment
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -245,7 +247,7 @@ fun InAppDownloadsList(modifier: Modifier = Modifier) {
             entries.forEach { entry ->
                 DownloadRow(
                     entry = entry,
-                    onPlay = { playing = entry.record },
+                    onPlay = { OfflinePlayback.record = entry.record },
                     onDelete = { pendingDelete = entry.record }
                 )
             }
@@ -272,7 +274,7 @@ fun InAppDownloadsList(modifier: Modifier = Modifier) {
     }
 
     playing?.let { rec ->
-        OfflineVideoPlayerDialog(record = rec, onClose = { playing = null })
+        OfflinePlayback.record = rec
     }
 }
 
@@ -420,9 +422,11 @@ private fun Context.findHostActivity(): Activity? {
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit) {
+fun OfflinePlayerScreen(record: DownloadRecord, onClose: () -> Unit) {
     val context = LocalContext.current
-    var isFullscreen by remember { mutableStateOf(false) }
+    // Offline playback opens straight into landscape full screen.
+    var isFullscreen by remember { mutableStateOf(true) }
+    var pinchScale by remember { mutableFloatStateOf(1f) }
     var isPlaying by remember { mutableStateOf(false) }
     var isBuffering by remember { mutableStateOf(true) }
     var positionMs by remember { mutableLongStateOf(0L) }
@@ -444,6 +448,7 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
+                PipState.videoPlaying = playing
             }
 
             override fun onPlaybackStateChanged(state: Int) {
@@ -454,6 +459,7 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
         player.addListener(listener)
         onDispose {
             player.removeListener(listener)
+            PipState.videoPlaying = false
             player.release()
         }
     }
@@ -492,23 +498,27 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
         StreamOption(id = record.id.toString(), label = record.quality, quality = record.quality, url = record.filePath, format = "Offline")
     }
 
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-    ) {
-        BackHandler {
-            if (isFullscreen) isFullscreen = false else onClose()
-        }
+    BackHandler {
+        if (isFullscreen) isFullscreen = false else onClose()
+    }
+    run {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
+                .clipToBounds()
         ) {
             AndroidView(
                 factory = { ctx ->
-                    PlayerView(ctx).apply {
+                    (android.view.LayoutInflater.from(ctx)
+                        .inflate(com.example.R.layout.cinedor_player_view, null, false) as PlayerView).apply {
                         useController = false
+                        keepScreenOn = true
                         this.player = player
+                        layoutParams = android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        )
                     }
                 },
                 update = { view ->
@@ -518,10 +528,11 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                         VideoResizeOption.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                         VideoResizeOption.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
-                    val sc = if (resize == VideoResizeOption.CROP) 1.3f else 1f
+                    val sc = pinchScale * (if (resize == VideoResizeOption.CROP) 1.3f else 1f)
                     view.scaleX = sc
                     view.scaleY = sc
                 },
+                onRelease = { view -> view.player = null },
                 modifier = Modifier.fillMaxSize()
             )
             CinedorPlayerControlsOverlay(
@@ -531,7 +542,7 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                 currentPositionMs = positionMs,
                 bufferedPositionMs = bufferedMs,
                 durationMs = durationMs,
-                isFullscreen = true,
+                isFullscreen = isFullscreen,
                 playbackSpeed = speed,
                 resizeOption = resize,
                 streams = listOf(fakeStream),
@@ -566,11 +577,13 @@ private fun OfflineVideoPlayerDialog(record: DownloadRecord, onClose: () -> Unit
                 },
                 onCycleResize = {
                     resize = VideoResizeOption.entries[(resize.ordinal + 1) % VideoResizeOption.entries.size]
+                    pinchScale = 1f
                 },
                 onToggleFullscreen = { isFullscreen = !isFullscreen },
                 onSelectStream = {},
                 onSelectCaption = {},
-                modifier = Modifier.fillMaxSize(),
+                modifier = if (isFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxSize().systemBarsPadding(),
+                onPinchZoom = { z -> pinchScale = (pinchScale * z).coerceIn(1f, 3f) },
                 onHoldSpeed = { holding ->
                     player.playbackParameters = PlaybackParameters(if (holding) 2f else speed)
                 },
@@ -735,7 +748,7 @@ fun DownloadsPage(modifier: Modifier = Modifier) {
             shown.forEach { entry ->
                 DownloadRow(
                     entry = entry,
-                    onPlay = { playing = entry.record },
+                    onPlay = { OfflinePlayback.record = entry.record },
                     onDelete = { pendingDelete = entry.record }
                 )
             }
@@ -762,9 +775,15 @@ fun DownloadsPage(modifier: Modifier = Modifier) {
     }
 
     playing?.let { rec ->
-        OfflineVideoPlayerDialog(record = rec, onClose = { playing = null })
+        OfflinePlayback.record = rec
     }
 }
 
 /** Total size of finished downloads, for the Settings page. */
 fun downloadedBytes(context: Context): Long = folderSize(DownloadStore.downloadDir(context))
+
+
+/** The downloaded video being played offline; MainActivity shows the full-screen player while set. */
+object OfflinePlayback {
+    var record by mutableStateOf<DownloadRecord?>(null)
+}

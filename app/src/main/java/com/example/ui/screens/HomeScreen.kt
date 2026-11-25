@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -174,6 +178,26 @@ fun HomeScreen(
             (successFeed.trendingItems + successFeed.sections.flatMap { it.items }).distinctBy { it.id }
         }
     }
+    // Warm the image disk cache with the first posters so rows appear instantly while scrolling.
+    val prefetchContext = LocalContext.current
+    LaunchedEffect(successFeed) {
+        val feed = successFeed ?: return@LaunchedEffect
+        val urls = (feed.banners + feed.trendingItems + feed.sections.flatMap { it.items.take(12) })
+            .mapNotNull { it.posterUrl.ifBlank { it.backdropUrl }.ifBlank { null } }
+            .distinct()
+            .take(90)
+        val loader = prefetchContext.imageLoader
+        urls.forEach { url ->
+            loader.enqueue(
+                ImageRequest.Builder(prefetchContext)
+                    .data(url)
+                    .size(360, 530)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .build()
+            )
+        }
+    }
+
     val trendingMovies = remember(allPool, selectedMovieSubTab) {
         val moviesOnly = allPool.filter { it.mediaType == MediaCategoryType.MOVIE }.ifEmpty { allPool }
         when (selectedMovieSubTab) {
