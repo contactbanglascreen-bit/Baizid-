@@ -64,11 +64,10 @@ import java.security.SecureRandom
  * PIN lock for 18+ content (parental control).
  * The PIN is stored only as a salted SHA-256 hash on the device.
  */
-object AdultLock {
-    private const val PREFS = "cinedor_adult_lock"
-    private const val PIN_LENGTH = 4
-    const val MAX_ATTEMPTS = 5
-    const val LOCKOUT_MS = 30_000L
+open class PinStore(private val prefsName: String) {
+    private val PIN_LENGTH = 4
+    val MAX_ATTEMPTS = 5
+    val LOCKOUT_MS = 30_000L
 
     /** True once the PIN was entered in this app session; resets when the app restarts. */
     var sessionUnlocked by mutableStateOf(false)
@@ -85,7 +84,7 @@ object AdultLock {
         loaded = true
     }
 
-    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
     private fun hash(pin: String, salt: String): String =
         MessageDigest.getInstance("SHA-256")
@@ -113,7 +112,7 @@ object AdultLock {
     fun lockedUntil(context: Context): Long = prefs(context).getLong("lockUntil", 0L)
 
     /** Returns true if the PIN is correct. Counts failures and locks out for 30s after 5 wrong tries. */
-    fun verify(context: Context, pin: String): Boolean {
+    open fun verify(context: Context, pin: String): Boolean {
         val p = prefs(context)
         if (System.currentTimeMillis() < p.getLong("lockUntil", 0L)) return false
         val salt = p.getString("salt", null) ?: return false
@@ -130,6 +129,12 @@ object AdultLock {
     }
 }
 
+/** PIN that unlocks 18+ content. */
+object AdultLock : PinStore("cinedor_adult_lock")
+
+/** PIN that protects the admin Console. */
+object AdminLock : PinStore("cinedor_admin_lock")
+
 enum class PinMode { CREATE, VERIFY }
 
 /**
@@ -141,14 +146,16 @@ fun AdultPinDialog(
     mode: PinMode,
     title: String,
     onSuccess: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    store: PinStore = AdultLock,
+    createHint: String = "Create a 4-digit PIN to lock 18+ content"
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var entered by remember { mutableStateOf("") }
     var firstPin by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
-    var lockedUntil by remember { mutableLongStateOf(AdultLock.lockedUntil(context)) }
+    var lockedUntil by remember { mutableLongStateOf(store.lockedUntil(context)) }
     var nowTick by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val shake = remember { Animatable(0f) }
     var errorTick by remember { mutableIntStateOf(0) }
@@ -170,9 +177,9 @@ fun AdultPinDialog(
     val subtitle = when {
         isLockedOut -> "Too many wrong tries. Try again in ${((lockedUntil - nowTick) / 1000) + 1}s"
         message != null -> message!!
-        mode == PinMode.CREATE && firstPin == null -> "Create a ${AdultLock.pinLength}-digit PIN to lock 18+ content"
+        mode == PinMode.CREATE && firstPin == null -> createHint
         mode == PinMode.CREATE -> "Enter the same PIN again to confirm"
-        else -> "Enter your ${AdultLock.pinLength}-digit PIN"
+        else -> "Enter your ${store.pinLength}-digit PIN"
     }
 
     fun onComplete(pin: String) {
@@ -182,8 +189,8 @@ fun AdultPinDialog(
                 entered = ""
                 message = null
             } else if (firstPin == pin) {
-                AdultLock.setPin(context, pin)
-                AdultLock.sessionUnlocked = true
+                store.setPin(context, pin)
+                store.sessionUnlocked = true
                 onSuccess()
             } else {
                 firstPin = null
@@ -192,12 +199,12 @@ fun AdultPinDialog(
                 errorTick++
             }
         } else {
-            if (AdultLock.verify(context, pin)) {
-                AdultLock.sessionUnlocked = true
+            if (store.verify(context, pin)) {
+                store.sessionUnlocked = true
                 onSuccess()
             } else {
                 entered = ""
-                lockedUntil = AdultLock.lockedUntil(context)
+                lockedUntil = store.lockedUntil(context)
                 message = "Wrong PIN"
                 errorTick++
             }
@@ -205,10 +212,10 @@ fun AdultPinDialog(
     }
 
     fun press(d: String) {
-        if (isLockedOut || entered.length >= AdultLock.pinLength) return
+        if (isLockedOut || entered.length >= store.pinLength) return
         entered += d
         message = null
-        if (entered.length == AdultLock.pinLength) {
+        if (entered.length == store.pinLength) {
             val pin = entered
             scope.launch {
                 delay(120L)
@@ -255,7 +262,7 @@ fun AdultPinDialog(
                 modifier = Modifier.offset { IntOffset(shake.value.toInt(), 0) },
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                repeat(AdultLock.pinLength) { i ->
+                repeat(store.pinLength) { i ->
                     val filled = i < entered.length
                     Box(
                         modifier = Modifier

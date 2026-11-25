@@ -66,6 +66,29 @@ import org.json.JSONObject
 
 private const val ADMIN_PREFS = "cinedor_admin"
 
+/**
+ * The GitHub token is kept in encrypted storage (Android Keystore AES-256),
+ * moving any older plain copy over once.
+ */
+private fun securePrefs(context: Context): android.content.SharedPreferences {
+    val secure = runCatching {
+        val key = androidx.security.crypto.MasterKeys.getOrCreate(androidx.security.crypto.MasterKeys.AES256_GCM_SPEC)
+        androidx.security.crypto.EncryptedSharedPreferences.create(
+            "cinedor_admin_secure",
+            key,
+            context,
+            androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }.getOrNull() ?: return context.getSharedPreferences(ADMIN_PREFS, Context.MODE_PRIVATE)
+    val plain = context.getSharedPreferences(ADMIN_PREFS, Context.MODE_PRIVATE)
+    plain.getString("gh_token", null)?.let { old ->
+        if (secure.getString("gh_token", null).isNullOrBlank()) secure.edit().putString("gh_token", old).apply()
+        plain.edit().remove("gh_token").apply()
+    }
+    return secure
+}
+
 /** In-app Cinedor Console: edit the remote app config and publish it to every phone. */
 @Composable
 fun AdminConsoleScreen() {
@@ -111,7 +134,7 @@ fun AdminConsoleScreen() {
     var mMsg by remember(root) { mutableStateOf(mt.optString("message")) }
     var minVer by remember(root) { mutableStateOf(root.optInt("minVersionCode", 0).toString()) }
 
-    val prefs = remember { context.getSharedPreferences(ADMIN_PREFS, Context.MODE_PRIVATE) }
+    val prefs = remember { securePrefs(context) }
     var token by remember { mutableStateOf(prefs.getString("gh_token", "").orEmpty()) }
 
     fun buildJson(): String = JSONObject()

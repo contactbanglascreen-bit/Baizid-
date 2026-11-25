@@ -55,6 +55,8 @@ android {
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
       // AI Studio.
       signingConfig = signingConfigs.getByName("debugConfig")
+      // Security: the shared APK can't be debugged and its private data can't be read with run-as.
+      isDebuggable = false
     }
   }
   compileOptions {
@@ -110,6 +112,8 @@ dependencies {
   implementation(libs.coil.compose)
   // On-device subtitle translation (models download once per language)
   implementation("com.google.mlkit:translate:17.0.3")
+  // Encrypted storage for the admin Console token
+  implementation("androidx.security:security-crypto:1.0.0")
   // implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)
   // implementation(libs.firebase.firestore)

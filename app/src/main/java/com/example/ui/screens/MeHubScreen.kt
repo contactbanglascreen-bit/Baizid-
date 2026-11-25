@@ -378,7 +378,7 @@ fun MeHubScreen(
             )
 
             MePage.ABOUT -> AboutPage(onOpenAdmin = { page = MePage.ADMIN })
-            MePage.ADMIN -> AdminConsoleScreen()
+            MePage.ADMIN -> AdminGate(onLeave = { page = MePage.HUB })
         }
     }
 
@@ -1308,4 +1308,33 @@ private fun CollectionTile(
             maxLines = 1
         )
     }
+}
+
+
+/** The admin Console needs its own PIN and refuses rooted / hooked / debugged phones. */
+@Composable
+private fun AdminGate(onLeave: () -> Unit) {
+    val context = LocalContext.current
+    val safe = remember { com.example.ui.components.AppSecurity.safeForAdmin() }
+    if (!safe) {
+        EmptyLibraryCard(
+            icon = Icons.Rounded.AdminPanelSettings,
+            title = "Console blocked on this phone",
+            subtitle = "For security the admin Console doesn't open on rooted phones or when hacking tools are running."
+        )
+        return
+    }
+    if (!com.example.ui.components.AdminLock.sessionUnlocked) {
+        com.example.ui.components.AdultPinDialog(
+            mode = if (com.example.ui.components.AdminLock.hasPin) PinMode.VERIFY else PinMode.CREATE,
+            title = "Console PIN",
+            onSuccess = { },
+            onDismiss = onLeave,
+            store = com.example.ui.components.AdminLock,
+            createHint = "Create a 4-digit PIN to protect the admin Console"
+        )
+        return
+    }
+    com.example.ui.components.SecureScreen()
+    AdminConsoleScreen()
 }

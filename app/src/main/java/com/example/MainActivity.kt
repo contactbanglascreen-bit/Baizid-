@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
+        com.example.ui.components.AdminLock.load(applicationContext)
         // Continue downloads that were running when the app was closed.
         com.example.ui.components.CinedorDownloader.resumeInterrupted(applicationContext)
         // PiP button: shrink the player to a floating window inside the app (keep browsing).
@@ -139,8 +140,14 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
+        // Block modified copies of the app (re-signed APKs) and attached debuggers.
+        val securityProblem = com.example.ui.components.AppSecurity.blockingProblem(applicationContext)
         setContent {
             CinePulseTheme {
+                if (securityProblem != null) {
+                    com.example.ui.components.SecurityBlockScreen(securityProblem)
+                    return@CinePulseTheme
+                }
                 var showSplash by rememberSaveable { mutableStateOf(true) }
                 Box(modifier = Modifier.fillMaxSize()) {
                     CinedorMainShell()
