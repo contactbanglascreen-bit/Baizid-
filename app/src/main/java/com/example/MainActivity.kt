@@ -180,7 +180,8 @@ fun CinedorMainShell() {
                 CinePulseViewModel(
                     apiClient = CinePulseApiClient(),
                     libraryRepository = LocalLibraryRepository(db.libraryDao()),
-                    preferencesRepository = UserPreferencesRepository(app)
+                    preferencesRepository = UserPreferencesRepository(app),
+                    feedCache = com.example.data.local.HomeFeedDiskCache(app.filesDir)
                 )
             }
         }

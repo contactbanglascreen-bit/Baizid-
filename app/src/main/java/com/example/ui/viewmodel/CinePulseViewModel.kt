@@ -98,8 +98,12 @@ data class DetailUiState(
 class CinePulseViewModel(
     private val apiClient: CinePulseApiClient,
     private val libraryRepository: LocalLibraryRepository,
-    private val preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository,
+    private val feedCache: com.example.data.local.HomeFeedDiskCache? = null
 ) : ViewModel() {
+
+    /** Which source/language/safe-mode the feed on screen belongs to. */
+    private var shownFeedKey: String? = null
 
     private val _isDualSiteActive = MutableStateFlow(apiClient.isApiKeyConfigured)
     val isDualSiteActive: StateFlow<Boolean> = _isDualSiteActive.asStateFlow()
@@ -233,7 +237,19 @@ class CinePulseViewModel(
     fun loadHome(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             val prefs = preferences.value
-            _homeState.update { it.copy(feedState = UiState.Loading) }
+            val feedKey = "${prefs.source.name}:${prefs.language.code}:${prefs.safeMode}"
+            val showingSameFeed = shownFeedKey == feedKey && _homeState.value.feedState is UiState.Success
+            if (!showingSameFeed) {
+                // Show the copy saved on the phone instantly, then refresh it from the internet.
+                val cached = feedCache?.read(feedKey)
+                if (cached != null) {
+                    shownFeedKey = feedKey
+                    _homeState.update { it.copy(feedState = UiState.Success(cached)) }
+                } else {
+                    shownFeedKey = null
+                    _homeState.update { it.copy(feedState = UiState.Loading) }
+                }
+            }
             try {
                 val updatesJob = launch {
                     val updates = runCatching { apiClient.getUpdates24h(prefs.source, prefs.safeMode) }
@@ -241,17 +257,24 @@ class CinePulseViewModel(
                     _homeState.update { it.copy(updates24h = updates) }
                 }
                 val feed = apiClient.getHome(prefs.source, prefs.language, prefs.safeMode, forceRefresh)
+                shownFeedKey = feedKey
                 _homeState.update { it.copy(feedState = UiState.Success(feed)) }
+                launch { feedCache?.write(feedKey, feed) }
                 updatesJob.join()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: CinePulseApiException) {
-                _homeState.update {
-                    it.copy(feedState = UiState.Error(e.message ?: "API error", e.isAuthMissing))
+                // Keep the saved copy on screen if we have one (e.g. offline).
+                if (shownFeedKey != feedKey) {
+                    _homeState.update {
+                        it.copy(feedState = UiState.Error(e.message ?: "API error", e.isAuthMissing))
+                    }
                 }
             } catch (e: Exception) {
-                _homeState.update {
-                    it.copy(feedState = UiState.Error(e.localizedMessage ?: "Failed to load home feed"))
+                if (shownFeedKey != feedKey) {
+                    _homeState.update {
+                        it.copy(feedState = UiState.Error(e.localizedMessage ?: "Failed to load home feed"))
+                    }
                 }
             }
         }

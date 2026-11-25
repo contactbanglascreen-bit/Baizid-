@@ -231,6 +231,7 @@ fun InAppDownloadsList(modifier: Modifier = Modifier) {
     LaunchedEffect(refreshTick) {
         while (true) {
             entries = DownloadStore.entries(context)
+            DownloadSpeedTracker.update(entries)
             val active = entries.any { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED || it.state == DownloadState.PAUSED }
             delay(if (active) 1000L else 4000L)
         }
@@ -372,6 +373,30 @@ private fun DownloadRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            if (entry.state == DownloadState.RUNNING) {
+                val bps = DownloadSpeedTracker.speeds[rec.id] ?: 0L
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.Download,
+                        contentDescription = null,
+                        tint = CinetorRed,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    val left = entry.totalBytes - entry.downloadedBytes
+                    val eta = if (bps > 0L && left > 0L) formatEta(left / bps) else ""
+                    Text(
+                        text = buildString {
+                            append(if (bps > 0L) "${Formatter.formatShortFileSize(context, bps)}/s" else "Starting…")
+                            if (eta.isNotBlank()) append("  ·  $eta left")
+                        },
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                        color = CinetorRed,
+                        maxLines = 1
+                    )
+                }
             }
             if (!done && entry.state != DownloadState.FAILED) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -618,6 +643,7 @@ fun DownloadsPage(modifier: Modifier = Modifier) {
     LaunchedEffect(refreshTick) {
         while (true) {
             entries = DownloadStore.entries(context)
+            DownloadSpeedTracker.update(entries)
             val dir = DownloadStore.downloadDir(context)
             usedBytes = folderSize(dir)
             runCatching {
@@ -786,4 +812,40 @@ fun downloadedBytes(context: Context): Long = folderSize(DownloadStore.downloadD
 /** The downloaded video being played offline; MainActivity shows the full-screen player while set. */
 object OfflinePlayback {
     var record by mutableStateOf<DownloadRecord?>(null)
+}
+
+
+/** Measures live download speed (bytes per second) between list refreshes. */
+object DownloadSpeedTracker {
+    private val last = HashMap<Long, Pair<Long, Long>>() // id -> (bytes, timeMs)
+    val speeds = androidx.compose.runtime.mutableStateMapOf<Long, Long>()
+
+    fun update(entries: List<DownloadEntry>) {
+        val now = System.currentTimeMillis()
+        val running = entries.filter { it.state == DownloadState.RUNNING }
+        running.forEach { e ->
+            val id = e.record.id
+            val prev = last[id]
+            if (prev != null) {
+                val dt = now - prev.second
+                val db = e.downloadedBytes - prev.first
+                if (dt >= 300L && db >= 0L) {
+                    val instant = db * 1000L / dt
+                    val old = speeds[id]
+                    // Smooth it so the number doesn't jump around.
+                    speeds[id] = if (old == null || old == 0L) instant else (old * 6 + instant * 4) / 10
+                }
+            }
+            last[id] = e.downloadedBytes to now
+        }
+        val runningIds = running.map { it.record.id }.toSet()
+        last.keys.filter { it !in runningIds }.forEach { last.remove(it) }
+        speeds.keys.filter { it !in runningIds }.forEach { speeds.remove(it) }
+    }
+}
+
+internal fun formatEta(seconds: Long): String = when {
+    seconds < 60 -> "${seconds}s"
+    seconds < 3600 -> "${seconds / 60} min"
+    else -> "${seconds / 3600}h ${(seconds % 3600) / 60}m"
 }
