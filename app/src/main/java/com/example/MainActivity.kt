@@ -141,7 +141,17 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             CinePulseTheme {
-                CinedorMainShell()
+                var showSplash by rememberSaveable { mutableStateOf(true) }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CinedorMainShell()
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showSplash,
+                        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(1)),
+                        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(450))
+                    ) {
+                        com.example.ui.components.CinedorSplash(onFinished = { showSplash = false })
+                    }
+                }
             }
         }
     }

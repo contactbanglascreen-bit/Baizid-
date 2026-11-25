@@ -319,7 +319,25 @@ fun HeroBannerCarousel(
             }
         }
 
-        if (banners.size > 1) {
+        if (banners.size > 10) {
+            // Many trending titles: compact "3 / 25" counter instead of dots
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .width(22.dp)
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(CinetorRed)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "${pagerState.currentPage + 1} / ${banners.size}",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondary
+                )
+            }
+        } else if (banners.size > 1) {
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

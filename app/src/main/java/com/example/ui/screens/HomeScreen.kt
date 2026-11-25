@@ -433,16 +433,12 @@ fun HomeScreen(
                             // 1. Hero Banner + Overlapping Floating Mini-Poster Cards
                             if (feed.banners.isNotEmpty()) {
                                 item(key = "hero_banner") {
-                                    // Newest titles first: merge banners with trending/sections and sort by year
-                                    val heroItems = remember(feed) {
-                                        (feed.banners + feed.trendingItems + feed.sections.flatMap { it.items })
+                                    // Everything that is trending goes into the slider (trending first, then banners)
+                                    val heroItems = remember(feed, homeState.updates24h) {
+                                        (feed.trendingItems + homeState.updates24h + feed.banners)
                                             .filter { it.posterUrl.isNotBlank() || it.backdropUrl.isNotBlank() }
-                                            .distinctBy { it.title.lowercase().replace(Regex("\\s*\\[[^\\]]*\\]"), "") }
-                                            .sortedWith(
-                                                compareByDescending<MediaItem> { it.year.take(4).toIntOrNull() ?: 0 }
-                                                    .thenByDescending { it.releaseDate }
-                                            )
-                                            .take(10)
+                                            .distinctBy { it.title.lowercase().replace(Regex("\\s*\\[[^\\]]*\\]"), "").trim() }
+                                            .take(25)
                                             .ifEmpty { feed.banners }
                                     }
                                     HeroBannerCarousel(
@@ -683,6 +679,66 @@ fun HomeScreen(
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(20.dp))
+                                }
+                            }
+
+                            // Browse every video by category (genre rows built from all loaded titles)
+                            val genreRows = (allPool + homeState.updates24h)
+                                .distinctBy { it.id }
+                                .flatMap { m -> m.genres.map { g -> g.trim().replaceFirstChar { c -> c.uppercase() } to m } }
+                                .filter { (g, _) -> g.isNotBlank() && g.length < 22 }
+                                .groupBy({ it.first }, { it.second })
+                                .filter { it.value.size >= 4 }
+                                .entries
+                                .sortedByDescending { it.value.size }
+                                .take(12)
+                            if (genreRows.isNotEmpty()) {
+                                item(key = "category_header") {
+                                    SectionHeaderRow(title = "Browse by category")
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(genreRows.map { it.key }) { g ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(ChipBg)
+                                                    .border(1.dp, ChipBorder, CircleShape)
+                                                    .clickable(onClick = onOpenSearch)
+                                                    .padding(horizontal = 14.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    g,
+                                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                                    color = TextPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                }
+                                genreRows.forEach { (genre, list) ->
+                                    item(key = "genre_row_$genre") {
+                                        SectionHeaderRow(
+                                            title = genre,
+                                            actionLabel = "All",
+                                            onActionClick = onOpenSearch
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            items(list.take(18), key = { "g_${genre}_${it.id}" }) { m ->
+                                                PosterCard(item = m, onClick = { onOpenMedia(m) })
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(18.dp))
+                                    }
                                 }
                             }
 
