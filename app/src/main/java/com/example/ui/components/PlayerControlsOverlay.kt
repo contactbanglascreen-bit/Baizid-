@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -357,33 +358,46 @@ internal fun CinedorPlayerControlsOverlay(
                 )
             }
     ) {
-        // Double-tap -10s / +10s animated feedback badge
+        // Double-tap -10s / +10s: soft curved ripple on the tapped side (YouTube-style)
         AnimatedVisibility(
             visible = seekFeedbackText != null,
-            enter = fadeIn(tween(120)),
-            exit = fadeOut(tween(240)),
+            enter = fadeIn(tween(110)),
+            exit = fadeOut(tween(280)),
             modifier = Modifier
                 .align(if (seekFeedbackRight) Alignment.CenterEnd else Alignment.CenterStart)
-                .padding(horizontal = if (isFullscreen) 72.dp else 28.dp)
+                .fillMaxHeight()
+                .fillMaxWidth(0.34f)
         ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = Color.Black.copy(alpha = 0.62f)
+            val rippleShape = if (seekFeedbackRight)
+                RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50)
+            else
+                RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(rippleShape)
+                    .background(Color.White.copy(alpha = 0.13f)),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = if (seekFeedbackRight) forwardIcon else rewindIcon,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (seekFeedbackRight) forwardIcon else rewindIcon,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = seekFeedbackText.orEmpty(),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
                 }
@@ -392,7 +406,7 @@ internal fun CinedorPlayerControlsOverlay(
 
         // Aspect-ratio / Scrubbing preview pill
         AnimatedVisibility(
-            visible = resizeToastText != null || isScrubbing,
+            visible = resizeToastText != null && !isScrubbing,
             enter = fadeIn(tween(100)),
             exit = fadeOut(tween(180)),
             modifier = Modifier
@@ -763,39 +777,24 @@ internal fun CinedorPlayerControlsOverlay(
                     }
                 }
 
-                // Bottom Gradient Scrim + Single Sleek MovieBox Control Bar:
-                // [Play/Pause] [━━●━━━━━━] [00:04/1:04:49] [Aspect] [Fullscreen]
-                Row(
+                // Bottom control deck: full-width red seek bar on top, then
+                // [00:04 / 1:04:49] ........ [-1:04:45] [Aspect] [Fullscreen]
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f), Color.Black.copy(alpha = 0.88f))
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f), Color.Black.copy(alpha = 0.9f))
                             )
                         )
                         .padding(
-                            start = if (isFullscreen) 14.dp else 4.dp,
-                            end = if (isFullscreen) 14.dp else 4.dp,
-                            top = 18.dp,
-                            bottom = if (isFullscreen) 12.dp else 4.dp
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
+                            start = if (isFullscreen) 18.dp else 8.dp,
+                            end = if (isFullscreen) 18.dp else 8.dp,
+                            top = 26.dp,
+                            bottom = if (isFullscreen) 10.dp else 2.dp
+                        )
                 ) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = formatPlayerTime(effectivePos),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        color = Color.White,
-                        maxLines = 1,
-                        modifier = Modifier.testTag("player_play_pause")
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     SleekVideoSeekBar(
                         positionMs = effectivePos,
                         bufferedMs = bufferedPositionMs,
@@ -815,60 +814,92 @@ internal fun CinedorPlayerControlsOverlay(
                             interactionTick++
                         },
                         modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
+                            .fillMaxWidth()
+                            .height(if (isFullscreen) 30.dp else 26.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = formatPlayerTime(safeDuration),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        color = Color.White.copy(alpha = 0.78f),
-                        maxLines = 1
-                    )
-
-                    Spacer(modifier = Modifier.width(2.dp))
-
-                    IconButton(
-                        onClick = {
-                            interactionTick++
-                            val nextIdx = (resizeOption.ordinal + 1) % VideoResizeOption.entries.size
-                            resizeToastText = "Display: ${VideoResizeOption.entries[nextIdx].label}"
-                            resizeToastTick++
-                            onCycleResize()
-                        },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .testTag("player_resize_button")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AspectRatio,
-                            contentDescription = "Change aspect ratio",
-                            tint = Color.White,
-                            modifier = Modifier.size(21.dp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = formatPlayerTime(effectivePos),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFeatureSettings = "tnum"
+                            ),
+                            color = Color.White,
+                            maxLines = 1,
+                            modifier = Modifier.testTag("player_play_pause")
                         )
-                    }
+                        Text(
+                            text = "  /  " + formatPlayerTime(safeDuration),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontFeatureSettings = "tnum"
+                            ),
+                            color = Color.White.copy(alpha = 0.62f),
+                            maxLines = 1
+                        )
 
-                    IconButton(
-                        onClick = {
-                            interactionTick++
-                            onToggleFullscreen()
-                        },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .testTag("player_fullscreen_button")
-                    ) {
-                        Icon(
-                            imageVector = if (isFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                            contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        if (safeDuration > 0L) {
+                            Text(
+                                text = "-" + formatPlayerTime((safeDuration - effectivePos).coerceAtLeast(0L)),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFeatureSettings = "tnum"
+                                ),
+                                color = Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.12f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                interactionTick++
+                                val nextIdx = (resizeOption.ordinal + 1) % VideoResizeOption.entries.size
+                                resizeToastText = "Display: ${VideoResizeOption.entries[nextIdx].label}"
+                                resizeToastTick++
+                                onCycleResize()
+                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .testTag("player_resize_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AspectRatio,
+                                contentDescription = "Change aspect ratio",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                interactionTick++
+                                onToggleFullscreen()
+                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .testTag("player_fullscreen_button")
+                        ) {
+                            Icon(
+                                imageVector = if (isFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                                contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1308,6 +1339,32 @@ private fun SleekVideoSeekBar(
             },
         contentAlignment = Alignment.Center
     ) {
+        if (isScrubbing && durationMs > 0L) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val bubbleW = with(density) { 64.dp.toPx() }
+            val x = (widthPx * progressFraction - bubbleW / 2f).coerceIn(0f, (widthPx - bubbleW).coerceAtLeast(0f))
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset { androidx.compose.ui.unit.IntOffset(x.toInt(), -with(density) { 34.dp.roundToPx() }) }
+                    .width(64.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .border(1.dp, CinedorMagenta.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = formatPlayerTime(positionMs),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    color = Color.White,
+                    maxLines = 1
+                )
+            }
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()

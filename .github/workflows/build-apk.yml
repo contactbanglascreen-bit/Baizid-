@@ -107,7 +107,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Cinedor 1.0.${{ github.run_number }}
-          body: "Cinedor update — version 1.0.${{ github.run_number }}"
+          body_path: RELEASE_NOTES.md
           target_commitish: ${{ github.sha }}
           make_latest: "true"
           files: Cinedor-debug.apk

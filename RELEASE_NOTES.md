@@ -1,0 +1,5 @@
+- Fresh new video player: full-width seek bar with a time bubble while you drag, remaining time, smoother double-tap skip
+- All video qualities shown (2160p to 360p) with automatic fallback
+- Stronger security: unofficial / modified copies are blocked, Console has its own PIN
+- New update screen with the Cinedor logo and live download progress
+- Bug fixes and speed improvements

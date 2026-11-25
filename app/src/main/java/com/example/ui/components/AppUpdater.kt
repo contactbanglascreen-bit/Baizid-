@@ -1,5 +1,11 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.shadow
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
@@ -255,11 +261,23 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                 .clip(RoundedCornerShape(30.dp))
                 .background(ObsidianCard)
         ) {
-            // Gradient header with rocket
+            // Gradient header: Cinedor logo with a breathing glow; while downloading, a progress
+            // ring wraps around the logo.
+            val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "updPulse")
+            val glow by pulse.animateFloat(
+                initialValue = 0.85f,
+                targetValue = 1.12f,
+                animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                    androidx.compose.animation.core.tween(1300),
+                    androidx.compose.animation.core.RepeatMode.Reverse
+                ),
+                label = "glow"
+            )
+            val downloading = downloadId >= 0 && !failed
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(170.dp)
+                    .height(196.dp)
                     .background(
                         androidx.compose.ui.graphics.Brush.linearGradient(
                             listOf(com.example.ui.theme.AccentBright, com.example.ui.theme.CinetorRedDark)
@@ -267,54 +285,68 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                     ),
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
-                if (downloadId >= 0 && !failed) {
-                    androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            progress = { progress.coerceIn(0.01f, 1f) },
-                            color = androidx.compose.ui.graphics.Color.White,
-                            trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f),
-                            strokeWidth = 7.dp,
-                            modifier = Modifier.size(96.dp)
+                // Soft decorative circles
+                androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                    drawCircle(
+                        androidx.compose.ui.graphics.Color.White.copy(alpha = 0.07f),
+                        radius = size.width * 0.42f,
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.05f)
+                    )
+                    drawCircle(
+                        androidx.compose.ui.graphics.Color.White.copy(alpha = 0.06f),
+                        radius = size.width * 0.32f,
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.98f, size.height)
+                    )
+                }
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.size(122.dp),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        // breathing glow
+                        androidx.compose.foundation.layout.Box(
+                            modifier = Modifier
+                                .size(104.dp)
+                                .graphicsLayer { scaleX = glow; scaleY = glow; alpha = 1.25f - glow * 0.6f }
+                                .clip(CircleShape)
+                                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.35f))
                         )
-                        Text(
-                            "${(progress * 100).toInt()}%",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                            color = androidx.compose.ui.graphics.Color.White
-                        )
-                    }
-                } else {
-                    // App logo with a soft glow
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        if (downloading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                progress = { progress.coerceIn(0.01f, 1f) },
+                                color = androidx.compose.ui.graphics.Color.White,
+                                trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f),
+                                strokeWidth = 5.dp,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                modifier = Modifier.size(116.dp)
+                            )
+                        }
                         androidx.compose.foundation.layout.Box(
                             modifier = Modifier
                                 .size(92.dp)
+                                .shadow(12.dp, CircleShape)
                                 .clip(CircleShape)
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.radialGradient(
-                                        listOf(
-                                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.95f),
-                                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f)
-                                        )
-                                    )
-                                ),
+                                .background(androidx.compose.ui.graphics.Color.White),
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
                             androidx.compose.foundation.Image(
                                 painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.cinedor_logo),
                                 contentDescription = "Cinedor",
-                                modifier = Modifier.size(70.dp)
+                                modifier = Modifier.size(68.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            "CINEDOR",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = androidx.compose.ui.unit.TextUnit(4f, androidx.compose.ui.unit.TextUnitType.Sp)
-                            ),
-                            color = androidx.compose.ui.graphics.Color.White
-                        )
                     }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        if (downloading) "${(progress * 100).toInt()}%" else "CINEDOR",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = androidx.compose.ui.unit.TextUnit(
+                                if (downloading) 1f else 4f, androidx.compose.ui.unit.TextUnitType.Sp
+                            )
+                        ),
+                        color = androidx.compose.ui.graphics.Color.White
+                    )
                 }
             }
             Column(modifier = Modifier.padding(22.dp)) {
@@ -331,10 +363,38 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    update.notes.ifBlank { "Bug fixes and improvements." },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
+                    "What's new",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black),
+                    color = TextPrimary
                 )
+                Spacer(modifier = Modifier.height(6.dp))
+                val noteLines = remember(update.notes) {
+                    update.notes.lines()
+                        .map { it.trim().removePrefix("-").removePrefix("*").removePrefix("•").trim() }
+                        .filter { it.isNotBlank() && !it.startsWith("#") && !it.startsWith("Cinedor update") }
+                        .take(8)
+                        .ifEmpty { listOf("Bug fixes and improvements.") }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 170.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    noteLines.forEach { line ->
+                        androidx.compose.foundation.layout.Row(modifier = Modifier.padding(vertical = 3.dp)) {
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(CinetorRed)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(line, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Your downloads, My List and settings are kept.",
