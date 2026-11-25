@@ -9,6 +9,7 @@ import com.example.ui.components.AdultLock
 import com.example.ui.components.AdultPinDialog
 import com.example.ui.components.PinMode
 import com.example.ui.components.rememberGuardedSafeModeToggle
+import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.material.icons.rounded.Favorite
@@ -178,7 +179,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
 // Me hub
 // ---------------------------------------------------------------------------
 
-private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT }
+private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -240,6 +241,7 @@ fun MeHubScreen(
                     MePage.DOWNLOADS -> "Downloads"
                     MePage.SETTINGS -> "Settings"
                     MePage.ABOUT -> "About"
+                    MePage.ADMIN -> "Console"
                 },
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 24.sp),
                 color = TextPrimary,
@@ -322,6 +324,16 @@ fun MeHubScreen(
                     MenuRow(Icons.Rounded.Settings, "Settings", "Player, downloads & privacy") { page = MePage.SETTINGS }
                     MenuDivider()
                     MenuRow(Icons.Rounded.Info, "About", "Cinedor · version & info") { page = MePage.ABOUT }
+                    val adminUnlocked = remember(page) {
+                        context.getSharedPreferences("cinedor_admin", android.content.Context.MODE_PRIVATE)
+                            .getBoolean("unlocked", false)
+                    }
+                    if (adminUnlocked) {
+                        MenuDivider()
+                        MenuRow(Icons.Rounded.AdminPanelSettings, "Cinedor Console", "Admin · popups, maintenance, updates") {
+                            page = MePage.ADMIN
+                        }
+                    }
                 }
             }
 
@@ -365,7 +377,8 @@ fun MeHubScreen(
                 onClearHistory = onClearHistory
             )
 
-            MePage.ABOUT -> AboutPage()
+            MePage.ABOUT -> AboutPage(onOpenAdmin = { page = MePage.ADMIN })
+            MePage.ADMIN -> AdminConsoleScreen()
         }
     }
 
@@ -1044,7 +1057,8 @@ private fun SettingsPage(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun AboutPage() {
+private fun AboutPage(onOpenAdmin: () -> Unit = {}) {
+    var versionTaps by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
     val version = remember {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1.0"
@@ -1066,7 +1080,24 @@ private fun AboutPage() {
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text("Cinedor", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold), color = TextPrimary)
-        Text("Version $version", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        Text(
+            "Version $version",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSecondary,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable {
+                    // Tap the version 7 times to open the admin Console.
+                    versionTaps++
+                    if (versionTaps >= 7) {
+                        versionTaps = 0
+                        context.getSharedPreferences("cinedor_admin", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("unlocked", true).apply()
+                        onOpenAdmin()
+                    }
+                }
+                .padding(4.dp)
+        )
         Spacer(modifier = Modifier.height(12.dp))
         var checkingUpdate by remember { mutableStateOf(false) }
         Spacer(modifier = Modifier.height(10.dp))

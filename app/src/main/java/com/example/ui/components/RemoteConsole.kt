@@ -86,33 +86,99 @@ data class ConsoleConfig(
  * so editing that file on GitHub controls popups, announcements, maintenance and forced updates.
  */
 object RemoteConsole {
-    private val CONFIG_URLS = listOf(
-        "https://raw.githubusercontent.com/contactbanglascreen-bit/Baizid-/main/console/app-config.json",
-        "https://raw.githubusercontent.com/contactbanglascreen-bit/Baizid-/ccr-c4b9015d-7d590g/console/app-config.json"
-    )
+    const val REPO = "contactbanglascreen-bit/Baizid-"
+    const val PATH = "console/app-config.json"
+    private val REFS = listOf("main", "ccr-c4b9015d-7d590g")
     private const val PREFS = "cinedor_console"
 
     var config by mutableStateOf<ConsoleConfig?>(null)
         private set
 
+    /** Raw JSON text and the branch it came from (used by the admin Console to save back). */
+    var rawJson by mutableStateOf<String?>(null)
+        private set
+    var loadedRef by mutableStateOf(REFS.last())
+        private set
+
+    private fun get(url: String, accept: String? = null): String? = runCatching {
+        val c = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 6000
+            readTimeout = 6000
+            useCaches = false
+            setRequestProperty("User-Agent", "Cinedor-App")
+            if (accept != null) setRequestProperty("Accept", accept)
+        }
+        try {
+            if (c.responseCode in 200..299) c.inputStream.bufferedReader().use { it.readText() } else null
+        } finally {
+            c.disconnect()
+        }
+    }.getOrNull()
+
     suspend fun refresh() {
-        val json = withContext(Dispatchers.IO) {
-            CONFIG_URLS.firstNotNullOfOrNull { u ->
-                runCatching {
-                    val c = (URL("$u?t=${System.currentTimeMillis() / 60000}").openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 6000
-                        readTimeout = 6000
-                        useCaches = false
-                    }
-                    try {
-                        if (c.responseCode in 200..299) c.inputStream.bufferedReader().use { it.readText() } else null
-                    } finally {
-                        c.disconnect()
-                    }
-                }.getOrNull()
+        val result = withContext(Dispatchers.IO) {
+            // GitHub API first (no CDN delay), then raw files as a fallback.
+            REFS.firstNotNullOfOrNull { ref ->
+                get("https://api.github.com/repos/$REPO/contents/$PATH?ref=$ref", "application/vnd.github.raw+json")
+                    ?.let { ref to it }
+            } ?: REFS.firstNotNullOfOrNull { ref ->
+                get("https://raw.githubusercontent.com/$REPO/$ref/$PATH?t=${System.currentTimeMillis() / 60000}")
+                    ?.let { ref to it }
             }
         } ?: return
-        config = runCatching { parse(JSONObject(json)) }.getOrNull()
+        loadedRef = result.first
+        rawJson = result.second
+        config = runCatching { parse(JSONObject(result.second)) }.getOrNull()
+    }
+
+    /**
+     * Publishes new config JSON to GitHub (needs a GitHub token with "Contents: write"
+     * on this repository). Returns null on success or an error message.
+     */
+    suspend fun save(token: String, json: String): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val ref = loadedRef
+            val api = "https://api.github.com/repos/$REPO/contents/$PATH"
+            val shaConn = (URL("$api?ref=$ref").openConnection() as HttpURLConnection).apply {
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("User-Agent", "Cinedor-App")
+            }
+            val sha = try {
+                if (shaConn.responseCode in 200..299) {
+                    JSONObject(shaConn.inputStream.bufferedReader().use { it.readText() }).optString("sha")
+                } else ""
+            } finally {
+                shaConn.disconnect()
+            }
+            val body = JSONObject()
+                .put("message", "Cinedor Console: update app config")
+                .put("content", android.util.Base64.encodeToString(json.toByteArray(), android.util.Base64.NO_WRAP))
+                .put("branch", ref)
+            if (sha.isNotBlank()) body.put("sha", sha)
+            val put = (URL(api).openConnection() as HttpURLConnection).apply {
+                requestMethod = "PUT"
+                doOutput = true
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("User-Agent", "Cinedor-App")
+            }
+            try {
+                put.outputStream.use { it.write(body.toString().toByteArray()) }
+                val code = put.responseCode
+                if (code in 200..299) {
+                    rawJson = json
+                    config = runCatching { parse(JSONObject(json)) }.getOrNull()
+                    null
+                } else {
+                    val err = runCatching { put.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull().orEmpty()
+                    "GitHub error $code ${JSONObject(err.ifBlank { "{}" }).optString("message")}".trim()
+                }
+            } finally {
+                put.disconnect()
+            }
+        }.getOrElse { "Couldn't save: ${it.message}" }
     }
 
     private fun popup(o: JSONObject?): PopupConfig? {

@@ -3,6 +3,10 @@ package com.example.ui.screens
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.CachePolicy
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
@@ -255,11 +259,25 @@ fun HomeScreen(
                 pullRefreshing = false
             }
         }
+        val pullState = rememberPullToRefreshState()
+        val headerOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 104.dp
         PullToRefreshBox(
             isRefreshing = pullRefreshing,
             onRefresh = {
                 pullRefreshing = true
                 onRetry()
+            },
+            state = pullState,
+            indicator = {
+                // Show the spinner just below the sticky header so it is visible.
+                PullToRefreshDefaults.Indicator(
+                    state = pullState,
+                    isRefreshing = pullRefreshing,
+                    color = CinetorRed,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = headerOffset)
+                )
             },
             modifier = Modifier.fillMaxSize()
         ) {
@@ -779,6 +797,37 @@ fun HomeScreen(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                // Refresh button
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
+                        .clip(CircleShape)
+                        .background(ObsidianSurface)
+                        .clickable {
+                            pullRefreshing = true
+                            onRetry()
+                        }
+                        .testTag("home_refresh_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (pullRefreshing) {
+                        CircularProgressIndicator(
+                            color = CinetorRed,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = "Refresh",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Round white search button
                 Box(

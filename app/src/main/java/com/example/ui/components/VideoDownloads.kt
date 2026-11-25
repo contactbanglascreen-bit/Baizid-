@@ -100,7 +100,7 @@ internal fun enqueueVideoDownload(
         val request = DownloadManager.Request(Uri.parse(option.url))
             .setTitle("$title • $quality")
             .setDescription("Cinedor download")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
             .setAllowedOverMetered(!AppSettings.wifiOnlyDownloads)
             .setAllowedOverRoaming(true)
         option.headers.forEach { (k, v) ->
@@ -116,6 +116,7 @@ internal fun enqueueVideoDownload(
         request.setDestinationUri(Uri.fromFile(java.io.File(dir, fileName)))
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val id = dm.enqueue(request)
+        // Only Cinedor's own notification is shown (the system one is hidden).
         DownloadStore.add(
             context,
             DownloadRecord(
@@ -231,6 +232,7 @@ fun DownloadQualitySheet(
                                 .clickable(enabled = downloadable && !isStarted) {
                                     if (enqueueVideoDownload(context, title, opt, posterUrl)) {
                                         started.add(opt.url)
+                                        DownloadNotifier.ensureRunning(context)
                                         Toast.makeText(
                                             context,
                                             "Downloading ${opt.quality.ifBlank { opt.label }} • open Me › Downloads",
