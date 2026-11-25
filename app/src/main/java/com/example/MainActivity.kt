@@ -10,6 +10,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -87,7 +97,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
-        com.example.ui.components.PipState.requestPip = { enterPipIfAllowed() }
+        // PiP button: shrink the player to a floating window inside the app (keep browsing).
+        // Leaving the app with Home still uses Android's system picture-in-picture.
+        com.example.ui.components.PipState.requestPip = { com.example.ui.components.PipState.inAppMini = true }
 
         // Lazy Coil ImageLoaderFactory: avoids synchronous DiskCache I/O on Main Thread during onCreate
         // Fast poster loading: many parallel image requests, large memory + disk cache,
@@ -249,39 +261,7 @@ fun CinedorMainShell() {
     }
 
     // Full-screen overlay when a media detail/player is active
-    val selectedDetail = detailState.selectedItem
-    if (selectedDetail != null) {
-        val detailDocId = sanitizeLocalDocId(selectedDetail.id, selectedDetail.title)
-        val inWatchlist = watchlist.any { it.id == detailDocId || it.contentId == selectedDetail.id }
-
-        Scaffold(
-            containerColor = ObsidianBackground,
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            contentWindowInsets = WindowInsets(0, 0, 0, 0)
-        ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
-                DetailPlayerScreen(
-                    state = detailState,
-                    isInWatchlist = inWatchlist,
-                    staffState = staffState,
-                    onBack = { viewModel.closeDetail() },
-                    onToggleWatchlist = { viewModel.toggleWatchlist(it) },
-                    onSelectEpisode = { se, ep -> viewModel.selectEpisode(se, ep) },
-                    onSelectStream = { viewModel.selectStreamOption(it) },
-                    onSelectCaption = { viewModel.selectCaptionTrack(it) },
-                    onRetryStream = { viewModel.refreshCurrentStream() },
-                    onRetryDetail = { viewModel.openMediaDetail(selectedDetail) },
-                    onOpenRelated = { viewModel.openMediaDetail(it) },
-                    onOpenStaff = { viewModel.openStaff(it) },
-                    onCloseStaff = { viewModel.closeStaff() },
-                    onProgressUpdate = { pos, dur -> viewModel.onPlaybackProgress(pos, dur) },
-                    onStreamExhausted = { failed, httpCode -> viewModel.fallbackToNextStream(failed, httpCode) }
-                )
-            }
-        }
-        return
-    }
-
+    Box(modifier = Modifier.fillMaxSize()) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -473,5 +453,130 @@ fun CinedorMainShell() {
                 }
             }
         }
+    }
+
+    // Detail / player on top (full screen, or an in-app floating mini player)
+    val selectedDetail = detailState.selectedItem
+    if (selectedDetail != null) {
+        val detailDocId = sanitizeLocalDocId(selectedDetail.id, selectedDetail.title)
+        val inWatchlist = watchlist.any { it.id == detailDocId || it.contentId == selectedDetail.id }
+
+        val mini = com.example.ui.components.PipState.inAppMini && !com.example.ui.components.PipState.inPip
+        var miniOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+        Box(
+            modifier = if (mini) {
+                Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+                    .padding(end = 12.dp, bottom = 92.dp)
+            } else {
+                Modifier.fillMaxSize()
+            },
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            Box(
+                modifier = if (mini) {
+                    Modifier
+                        .offset { androidx.compose.ui.unit.IntOffset(miniOffset.x.toInt(), miniOffset.y.toInt()) }
+                        .size(width = 230.dp, height = 130.dp)
+                        .shadow(16.dp, androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, drag ->
+                                change.consume()
+                                miniOffset += drag
+                            }
+                        }
+                } else {
+                    Modifier
+                        .fillMaxSize()
+                        .background(ObsidianBackground)
+                }
+            ) {
+                DetailPlayerScreen(
+                    miniMode = mini,
+                    onExpandMini = {
+                        com.example.ui.components.PipState.inAppMini = false
+                        miniOffset = androidx.compose.ui.geometry.Offset.Zero
+                    },
+                    onCloseMini = {
+                        com.example.ui.components.PipState.inAppMini = false
+                        miniOffset = androidx.compose.ui.geometry.Offset.Zero
+                        viewModel.closeDetail()
+                    },
+                    state = detailState,
+                    isInWatchlist = inWatchlist,
+                    staffState = staffState,
+                    onBack = { viewModel.closeDetail() },
+                    onToggleWatchlist = { viewModel.toggleWatchlist(it) },
+                    onSelectEpisode = { se, ep -> viewModel.selectEpisode(se, ep) },
+                    onSelectStream = { viewModel.selectStreamOption(it) },
+                    onSelectCaption = { viewModel.selectCaptionTrack(it) },
+                    onRetryStream = { viewModel.refreshCurrentStream() },
+                    onRetryDetail = { viewModel.openMediaDetail(selectedDetail) },
+                    onOpenRelated = { viewModel.openMediaDetail(it) },
+                    onOpenStaff = { viewModel.openStaff(it) },
+                    onCloseStaff = { viewModel.closeStaff() },
+                    onProgressUpdate = { pos, dur -> viewModel.onPlaybackProgress(pos, dur) },
+                    onStreamExhausted = { failed, httpCode -> viewModel.fallbackToNextStream(failed, httpCode) }
+                )
+                if (mini) {
+                    // Floating mini player: tap to open full screen, X to close.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable {
+                                com.example.ui.components.PipState.inAppMini = false
+                                miniOffset = androidx.compose.ui.geometry.Offset.Zero
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(6.dp)
+                                .size(28.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f))
+                                .clickable {
+                                    com.example.ui.components.PipState.inAppMini = false
+                                    miniOffset = androidx.compose.ui.geometry.Offset.Zero
+                                    viewModel.closeDetail()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Rounded.Close,
+                                contentDescription = "Close player",
+                                tint = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(6.dp)
+                                .size(28.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Rounded.OpenInFull,
+                                contentDescription = "Open full screen",
+                                tint = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            if (!mini) {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+    }
     }
 }

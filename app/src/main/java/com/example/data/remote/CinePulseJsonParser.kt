@@ -22,14 +22,28 @@ import org.json.JSONObject
 
 object CinePulseJsonParser {
 
+    // Phrases that mark 18+ content anywhere in a title / path / genre.
     private val matureKeywords = listOf(
-        "adult18plus", "18+", "hentai", "uncensored", "midnight", "erotic",
-        "porn", "xxx", "nsfw", "ecchi", "taboo charming", "bible black", "inbo", "overflow"
+        "adult18plus", "18+", "(18)", "[18]", "hentai", "uncensored", "midnight", "erotic", "erotica",
+        "porn", "xxx", "nsfw", "ecchi", "taboo charming", "bible black", "inbo", "overflow",
+        "seduction", "seductive", "sensual", "nude", "naked", "nudity", "uncut", "unrated",
+        "softcore", "hardcore", "lust", "hot web series", "bold web series", "adult web",
+        // Indian / Asian adult streaming labels
+        "ullu", "kooku", "primeflix", "hotshots", "hotshot", "fliz", "rabbit movies", "hunters app",
+        "besharams", "cineprime", "nuefliks", "voovi", "tadka prime", "triflicks", "atrangii",
+        "bigshots", "hotx", "neonx", "mood x", "moodx", "jalva", "yessma", "kangan app",
+        "18 plus", "adults only", "for adults"
+    )
+
+    // Short words matched as whole words only (so "Essex" or "Hotel" stay safe).
+    private val matureWords = Regex(
+        "\\b(sex|sexy|sexual|adult|adults|bdsm|fetish|milf|nsfw|jav|av idol|r18|r-18|xxx)\\b"
     )
 
     fun isSafeText(text: String): Boolean {
         val lower = text.lowercase()
-        return matureKeywords.none { keyword -> lower.contains(keyword) }
+        if (matureKeywords.any { keyword -> lower.contains(keyword) }) return false
+        return !matureWords.containsMatchIn(lower)
     }
 
     private fun JSONObject.firstNonBlank(vararg keys: String): String {

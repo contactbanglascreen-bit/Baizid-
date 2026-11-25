@@ -108,6 +108,8 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
+  // On-device subtitle translation (models download once per language)
+  implementation("com.google.mlkit:translate:17.0.3")
   // implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)
   // implementation(libs.firebase.firestore)

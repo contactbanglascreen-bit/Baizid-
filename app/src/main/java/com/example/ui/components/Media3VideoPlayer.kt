@@ -864,7 +864,7 @@ fun CinePulseVideoPlayer(
         }
 
         // Custom MovieBox-faithful auto-hiding controls overlay (zero permanent clutter!)
-        if (!isWebViewMode && playbackError == null && exoPlayer != null && !PipState.inPip) {
+        if (!isWebViewMode && playbackError == null && exoPlayer != null && !PipState.inPip && !PipState.inAppMini) {
             CinedorPlayerControlsOverlay(
                 title = title,
                 isPlaying = isPlaying,
@@ -945,7 +945,7 @@ fun CinePulseVideoPlayer(
                     pinchScale = (pinchScale * z).coerceIn(1f, 3f)
                 }
             )
-        } else if (isWebViewMode && playbackError == null && !PipState.inPip) {
+        } else if (isWebViewMode && playbackError == null && !PipState.inPip && !PipState.inAppMini) {
             // HTML5 fallback engine: same Cinedor controls, driven through JavaScript
             fun js(code: String) {
                 webViewRef?.evaluateJavascript("(function(){var v=document.getElementById('v');if(!v)return;$code})();", null)

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.ChipBg
@@ -150,7 +151,10 @@ fun DetailPlayerScreen(
     onOpenStaff: (CastMember) -> Unit = {},
     onCloseStaff: () -> Unit = {},
     onProgressUpdate: (positionMs: Long, durationMs: Long) -> Unit,
-    onStreamExhausted: (StreamOption, Int?) -> Boolean
+    onStreamExhausted: (StreamOption, Int?) -> Boolean,
+    miniMode: Boolean = false,
+    onExpandMini: () -> Unit = {},
+    onCloseMini: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var isFullscreen by remember { mutableStateOf(false) }
@@ -187,7 +191,9 @@ fun DetailPlayerScreen(
         }
     }
 
-    BackHandler {
+    LaunchedEffect(miniMode) { if (miniMode) isFullscreen = false }
+
+    BackHandler(enabled = !miniMode) {
         if (isFullscreen) {
             isFullscreen = false
         } else {
@@ -216,14 +222,14 @@ fun DetailPlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isFullscreen || PipState.inPip) Color.Black else ObsidianBackground)
+            .background(if (isFullscreen || PipState.inPip || miniMode) Color.Black else ObsidianBackground)
             .then(
-                if (isFullscreen || PipState.inPip) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()
+                if (isFullscreen || PipState.inPip || miniMode) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()
             )
     ) {
         // Single unified Media3 Video Player Area — stays mounted across fullscreen toggles without reloading!
         Box(
-            modifier = if (isFullscreen || PipState.inPip) {
+            modifier = if (isFullscreen || PipState.inPip || miniMode) {
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black)
@@ -337,7 +343,7 @@ fun DetailPlayerScreen(
             }
         }
 
-        if (isFullscreen || PipState.inPip) return@Column
+        if (isFullscreen || PipState.inPip || miniMode) return@Column
 
         // Scrollable MovieBox Detail Body
         LazyColumn(

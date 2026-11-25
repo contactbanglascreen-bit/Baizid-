@@ -104,6 +104,8 @@ object PipState {
     var videoPlaying by mutableStateOf(false)
     /** True while the activity is shown in picture-in-picture. */
     var inPip by mutableStateOf(false)
+    /** True while the player is a small floating window inside the app. */
+    var inAppMini by mutableStateOf(false)
     /** Set by the player so the PiP button can request PiP. */
     var requestPip: (() -> Unit)? = null
 }

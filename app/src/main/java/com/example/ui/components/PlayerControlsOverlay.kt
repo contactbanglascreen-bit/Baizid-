@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -202,6 +204,9 @@ internal fun CinedorPlayerControlsOverlay(
         }
     }
     var openPanel by remember { mutableStateOf<PlayerPanel?>(null) }
+    val translateScope = rememberCoroutineScope()
+    var translateProgress by remember { mutableStateOf<Float?>(null) }
+    var translateLabel by remember { mutableStateOf("") }
     var controlsVisible by remember { mutableStateOf(true) }
     var isHolding2x by remember { mutableStateOf(false) }
     val skipSec = AppSettings.doubleTapSkipSec
@@ -406,6 +411,34 @@ internal fun CinedorPlayerControlsOverlay(
                     ),
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                )
+            }
+        }
+
+        // AI translation progress pill
+        val tp = translateProgress
+        if (tp != null) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = if (isFullscreen) 70.dp else 46.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    progress = { tp.coerceIn(0.02f, 1f) },
+                    color = CinedorMagenta,
+                    trackColor = Color.White.copy(alpha = 0.2f),
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "AI translating to $translateLabel… ${(tp * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color.White
                 )
             }
         }
@@ -858,6 +891,7 @@ internal fun CinedorPlayerControlsOverlay(
                             PlayerPanel.SPEED -> "Playback speed"
                             PlayerPanel.CAPTIONS -> "Subtitles"
                             PlayerPanel.AUDIO -> "Audio language"
+                            PlayerPanel.TRANSLATE -> "AI translate subtitles to…"
                             null -> ""
                         },
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
@@ -957,6 +991,29 @@ internal fun CinedorPlayerControlsOverlay(
                                         }
                                     )
                                 }
+                                item(key = "cc_ai") {
+                                    PanelOptionCard(
+                                        title = "AI Translate",
+                                        badge = "AI",
+                                        subtitle = "Any language",
+                                        selected = false,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            interactionTick++
+                                            val hasSource = selectedCaption != null || captions.isNotEmpty()
+                                            if (hasSource) {
+                                                openPanel = PlayerPanel.TRANSLATE
+                                            } else {
+                                                openPanel = null
+                                                android.widget.Toast.makeText(
+                                                    ctx,
+                                                    "This video has no subtitle to translate. Add a subtitle file first.",
+                                                    android.widget.Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        }
+                                    )
+                                }
                                 item(key = "cc_pick") {
                                     PanelOptionCard(
                                         title = "+ Add file",
@@ -968,6 +1025,47 @@ internal fun CinedorPlayerControlsOverlay(
                                             openPanel = null
                                             interactionTick++
                                             runCatching { subtitleFilePicker.launch(arrayOf("*/*")) }
+                                        }
+                                    )
+                                }
+                            }
+                            PlayerPanel.TRANSLATE -> {
+                                items(SubtitleTranslator.languages, key = { "tl_" + it.code }) { lang ->
+                                    PanelOptionCard(
+                                        title = lang.name,
+                                        badge = null,
+                                        subtitle = "AI",
+                                        selected = false,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            val source = selectedCaption
+                                                ?: captions.firstOrNull {
+                                                    it.language.startsWith("en", true) || it.label.contains("english", true)
+                                                }
+                                                ?: captions.firstOrNull()
+                                            if (source != null && translateProgress == null) {
+                                                translateLabel = lang.name
+                                                translateProgress = 0f
+                                                translateScope.launch {
+                                                    try {
+                                                        val track = SubtitleTranslator.translate(ctx, source, lang) { p ->
+                                                            translateProgress = p
+                                                        }
+                                                        onSelectCaption(track)
+                                                        android.widget.Toast.makeText(ctx, "${lang.name} subtitles ready", android.widget.Toast.LENGTH_SHORT).show()
+                                                    } catch (e: Exception) {
+                                                        android.widget.Toast.makeText(
+                                                            ctx,
+                                                            "Translation failed: ${e.message ?: "check internet for the first download"}",
+                                                            android.widget.Toast.LENGTH_LONG
+                                                        ).show()
+                                                    } finally {
+                                                        translateProgress = null
+                                                    }
+                                                }
+                                            }
                                         }
                                     )
                                 }
@@ -1223,7 +1321,7 @@ private fun SleekVideoSeekBar(
     }
 }
 
-internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS, AUDIO }
+internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS, AUDIO, TRANSLATE }
 
 /** A built-in audio or subtitle track found inside the video stream. */
 data class PlayerTrackOption(
