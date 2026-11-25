@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.rounded.RecordVoiceOver
+import com.example.ui.components.QualityLadder
 import com.example.ui.theme.CinetorRedSoft
 import com.example.ui.theme.ChipBg
 import com.example.ui.components.splitTitleTag
@@ -725,85 +726,88 @@ fun DetailPlayerScreen(
                         }
                     }
 
-                    // Quality cards (tap to switch the playing quality)
+                    // Quality cards: every quality is listed; unavailable ones fall back to the closest
                     if (state.streams.isNotEmpty()) {
+                        val availableSteps = QualityLadder.available(state.streams)
+                        val currentStep = state.selectedStream?.let { QualityLadder.stepFor(QualityLadder.valueOf(it))?.value }
+                        val ladderContext = LocalContext.current
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.padding(bottom = 12.dp)
                         ) {
-                            items(state.streams, key = { "q_" + it.url }) { opt ->
-                                val sel = state.selectedStream?.url == opt.url
-                                val qLabel = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" }
-                                val qNum = Regex("(\\d{3,4})").find(qLabel)?.value?.toIntOrNull()
-                                val badge = when {
-                                    qNum == null -> null
-                                    qNum >= 2000 -> "4K"
-                                    qNum >= 1080 -> "FHD"
-                                    qNum >= 720 -> "HD"
-                                    else -> "SD"
-                                }
+                            items(QualityLadder.steps, key = { "ql_" + it.value }) { step ->
+                                val available = step.value in availableSteps
+                                val sel = currentStep == step.value
+                                val match = QualityLadder.pick(state.streams, step.value, state.selectedStream?.audioLanguage)
+                                val matchStep = match?.let { QualityLadder.stepFor(QualityLadder.valueOf(it))?.label }
                                 Column(
                                     modifier = Modifier
-                                        .width(108.dp)
+                                        .width(104.dp)
                                         .shadow(if (sel) 6.dp else 1.dp, RoundedCornerShape(16.dp), spotColor = if (sel) CinedorMagenta else Color.Black)
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(
-                                            if (sel) {
-                                                Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
-                                            } else {
-                                                Brush.verticalGradient(listOf(ObsidianCard, ObsidianCard))
-                                            }
+                                            if (sel) Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
+                                            else Brush.verticalGradient(listOf(ObsidianCard, ObsidianCard))
                                         )
                                         .border(1.dp, if (sel) Color.Transparent else ObsidianBorder, RoundedCornerShape(16.dp))
-                                        .clickable { onSelectStream(opt) }
+                                        .clickable {
+                                            if (match != null) {
+                                                if (match.url != state.selectedStream?.url) onSelectStream(match)
+                                                if (!available) {
+                                                    android.widget.Toast.makeText(
+                                                        ladderContext,
+                                                        "${step.label} isn't available for this video — playing ${matchStep ?: "the closest quality"}",
+                                                        android.widget.Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        }
                                         .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = qLabel,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 16.sp
-                                            ),
-                                            color = if (sel) Color.White else TextPrimary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f, fill = false)
+                                            text = step.label,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp),
+                                            color = when {
+                                                sel -> Color.White
+                                                available -> TextPrimary
+                                                else -> TextMuted
+                                            },
+                                            maxLines = 1
                                         )
                                         if (sel) {
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Icon(
-                                                imageVector = Icons.Rounded.Check,
-                                                contentDescription = "Playing",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(15.dp)
-                                            )
+                                            Icon(Icons.Rounded.Check, contentDescription = "Playing", tint = Color.White, modifier = Modifier.size(15.dp))
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(5.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (badge != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(5.dp))
-                                                    .background(if (sel) Color.White else CinedorMagenta)
-                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
-                                            ) {
-                                                Text(
-                                                    text = badge,
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = 9.sp
-                                                    ),
-                                                    color = if (sel) CinedorMagenta else Color.White
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(5.dp))
+                                                .background(
+                                                    when {
+                                                        sel -> Color.White
+                                                        available -> CinedorMagenta
+                                                        else -> ObsidianBorder
+                                                    }
                                                 )
-                                            }
-                                            Spacer(modifier = Modifier.width(5.dp))
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = step.badge,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp),
+                                                color = if (sel) CinedorMagenta else Color.White
+                                            )
                                         }
+                                        Spacer(modifier = Modifier.width(5.dp))
                                         Text(
-                                            text = listOf(opt.format.uppercase(), opt.sizeText, opt.audioLanguage)
-                                                .filter { it.isNotBlank() }
-                                                .joinToString(" · "),
+                                            text = if (available) {
+                                                listOf(match?.format?.uppercase().orEmpty(), match?.sizeText.orEmpty())
+                                                    .filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Available" }
+                                            } else {
+                                                "→ ${matchStep ?: "auto"}"
+                                            },
                                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                             color = if (sel) Color.White.copy(alpha = 0.85f) else TextSecondary,
                                             maxLines = 1,

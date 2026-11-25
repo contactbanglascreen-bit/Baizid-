@@ -205,7 +205,18 @@ fun DownloadQualitySheet(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(streams, key = { it.url }) { opt ->
+                    // Every quality is listed; if one isn't available the closest one is downloaded.
+                    val dlStreams = streams.filter { it.isDownloadable() }
+                    val rows: List<Pair<Int?, StreamOption>> = if (dlStreams.isNotEmpty()) {
+                        QualityLadder.steps.mapNotNull { st -> QualityLadder.pick(dlStreams, st.value)?.let { st.value to it } }
+                    } else {
+                        streams.map { null to it }
+                    }
+                    items(rows, key = { "${it.first ?: 0}_${it.second.url}" }) { (stepValue, opt) ->
+                        val step = stepValue?.let { v -> QualityLadder.steps.firstOrNull { it.value == v } }
+                        val actualLabel = QualityLadder.stepFor(QualityLadder.valueOf(opt))?.label
+                            ?: opt.quality.ifBlank { opt.label }
+                        val exact = step == null || QualityLadder.stepFor(QualityLadder.valueOf(opt))?.value == step.value
                         val downloadable = opt.isDownloadable()
                         val isStarted = opt.url in started
                         Row(
@@ -238,12 +249,29 @@ fun DownloadQualitySheet(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
-                                    color = if (downloadable) TextPrimary else TextMuted
-                                )
-                                val sub = buildList {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = step?.label ?: opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                                        color = if (downloadable && exact) TextPrimary else TextMuted
+                                    )
+                                    if (step != null) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(5.dp))
+                                                .background(if (exact) CinetorRed else ObsidianBorder)
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                step.badge,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp),
+                                                color = OnAccent
+                                            )
+                                        }
+                                    }
+                                }
+                                val sub = if (!exact) "Not available · downloads $actualLabel" else buildList {
                                     if (opt.label.isNotBlank() && opt.label != opt.quality) add(opt.label)
                                     if (opt.format.isNotBlank()) add(opt.format.uppercase())
                                     if (opt.audioLanguage.isNotBlank()) add(opt.audioLanguage)

@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.alpha
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.Translate
@@ -616,7 +617,7 @@ internal fun CinedorPlayerControlsOverlay(
                             testTag = "player_speed_button"
                         )
 
-                        if (streams.size > 1 || videoTracks.size > 1) {
+                        if (streams.isNotEmpty() || videoTracks.size > 1) {
                             TopOverlayActionItem(
                                 icon = Icons.Rounded.HighQuality,
                                 label = when {
@@ -911,51 +912,64 @@ internal fun CinedorPlayerControlsOverlay(
                     ) {
                         when (panel) {
                             PlayerPanel.QUALITY -> {
-                            if (videoTracks.size > 1) {
-                                item(key = "vt_auto") {
-                                    PanelOptionCard(
-                                        title = "Auto",
-                                        badge = null,
-                                        subtitle = "Best for your internet",
-                                        selected = videoAuto,
-                                        compact = !isFullscreen,
-                                        onClick = {
-                                            openPanel = null
-                                            interactionTick++
-                                            onSelectVideoTrack(null)
-                                        }
-                                    )
-                                }
-                                items(videoTracks, key = { "vt_" + it.key }) { t ->
-                                    PanelOptionCard(
-                                        title = t.label,
-                                        badge = qualityBadge(t.label),
-                                        subtitle = "",
-                                        selected = !videoAuto && t.selected,
-                                        compact = !isFullscreen,
-                                        onClick = {
-                                            openPanel = null
-                                            interactionTick++
-                                            onSelectVideoTrack(t)
-                                        }
-                                    )
-                                }
-                            }
-                            if (streams.size > 1) items(streams, key = { "pq_" + it.url }) { opt ->
-                                PanelOptionCard(
-                                    title = opt.quality.ifBlank { opt.label }.ifBlank { "Auto" },
-                                    badge = qualityBadge(opt.quality.ifBlank { opt.label }),
-                                    subtitle = listOf(opt.format.uppercase(), opt.audioLanguage, opt.sizeText)
-                                        .filter { it.isNotBlank() }.joinToString(" · "),
-                                    selected = opt.url == selectedStream.url,
-                                    compact = !isFullscreen,
-                                    onClick = {
-                                        openPanel = null
-                                        interactionTick++
-                                        if (opt.url != selectedStream.url) onSelectStream(opt)
+                                val useTracks = videoTracks.size > 1
+                                if (useTracks) {
+                                    item(key = "vt_auto") {
+                                        PanelOptionCard(
+                                            title = "Auto",
+                                            badge = null,
+                                            subtitle = "Best for your internet",
+                                            selected = videoAuto,
+                                            compact = !isFullscreen,
+                                            onClick = {
+                                                openPanel = null
+                                                interactionTick++
+                                                onSelectVideoTrack(null)
+                                            }
+                                        )
                                     }
-                                )
-                            }
+                                }
+                                val availableSteps = if (useTracks) {
+                                    videoTracks.mapNotNull { QualityLadder.stepFor(QualityLadder.valueOf(it.label))?.value }.toSet()
+                                } else QualityLadder.available(streams)
+                                val currentStep = if (useTracks) {
+                                    if (videoAuto) null
+                                    else videoTracks.firstOrNull { it.selected }?.let { QualityLadder.stepFor(QualityLadder.valueOf(it.label))?.value }
+                                } else QualityLadder.stepFor(QualityLadder.valueOf(selectedStream))?.value
+                                items(QualityLadder.steps, key = { "qs_" + it.value }) { step ->
+                                    val available = step.value in availableSteps
+                                    val fallbackLabel = if (useTracks) {
+                                        QualityLadder.pickTrack(videoTracks, step.value)?.label
+                                    } else {
+                                        QualityLadder.pick(streams, step.value, selectedStream.audioLanguage)
+                                            ?.let { QualityLadder.stepFor(QualityLadder.valueOf(it))?.label }
+                                    }
+                                    PanelOptionCard(
+                                        title = step.label,
+                                        badge = step.badge,
+                                        subtitle = if (available) "Available" else "→ ${fallbackLabel ?: "auto"}",
+                                        selected = currentStep == step.value,
+                                        compact = !isFullscreen,
+                                        dimmed = !available,
+                                        onClick = {
+                                            openPanel = null
+                                            interactionTick++
+                                            if (useTracks) {
+                                                QualityLadder.pickTrack(videoTracks, step.value)?.let { onSelectVideoTrack(it) }
+                                            } else {
+                                                val match = QualityLadder.pick(streams, step.value, selectedStream.audioLanguage)
+                                                if (match != null && match.url != selectedStream.url) onSelectStream(match)
+                                            }
+                                            if (!available) {
+                                                android.widget.Toast.makeText(
+                                                    ctx,
+                                                    "${step.label} isn't available for this video — using ${fallbackLabel ?: "the closest quality"}",
+                                                    android.widget.Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    )
+                                }
                             }
                             PlayerPanel.SPEED -> items(listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)) { sp ->
                                 PanelOptionCard(
@@ -1398,10 +1412,12 @@ private fun PanelOptionCard(
     subtitle: String,
     selected: Boolean,
     compact: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    dimmed: Boolean = false
 ) {
     Column(
         modifier = Modifier
+            .alpha(if (dimmed && !selected) 0.55f else 1f)
             .width(if (compact) 96.dp else 124.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(
