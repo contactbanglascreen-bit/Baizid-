@@ -107,6 +107,7 @@ import com.example.ui.theme.ObsidianCard
 import com.example.ui.theme.ObsidianSurface
 import com.example.ui.theme.ObsidianSurfaceVariant
 import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 import com.example.ui.viewmodel.HomeUiState
 import com.example.ui.viewmodel.UiState
@@ -265,7 +266,7 @@ fun HomeScreen(
             }
         }
         val pullState = rememberPullToRefreshState()
-        val headerOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 124.dp
+        val headerOffset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 108.dp
         PullToRefreshBox(
             isRefreshing = pullRefreshing,
             onRefresh = {
@@ -290,7 +291,7 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 120.dp,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 104.dp,
                 bottom = 110.dp
             )
         ) {
@@ -367,7 +368,20 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(10.dp))
                             }
                             item(key = "upcoming_grid_rows") {
-                                val chunked = feed.upcomingItems.chunked(3)
+                                val upcomingList = feed.upcomingItems.ifEmpty { homeState.filteredItems }
+                                if (upcomingList.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (homeState.isCategoryLoading) {
+                                            CircularProgressIndicator(color = CinetorRed, strokeWidth = 2.5.dp, modifier = Modifier.size(30.dp))
+                                        } else {
+                                            Text("Nothing announced yet — check back soon", color = TextMuted, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                }
+                                val chunked = upcomingList.chunked(3)
                                 Column(
                                     modifier = Modifier.padding(horizontal = 12.dp),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -819,7 +833,7 @@ fun HomeScreen(
                     )
                 )
                 .statusBarsPadding()
-                .padding(top = 8.dp, bottom = 10.dp)
+                .padding(top = 6.dp, bottom = 8.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -845,40 +859,21 @@ fun HomeScreen(
                     Image(
                         painter = painterResource(id = R.drawable.cinedor_logo),
                         contentDescription = "Cinedor",
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(30.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = buildAnnotatedString {
                             withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("CINE") }
                             withStyle(SpanStyle(fontWeight = FontWeight.Black)) { append("DOR") }
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 22.sp,
-                            letterSpacing = 5.sp
+                            fontSize = 19.sp,
+                            letterSpacing = 4.sp
                         ),
                         color = TextPrimary,
                         maxLines = 1
                     )
-                }
-
-                if (homeState.selectedTab != "All") {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(ObsidianSurface)
-                            .border(1.dp, ObsidianBorder, CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = MovieBoxTopTabs.firstOrNull { it.first == homeState.selectedTab }?.second
-                                ?: homeState.selectedTab,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-                            color = TextSecondary,
-                            maxLines = 1
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -886,7 +881,7 @@ fun HomeScreen(
                 // Refresh button
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(40.dp)
                         .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
                         .clip(CircleShape)
                         .background(ObsidianSurface)
@@ -901,14 +896,14 @@ fun HomeScreen(
                         CircularProgressIndicator(
                             color = CinetorRed,
                             strokeWidth = 2.dp,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
                             contentDescription = "Refresh",
                             tint = TextPrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(21.dp)
                         )
                     }
                 }
@@ -917,7 +912,7 @@ fun HomeScreen(
                 // Round white search button
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(40.dp)
                         .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
                         .clip(CircleShape)
                         .background(ObsidianSurface)
@@ -929,24 +924,24 @@ fun HomeScreen(
                         imageVector = Icons.Rounded.Search,
                         contentDescription = "Search ${tickerTitles[tickerIndex % tickerTitles.size]}",
                         tint = TextPrimary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(21.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Pill category tabs: selected = solid red, others = light outlined pills
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(MovieBoxTopTabs) { (tabKey, displayLabel) ->
                     val selected = homeState.selectedTab == tabKey
                     Box(
                         modifier = Modifier
-                            .height(40.dp)
+                            .height(34.dp)
                             .then(
                                 if (selected) {
                                     Modifier.shadow(4.dp, CircleShape, spotColor = CinetorRed)
@@ -958,7 +953,7 @@ fun HomeScreen(
                             .background(if (selected) CinetorRed else ChipBg)
                             .border(1.dp, if (selected) CinetorRed else ChipBorder, CircleShape)
                             .clickable { onSelectTab(tabKey) }
-                            .padding(horizontal = 20.dp)
+                            .padding(horizontal = 16.dp)
                             .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -966,7 +961,7 @@ fun HomeScreen(
                             text = if (tabKey == "All") "For You" else displayLabel,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 15.sp
+                                fontSize = 13.5.sp
                             ),
                             color = if (selected) OnAccent else TextPrimary.copy(alpha = 0.85f),
                             maxLines = 1

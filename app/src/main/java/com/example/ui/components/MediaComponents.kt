@@ -111,7 +111,10 @@ fun RatingBadge(rating: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color.Black.copy(alpha = 0.62f))
+            .background(
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), Color.Black.copy(alpha = 0.45f)))
+            )
+            .border(0.8.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -129,6 +132,40 @@ fun RatingBadge(rating: String, modifier: Modifier = Modifier) {
             maxLines = 1
         )
     }
+}
+
+/**
+ * Liquid-glass finish drawn over a poster: a soft diagonal light reflection, a glossy top edge
+ * and a thin bright rim, like the poster sits behind curved glass.
+ */
+@Composable
+internal fun androidx.compose.foundation.layout.BoxScope.GlassSheen(cornerRadius: androidx.compose.ui.unit.Dp = 16.dp) {
+    val shape = RoundedCornerShape(cornerRadius)
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .background(
+                Brush.linearGradient(
+                    0f to Color.White.copy(alpha = 0.26f),
+                    0.28f to Color.White.copy(alpha = 0.06f),
+                    0.29f to Color.Transparent,
+                    0.78f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.28f)
+                )
+            )
+            .border(
+                width = 1.2.dp,
+                brush = Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.75f),
+                        Color.White.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.05f),
+                        Color.White.copy(alpha = 0.45f)
+                    )
+                ),
+                shape = shape
+            )
+    )
 }
 
 /** Translucent outlined chip drawn on top of artwork ("Action", "2022"...). */
@@ -221,6 +258,7 @@ fun HeroBannerCarousel(
                     thumbWidth = 720,
                     modifier = Modifier.fillMaxSize()
                 )
+                GlassSheen(cornerRadius = 22.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -439,6 +477,7 @@ fun PosterCard(
                     thumbWidth = 360,
                     modifier = Modifier.fillMaxSize()
                 )
+                GlassSheen()
                 if (item.rating.isNotBlank()) {
                     RatingBadge(
                         rating = item.rating,
@@ -889,6 +928,7 @@ fun UpcomingReleaseCard(
                 thumbWidth = 360,
                 modifier = Modifier.fillMaxSize()
             )
+            GlassSheen()
 
             Column(
                 modifier = Modifier

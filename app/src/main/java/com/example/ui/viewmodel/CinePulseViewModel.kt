@@ -21,6 +21,7 @@ import com.example.data.model.FilterOptions
 import com.example.data.model.HomeFeed
 import com.example.data.model.MediaDetail
 import com.example.data.model.MediaItem
+import com.example.data.model.MediaCategoryType
 import com.example.data.model.ReelItem
 import com.example.data.model.SportsMatch
 import com.example.data.model.StaffDetail
@@ -289,13 +290,30 @@ class CinePulseViewModel(
 
     fun selectHomeTab(tab: String) {
         _homeState.update { it.copy(selectedTab = tab) }
-        if (tab == "All" || tab == "Live Sports" || tab == "Upcoming") {
+        if (tab == "All" || tab == "Live Sports") {
             _homeState.update { it.copy(filteredItems = emptyList(), isCategoryLoading = false) }
             return
         }
         viewModelScope.launch {
             val prefs = preferences.value
-            _homeState.update { it.copy(isCategoryLoading = true) }
+            _homeState.update { it.copy(isCategoryLoading = true, filteredItems = emptyList()) }
+            if (tab == "Upcoming") {
+                // Coming soon: server list first, MovieBox list next, then this year's newest titles.
+                val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                val upcoming = runCatching { apiClient.getUpcoming(prefs.source, prefs.safeMode, prefs.language.code) }
+                    .getOrDefault(emptyList())
+                    .ifEmpty {
+                        runCatching { apiClient.getUpcoming(ContentSource.MOVIEBOX, prefs.safeMode, prefs.language.code) }
+                            .getOrDefault(emptyList())
+                    }
+                    .ifEmpty {
+                        runCatching {
+                            apiClient.filterCatalog(prefs.source, "movies", "", thisYear.toString(), 1, prefs.safeMode)
+                        }.getOrDefault(emptyList())
+                    }
+                _homeState.update { it.copy(filteredItems = upcoming.distinctBy { it.id }, isCategoryLoading = false) }
+                return@launch
+            }
             val catParam = when (tab) {
                 "Movies" -> "movies"
                 "Series" -> "tv"
@@ -303,18 +321,40 @@ class CinePulseViewModel(
                 "Dramas" -> "drama"
                 else -> "movies"
             }
-            val items = runCatching {
-                apiClient.filterCatalog(
-                    source = prefs.source,
-                    category = catParam,
-                    genre = "",
-                    year = "",
-                    page = 1,
-                    safeMode = prefs.safeMode
-                )
-            }.getOrDefault(emptyList())
+            val items = if (tab == "Anime") {
+                // The worker's anime list mixes in music videos and other clips, so use MovieBox's real
+                // anime channel and keep only animated titles.
+                val direct = runCatching {
+                    apiClient.filterCatalog(ContentSource.MOVIEBOX, "anime", "", "", 1, prefs.safeMode)
+                }.getOrDefault(emptyList())
+                val pool = direct.ifEmpty {
+                    runCatching { apiClient.filterCatalog(prefs.source, "anime", "", "", 1, prefs.safeMode) }
+                        .getOrDefault(emptyList())
+                }
+                pool.filter { looksLikeAnime(it) }.ifEmpty { direct }
+            } else {
+                runCatching {
+                    apiClient.filterCatalog(
+                        source = prefs.source,
+                        category = catParam,
+                        genre = "",
+                        year = "",
+                        page = 1,
+                        safeMode = prefs.safeMode
+                    )
+                }.getOrDefault(emptyList())
+            }
             _homeState.update { it.copy(filteredItems = items, isCategoryLoading = false) }
         }
+    }
+
+    private fun looksLikeAnime(item: MediaItem): Boolean {
+        val t = item.title.lowercase()
+        val junk = listOf("song", "full video", "remix", "jukebox", "lyrics", "audio", "| ", "massage", "desi ", "hot ", "romance video")
+        if (junk.any { it in t }) return false
+        val g = item.genres.joinToString(" ").lowercase()
+        return "anim" in g || item.country.contains("japan", true) || "anime" in t ||
+            item.mediaType == MediaCategoryType.ANIME
     }
 
     fun loadExploreMetadata() {

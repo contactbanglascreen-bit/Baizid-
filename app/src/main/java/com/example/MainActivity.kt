@@ -279,6 +279,18 @@ fun CinedorMainShell() {
         return
     }
 
+    // Online-only app: without internet only the downloaded videos are available.
+    val isOnline = com.example.ui.components.rememberIsOnline()
+    var wasOffline by remember { mutableStateOf(false) }
+    LaunchedEffect(isOnline) {
+        if (!isOnline) wasOffline = true
+        else if (wasOffline) { wasOffline = false; viewModel.loadHome(forceRefresh = true) }
+    }
+    if (!isOnline) {
+        com.example.ui.components.OfflineOnlyScreen()
+        return
+    }
+
     // Full-screen overlay when a media detail/player is active
     Box(modifier = Modifier.fillMaxSize()) {
     BoxWithConstraints(

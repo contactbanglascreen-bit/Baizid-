@@ -1,7 +1,5 @@
-- Bigger, clearer top bar (logo, refresh, search and category tabs)
-- Quality list now shows only the qualities each video really has
-- Posters load much faster, even right after opening the app
-- New "Top 10 today" row and every row shows all titles from the server
-- Fresh new video player: full-width seek bar with a time bubble, remaining time, smoother double-tap skip
-- Stronger security: unofficial / modified copies are blocked, Console has its own PIN
-- New update screen with the Cinedor logo and live download progress
+- Coming Soon now shows upcoming titles
+- Anime tab shows real anime only (no music videos or clips)
+- Liquid-glass posters with a soft shine and glass rating badges
+- Compact top bar; search button never gets squeezed
+- Online-only: without internet you get your Downloads, everything else needs a connection
