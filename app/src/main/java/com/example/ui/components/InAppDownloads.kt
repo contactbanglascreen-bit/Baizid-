@@ -820,8 +820,13 @@ object DownloadSpeedTracker {
     private val last = HashMap<Long, Pair<Long, Long>>() // id -> (bytes, timeMs)
     val speeds = androidx.compose.runtime.mutableStateMapOf<Long, Long>()
 
+    private var lastRun = 0L
+
     fun update(entries: List<DownloadEntry>) {
         val now = System.currentTimeMillis()
+        // Several screens call this; only measure about once a second.
+        if (now - lastRun < 700L) return
+        lastRun = now
         val running = entries.filter { it.state == DownloadState.RUNNING }
         running.forEach { e ->
             val id = e.record.id

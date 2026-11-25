@@ -1,0 +1,31 @@
+{
+  "_help": "Cinedor Console: edit this file on GitHub and save. Every phone picks up the change the next time the app opens. Set enabled to true/false to turn things on/off. Change an 'id' to show a popup again to everyone.",
+
+  "premium": {
+    "enabled": false,
+    "id": "premium-1",
+    "title": "Go Premium",
+    "message": "Ad-free streaming, faster downloads and early access to new features.",
+    "perks": ["No ads", "Super fast downloads", "4K & 1080p", "Early access"],
+    "price": "",
+    "buttonText": "Get Premium",
+    "buttonUrl": "",
+    "showEveryHours": 24
+  },
+
+  "announcement": {
+    "enabled": false,
+    "id": "notice-1",
+    "title": "Welcome to Cinedor",
+    "message": "New movies and series are added every day.",
+    "buttonText": "OK",
+    "buttonUrl": ""
+  },
+
+  "maintenance": {
+    "enabled": false,
+    "message": "Cinedor is under maintenance. Please come back in a little while."
+  },
+
+  "minVersionCode": 0
+}

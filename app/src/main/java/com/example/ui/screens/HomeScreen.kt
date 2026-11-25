@@ -3,6 +3,7 @@ package com.example.ui.screens
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.CachePolicy
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -121,6 +122,7 @@ private val MovieBoxTopTabs = listOf(
 private val MovieSubTabs = listOf("Cinema", "TOP Movies", "New Bengali", "Bollywood")
 private val SeriesSubTabs = listOf("Top Series", "Anime", "Asian Drama", "Indian Drama")
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     homeState: HomeUiState,
@@ -184,6 +186,7 @@ fun HomeScreen(
         val feed = successFeed ?: return@LaunchedEffect
         val urls = (feed.banners + feed.trendingItems + feed.sections.flatMap { it.items.take(12) })
             .mapNotNull { it.posterUrl.ifBlank { it.backdropUrl }.ifBlank { null } }
+            .map { com.example.ui.components.posterThumbUrl(it, 360) }
             .distinct()
             .take(90)
         val loader = prefetchContext.imageLoader
@@ -244,6 +247,22 @@ fun HomeScreen(
             .fillMaxSize()
             .background(ObsidianBackground)
     ) {
+        var pullRefreshing by remember { mutableStateOf(false) }
+        LaunchedEffect(homeState.feedState) { pullRefreshing = false }
+        LaunchedEffect(pullRefreshing) {
+            if (pullRefreshing) {
+                delay(8000)
+                pullRefreshing = false
+            }
+        }
+        PullToRefreshBox(
+            isRefreshing = pullRefreshing,
+            onRefresh = {
+                pullRefreshing = true
+                onRetry()
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -679,6 +698,8 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
         }
 
         // STICKY TOP HEADER (logo + wordmark + round search button, then red pill category tabs)

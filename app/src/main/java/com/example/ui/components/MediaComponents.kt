@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.animation.animateColorAsState
@@ -212,10 +214,10 @@ fun HeroBannerCarousel(
                     .background(MediaCardDark)
                     .clickable { onPlayClick(item) }
             ) {
-                AsyncImage(
-                    model = item.posterUrl.ifBlank { item.backdropUrl },
+                FastPosterImage(
+                    url = item.posterUrl.ifBlank { item.backdropUrl },
                     contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
+                    thumbWidth = 720,
                     modifier = Modifier.fillMaxSize()
                 )
                 Box(
@@ -425,10 +427,10 @@ fun PosterCard(
                         .align(Alignment.Center)
                         .size(30.dp)
                 )
-                AsyncImage(
-                    model = item.posterUrl.ifBlank { item.backdropUrl },
+                FastPosterImage(
+                    url = item.posterUrl.ifBlank { item.backdropUrl },
                     contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
+                    thumbWidth = 360,
                     modifier = Modifier.fillMaxSize()
                 )
                 if (item.rating.isNotBlank()) {
@@ -853,10 +855,10 @@ fun UpcomingReleaseCard(
                 .clip(RoundedCornerShape(16.dp))
                 .background(ObsidianSurfaceVariant)
         ) {
-            AsyncImage(
-                model = item.posterUrl.ifBlank { item.backdropUrl },
+            FastPosterImage(
+                url = item.posterUrl.ifBlank { item.backdropUrl },
                 contentDescription = item.title,
-                contentScale = ContentScale.Crop,
+                thumbWidth = 360,
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -1176,4 +1178,40 @@ internal fun SubDubPill(label: String, filled: Boolean) {
             color = Color.White
         )
     }
+}
+
+
+/**
+ * Asks the image CDN for a small thumbnail instead of the full-size poster (much less data,
+ * much faster), and falls back to the original image if the CDN doesn't support resizing.
+ */
+internal fun posterThumbUrl(url: String, width: Int): String {
+    if (url.isBlank()) return url
+    val tmdb = Regex("(image\\.tmdb\\.org/t/p/)(original|w\\d+)(/)")
+    if (tmdb.containsMatchIn(url)) {
+        val size = if (width <= 360) "w342" else "w780"
+        return url.replace(tmdb, "$1$size$3")
+    }
+    if (url.contains("aoneroom.com", ignoreCase = true) && !url.contains("?")) {
+        return "$url?x-oss-process=image/resize,w_$width/format,webp"
+    }
+    return url
+}
+
+@Composable
+internal fun FastPosterImage(
+    url: String,
+    contentDescription: String?,
+    thumbWidth: Int,
+    modifier: Modifier = Modifier
+) {
+    val thumb = remember(url, thumbWidth) { posterThumbUrl(url, thumbWidth) }
+    var useOriginal by remember(url) { mutableStateOf(thumb == url) }
+    AsyncImage(
+        model = if (useOriginal) url else thumb,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Crop,
+        onError = { if (!useOriginal) useOriginal = true },
+        modifier = modifier
+    )
 }

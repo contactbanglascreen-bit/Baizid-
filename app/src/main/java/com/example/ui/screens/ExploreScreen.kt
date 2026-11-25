@@ -1,5 +1,11 @@
 package com.example.ui.screens
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -85,7 +91,7 @@ import com.example.ui.theme.TextSecondary
 import com.example.ui.viewmodel.ExploreUiState
 import com.example.ui.viewmodel.UiState
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
     state: ExploreUiState,
@@ -101,10 +107,27 @@ fun ExploreScreen(
 ) {
     val focusManager = LocalFocusManager.current
 
-    LazyColumn(
+    var pullRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(state.itemsState) { pullRefreshing = false }
+    LaunchedEffect(pullRefreshing) {
+        if (pullRefreshing) {
+            kotlinx.coroutines.delay(8000)
+            pullRefreshing = false
+        }
+    }
+    PullToRefreshBox(
+        isRefreshing = pullRefreshing,
+        onRefresh = {
+            pullRefreshing = true
+            onRetry()
+        },
         modifier = modifier
             .fillMaxSize()
             .background(ObsidianBackground)
+    ) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 112.dp)
     ) {
@@ -547,6 +570,7 @@ fun ExploreScreen(
                 }
             }
         }
+    }
     }
 }
 

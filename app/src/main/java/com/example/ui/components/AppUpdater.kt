@@ -7,6 +7,12 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.material.icons.rounded.RocketLaunch
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -155,9 +161,21 @@ object AppUpdater {
     }
 }
 
+/** Bytes downloaded / total for an update download. */
+internal fun updateBytes(context: Context, id: Long): Pair<Long, Long> {
+    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    dm.query(DownloadManager.Query().setFilterById(id))?.use { c ->
+        if (c.moveToFirst()) {
+            return c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)) to
+                c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+        }
+    }
+    return 0L to 0L
+}
+
 /**
- * Shows "Update available" when a newer build exists, then downloads and opens the installer.
- * [manualCheck] shows a message even when the app is already up to date.
+ * Modern "Update available" screen: version change, notes, live progress ring with size and
+ * speed, then opens the installer. Updates required by the Console (minVersionCode) can't be skipped.
  */
 @Composable
 fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
@@ -166,6 +184,8 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
     var downloadId by remember { mutableLongStateOf(-1L) }
     var progress by remember { mutableFloatStateOf(0f) }
     var failed by remember { mutableStateOf(false) }
+    var bytes by remember { mutableStateOf(0L to 0L) }
+    var speed by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(Unit) {
         val latest = AppUpdater.fetchLatest()
@@ -185,6 +205,8 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
 
     LaunchedEffect(downloadId) {
         if (downloadId < 0) return@LaunchedEffect
+        var lastBytes = 0L
+        var lastTime = System.currentTimeMillis()
         while (true) {
             val p = AppUpdater.progress(context, downloadId)
             if (p < 0f) {
@@ -192,6 +214,14 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                 break
             }
             progress = p
+            val b = updateBytes(context, downloadId)
+            bytes = b
+            val now = System.currentTimeMillis()
+            if (now - lastTime >= 400L) {
+                speed = ((b.first - lastBytes).coerceAtLeast(0L) * 1000L) / (now - lastTime)
+                lastBytes = b.first
+                lastTime = now
+            }
             if (p >= 1f) {
                 AppUpdater.install(context, downloadId)
                 break
@@ -201,37 +231,102 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
     }
 
     val update = info ?: return
-    if (!manualCheck && AppUpdater.dismissedThisSession) return
+    val forced = (RemoteConsole.config?.minVersionCode ?: 0) > AppUpdater.currentVersionCode
+    if (!manualCheck && !forced && AppUpdater.dismissedThisSession) return
 
-    AlertDialog(
-        onDismissRequest = {
-            if (downloadId < 0) {
-                AppUpdater.dismissedThisSession = true
-                info = null
-                onFinished()
+    fun later() {
+        AppUpdater.dismissedThisSession = true
+        info = null
+        onFinished()
+    }
+
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = { if (!forced && downloadId < 0) later() },
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = !forced,
+            dismissOnClickOutside = !forced
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(22.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(30.dp))
+                .background(ObsidianCard)
+        ) {
+            // Gradient header with rocket
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            listOf(com.example.ui.theme.AccentBright, com.example.ui.theme.CinetorRedDark)
+                        )
+                    ),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                if (downloadId >= 0 && !failed) {
+                    androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            progress = { progress.coerceIn(0.01f, 1f) },
+                            color = androidx.compose.ui.graphics.Color.White,
+                            trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f),
+                            strokeWidth = 7.dp,
+                            modifier = Modifier.size(96.dp)
+                        )
+                        Text(
+                            "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
+                } else {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .size(78.dp)
+                            .clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f)),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Rounded.RocketLaunch,
+                            contentDescription = null,
+                            tint = androidx.compose.ui.graphics.Color.White,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    }
+                }
             }
-        },
-        containerColor = ObsidianCard,
-        title = {
-            Text("New update available", fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-        },
-        text = {
-            Column {
+            Column(modifier = Modifier.padding(22.dp)) {
                 Text(
-                    "${update.versionName}  (you have ${AppUpdater.currentVersionName})",
+                    if (forced) "Update required" else "New update available",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    VersionChip(AppUpdater.currentVersionName, highlighted = false)
+                    Text("  →  ", color = TextSecondary, fontWeight = FontWeight.Bold)
+                    VersionChip(update.versionName.substringAfterLast(' '), highlighted = true)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    update.notes.ifBlank { "Bug fixes and improvements." },
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Install the update — your downloads, list and settings stay.",
+                    "Your downloads, My List and settings are kept.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
                 if (downloadId >= 0) {
                     Spacer(modifier = Modifier.height(14.dp))
                     if (failed) {
-                        Text("Download failed. Check your internet and try again.", color = CinetorRed)
+                        Text("Download failed. Check your internet and try again.", color = CinetorRed, fontWeight = FontWeight.SemiBold)
                     } else {
                         LinearProgressIndicator(
                             progress = { progress },
@@ -243,49 +338,79 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
                                 .clip(CircleShape)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
+                        val sizeLine = buildString {
+                            if (bytes.second > 0) {
+                                append(android.text.format.Formatter.formatShortFileSize(context, bytes.first))
+                                append(" / ")
+                                append(android.text.format.Formatter.formatShortFileSize(context, bytes.second))
+                            }
+                            if (speed > 0) append("  ·  ${android.text.format.Formatter.formatShortFileSize(context, speed)}/s")
+                        }
                         Text(
-                            if (progress >= 1f) "Opening installer…" else "Downloading ${(progress * 100).toInt()}%",
+                            if (progress >= 1f) "Opening installer…" else sizeLine.ifBlank { "Starting…" },
                             style = MaterialTheme.typography.labelMedium,
                             color = TextSecondary
                         )
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    when {
-                        downloadId < 0 || failed -> {
-                            failed = false
-                            progress = 0f
-                            downloadId = AppUpdater.startDownload(context, update) ?: -1L
-                            if (downloadId < 0) failed = true
-                        }
-                        progress >= 1f -> AppUpdater.install(context, downloadId)
+                Spacer(modifier = Modifier.height(18.dp))
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(CircleShape)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                listOf(com.example.ui.theme.AccentBright, com.example.ui.theme.CinetorRedDark)
+                            )
+                        )
+                        .clickable(enabled = downloadId < 0 || failed || progress >= 1f) {
+                            when {
+                                downloadId < 0 || failed -> {
+                                    failed = false
+                                    progress = 0f
+                                    downloadId = AppUpdater.startDownload(context, update) ?: -1L
+                                    if (downloadId < 0) failed = true
+                                }
+                                progress >= 1f -> AppUpdater.install(context, downloadId)
+                            }
+                        },
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Text(
+                        when {
+                            downloadId < 0 -> "Update now"
+                            failed -> "Retry"
+                            progress >= 1f -> "Install"
+                            else -> "Downloading…"
+                        },
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                        color = OnAccent
+                    )
+                }
+                if (!forced && downloadId < 0) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    TextButton(onClick = { later() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Later", color = TextSecondary, fontWeight = FontWeight.SemiBold)
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = CinetorRed, contentColor = OnAccent)
-            ) {
-                Text(
-                    when {
-                        downloadId < 0 -> "Update"
-                        failed -> "Retry"
-                        progress >= 1f -> "Install"
-                        else -> "Downloading…"
-                    },
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = {
-            if (downloadId < 0) {
-                TextButton(onClick = {
-                    AppUpdater.dismissedThisSession = true
-                    info = null
-                    onFinished()
-                }) { Text("Later", color = TextSecondary) }
+                }
             }
         }
-    )
+    }
+}
+
+@Composable
+private fun VersionChip(text: String, highlighted: Boolean) {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(if (highlighted) CinetorRed else CinetorRedSoft)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = if (highlighted) OnAccent else CinetorRed
+        )
+    }
 }

@@ -216,6 +216,11 @@ fun CinedorMainShell() {
 
     // Ask to update when a newer build is published on GitHub Releases.
     com.example.ui.components.AppUpdatePrompt()
+    // Premium popup, announcements and maintenance controlled from the Cinedor Console file.
+    com.example.ui.components.ConsolePrompts()
+    // Download notifications (progress, speed, complete) while the app is open.
+    val notifierContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) { com.example.ui.components.DownloadNotifier.run(notifierContext) }
 
     // 18+ content re-locks every time the app starts: it needs the PIN again.
     LaunchedEffect(preferences.safeMode) {
