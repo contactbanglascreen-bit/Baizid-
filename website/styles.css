@@ -39,21 +39,16 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* ================= LIVING BACKGROUND ================= */
 .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: radial-gradient(ellipse at 50% 0%, #3a0a18, #12060c 60%); }
-.bg-posters {
-  position: absolute; inset: -12%;
-  display: grid; grid-template-columns: repeat(8, 1fr); gap: 18px;
-  transform: rotate(-10deg);
-  filter: blur(34px) saturate(1.7) brightness(0.75);
-  opacity: 0; transition: opacity 1.2s ease;
-}
-.bg-posters.ready { opacity: 0.85; }
-.bg-posters div { aspect-ratio: 2 / 3; border-radius: 22px; background: center / cover; }
-.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.75; mix-blend-mode: screen; animation: drift 22s ease-in-out infinite alternate; }
-.b1 { width: 46vmax; height: 46vmax; background: #ff1f3d; top: -14vmax; left: -10vmax; }
-.b2 { width: 38vmax; height: 38vmax; background: #a3168a; top: 20vh; right: -14vmax; animation-duration: 28s; }
-.b3 { width: 34vmax; height: 34vmax; background: #ff7a2f; bottom: -14vmax; left: 18vw; animation-duration: 25s; opacity: 0.5; }
-.b4 { width: 26vmax; height: 26vmax; background: #4b2bff; top: 55vh; left: -8vmax; animation-duration: 31s; opacity: 0.35; }
-@keyframes drift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(6vw, 4vh) scale(1.12); } 100% { transform: translate(-4vw, 8vh) scale(0.95); } }
+.bg { transform: translateZ(0); }
+.bg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease; }
+.bg-canvas.ready { opacity: 0.9; }
+/* soft colour lights: plain radial gradients (no blur filter), moved only with transform */
+.blob { position: absolute; border-radius: 50%; will-change: transform; animation: drift 24s ease-in-out infinite alternate; }
+.b1 { width: 70vmax; height: 70vmax; background: radial-gradient(circle, rgba(255,31,61,.55), transparent 65%); top: -30vmax; left: -25vmax; }
+.b2 { width: 60vmax; height: 60vmax; background: radial-gradient(circle, rgba(163,22,138,.5), transparent 65%); top: 5vh; right: -28vmax; animation-duration: 30s; }
+.b3 { width: 55vmax; height: 55vmax; background: radial-gradient(circle, rgba(255,122,47,.35), transparent 65%); bottom: -28vmax; left: 10vw; animation-duration: 27s; }
+.b4 { width: 45vmax; height: 45vmax; background: radial-gradient(circle, rgba(75,43,255,.25), transparent 65%); top: 45vh; left: -20vmax; animation-duration: 33s; }
+@keyframes drift { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(5vw, 6vh, 0); } }
 .bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, rgba(18,6,12,.15), rgba(18,6,12,.55) 75%); }
 .bg-grain { position: absolute; inset: 0; opacity: 0.07; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
@@ -81,7 +76,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 /* real refraction where the browser supports SVG backdrop filters (desktop Chrome/Edge) */
 @media (hover: hover) and (min-width: 900px) {
   @supports (backdrop-filter: url(#liquid)) {
-    .liquid { backdrop-filter: url(#liquid) blur(20px) saturate(190%) brightness(1.05); }
+    html:not(.lite) .liquid { backdrop-filter: url(#liquid) blur(20px) saturate(190%) brightness(1.05); }
   }
 }
 .glass-chip {
@@ -144,8 +139,9 @@ html[lang="en"] .lang [data-l="en"], html[lang="bn"] .lang [data-l="bn"] { backg
 .app-icon.sm { width: 86px; height: 86px; } .app-icon.sm img { width: 72px; height: 72px; border-radius: 20px; padding: 7px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 11px; font-size: 14px; color: rgba(255,255,255,.9); }
 .chip b { font-weight: 700; color: #fff; }
-.live { width: 8px; height: 8px; border-radius: 50%; background: #3ee07a; animation: ping 2s infinite; }
-@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(62,224,122,.6); } 80%, 100% { box-shadow: 0 0 0 9px rgba(62,224,122,0); } }
+.live { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #3ee07a; }
+.live::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #3ee07a; animation: ping 2s ease-out infinite; }
+@keyframes ping { 0% { transform: scale(1); opacity: .7; } 80%, 100% { transform: scale(3.2); opacity: 0; } }
 h1 { font-size: clamp(36px, 6.2vw, 72px); line-height: 1.02; letter-spacing: -0.04em; font-weight: 800; margin: 22px 0 16px; text-wrap: balance; }
 html[lang="bn"] h1 { line-height: 1.22; letter-spacing: -0.01em; }
 .shine {
@@ -200,6 +196,7 @@ html[lang="bn"] h2 { line-height: 1.28; letter-spacing: 0; }
 .card { scroll-snap-align: start; display: block; }
 .card .poster { position: relative; aspect-ratio: 2/3; border-radius: 20px; overflow: hidden; background: rgba(255,255,255,.08) center / cover; box-shadow: 0 16px 34px -14px rgba(0,0,0,.8); transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
 .card:hover .poster { transform: translateY(-6px) scale(1.03); }
+.card .poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card .poster::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(125deg, rgba(255,255,255,.3), transparent 32%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
 .card .num { position: absolute; left: 8px; bottom: 8px; z-index: 1; min-width: 34px; height: 34px; padding: 0 8px; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
 .card .rate { position: absolute; right: 8px; top: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; padding: 4px 8px; font-size: 12px; font-weight: 700; }
@@ -278,9 +275,30 @@ html[lang="bn"] h2 { line-height: 1.28; letter-spacing: 0; }
 .tabbar .tab-dl { flex: none; width: 52px; height: 52px; padding: 0; justify-content: center; color: #fff; background: linear-gradient(135deg, rgba(255,80,96,.95), rgba(190,10,30,.92)); box-shadow: inset 0 1px 0.5px rgba(255,255,255,.8), 0 10px 24px -8px rgba(255,30,50,.8); }
 .tabbar .tab-dl .ic { width: 23px; height: 23px; }
 
+/* sections below the fold are rendered only when near the screen */
+.section { content-visibility: auto; contain-intrinsic-size: auto 900px; }
+
 /* reveal */
 .reveal { opacity: 0; transform: translateY(26px) scale(.98); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
 .reveal.in { opacity: 1; transform: none; }
+
+/* ================= LITE MODE (phones, tablets, low-power devices) ================= */
+/* Same look, but only the nav and tab bar blur what is behind them; everything else is
+   painted glass, and nothing animates forever. This keeps scrolling at full speed. */
+html.lite .glass, html.lite .glass-chip, html.lite .btn-glass {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html.lite .glass { background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.06) 45%, rgba(255,255,255,.1)); }
+html.lite .glass-chip, html.lite .btn-glass:not(.red) { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.09)); }
+html.lite .nav, html.lite .tabbar {
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  background: linear-gradient(135deg, rgba(40,14,22,.55), rgba(40,14,22,.4));
+}
+html.lite .blob, html.lite .shine, html.lite .app-icon .ring, html.lite .live::after { animation: none; }
+html.lite .bg-grain { display: none; }
+html.lite .glass { box-shadow: inset 0 1px 0.5px rgba(255,255,255,.5), inset 0 0 0 1px rgba(255,255,255,.08), 0 16px 34px -18px rgba(0,0,0,.6); }
+html.lite .reveal { transition-duration: .45s; }
+html.lite .flow .fp, html.lite .card .poster { box-shadow: 0 12px 24px -12px rgba(0,0,0,.7); }
 
 /* ================= RESPONSIVE ================= */
 @media (min-width: 1600px) { :root { --max: 1320px; } .hero-card { max-width: 1000px; } }

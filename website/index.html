@@ -17,6 +17,15 @@
 <link rel="preconnect" href="https://image.tmdb.org">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+<script>
+  // Phones, tablets and low-power devices get the light version of the glass so scrolling stays smooth.
+  (function () {
+    var n = navigator, m = window.matchMedia;
+    var lite = m("(pointer: coarse)").matches || (n.deviceMemory && n.deviceMemory <= 4) ||
+      (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || m("(prefers-reduced-motion: reduce)").matches;
+    if (lite) document.documentElement.classList.add("lite");
+  })();
+</script>
 </head>
 <body>
 
@@ -56,14 +65,14 @@
 
 <!-- Living background the glass refracts -->
 <div class="bg" aria-hidden="true">
-  <div class="bg-posters" id="bgPosters"></div>
+  <canvas class="bg-canvas" id="bgCanvas"></canvas>
   <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span>
   <div class="bg-grain"></div>
 </div>
 
 <!-- Floating glass nav -->
 <header class="nav-wrap">
-  <nav class="nav glass liquid" aria-label="Main">
+  <nav class="nav glass" aria-label="Main">
     <a class="brand" href="#top" aria-label="Cinedor home">
       <img src="/assets/logo.png" alt="" width="34" height="34">
       <span class="wordmark">CINE<b>DOR</b></span>
@@ -196,7 +205,7 @@
 
   <!-- ===== FINAL ===== -->
   <section class="section final-wrap">
-    <div class="final glass liquid">
+    <div class="final glass">
       <div class="app-icon sm"><span class="ring"></span><img src="/assets/logo.png" alt="" width="72" height="72"></div>
       <h2 data-i18n="fn_h">Ready to start watching?</h2>
       <p data-i18n="fn_p">Free, fast and updated every week.</p>
@@ -216,7 +225,7 @@
 </footer>
 
 <!-- iOS-style floating glass tab bar (phones) -->
-<nav class="tabbar glass liquid" aria-label="Quick links">
+<nav class="tabbar glass" aria-label="Quick links">
   <a href="#top"><svg class="ic"><use href="#i-home"/></svg><span data-i18n="tb_home">Home</span></a>
   <a href="#trending"><svg class="ic"><use href="#i-spark"/></svg><span data-i18n="nav_trending">Trending</span></a>
   <a href="#features"><svg class="ic"><use href="#i-list"/></svg><span data-i18n="nav_features">Features</span></a>

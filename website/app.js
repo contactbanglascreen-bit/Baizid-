@@ -110,12 +110,47 @@
   const poster = (it, size, i) => (it && it.poster_path ? "url(" + IMG + size + it.poster_path + ")" : grad(i));
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  function fillBg(items) {
-    const box = $("#bgPosters");
-    let html = "";
-    for (let i = 0; i < 40; i++) html += '<div style="background-image:' + poster(items[i % Math.max(items.length, 1)], "w185", i) + '"></div>';
-    box.innerHTML = html;
-    requestAnimationFrame(() => box.classList.add("ready"));
+  // The background is painted ONCE into a tiny canvas and stretched to the screen.
+  // Stretching a small picture gives a free, natural blur, so the phone never has to
+  // re-blur anything while scrolling.
+  function paintBg(items) {
+    const c = $("#bgCanvas");
+    // match the screen's shape so the picture is never stretched into streaks
+    const W = 200, H = Math.round(200 * Math.min(2.4, Math.max(0.45, window.innerHeight / window.innerWidth)));
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    const list = items.slice(0, 24);
+    if (!list.length) return;
+    const imgs = list.map((it) => { const im = new Image(); im.decoding = "async"; im.src = IMG + "w92" + it.poster_path; return im; });
+    let done = 0;
+    const draw = () => {
+      const src = document.createElement("canvas");
+      src.width = W; src.height = H;
+      const s = src.getContext("2d");
+      s.fillStyle = "#2a0812"; s.fillRect(0, 0, W, H);
+      s.save(); s.translate(W / 2, H / 2); s.rotate(-0.17);
+      const cw = 30, ch = 45, gap = 5;
+      const cols = Math.ceil((W * 1.4) / (cw + gap)) + 1, rows = Math.ceil((H * 1.4) / (ch + gap)) + 1;
+      for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
+        const im = imgs[(r * cols + k) % imgs.length];
+        if (im.complete && im.naturalWidth) s.drawImage(im, (k - cols / 2) * (cw + gap), (r - rows / 2) * (ch + gap), cw, ch);
+      }
+      s.restore();
+      ctx.clearRect(0, 0, W, H);
+      if ("filter" in ctx) { ctx.filter = "blur(6px) saturate(1.7) brightness(0.72)"; ctx.drawImage(src, -10, -10, W + 20, H + 20); ctx.filter = "none"; }
+      else {
+        // no canvas filter (older Safari): shrink further, then stretch = blur
+        const t = document.createElement("canvas"); t.width = 34; t.height = Math.round(34 * H / W);
+        t.getContext("2d").drawImage(src, 0, 0, t.width, t.height);
+        ctx.globalAlpha = 0.75; ctx.drawImage(t, 0, 0, W, H); ctx.globalAlpha = 1;
+      }
+      c.classList.add("ready");
+    };
+    let timer = setTimeout(draw, 3500);
+    imgs.forEach((im) => {
+      const fin = () => { if (++done === imgs.length) { clearTimeout(timer); draw(); } };
+      im.onload = fin; im.onerror = fin;
+    });
   }
 
   // fanned cover-flow; the centre card is biggest, the sides tilt away
@@ -129,7 +164,7 @@
     for (let i = 0; i < n; i++) {
       const d = i - mid;
       const tf = "translateX(" + d * spread + "px) translateY(" + Math.abs(d) * (small ? 14 : 22) + "px) rotateY(" + (-d * 14) + "deg) rotateZ(" + d * 3 + "deg) scale(" + (1 - Math.abs(d) * 0.07) + ")";
-      html += '<div class="fp" style="z-index:' + (10 - Math.abs(d)) + ";transform:" + tf + ";background-image:" + poster(items[i], "w342", i) + '"></div>';
+      html += '<div class="fp" style="z-index:' + (10 - Math.abs(d)) + ";transform:" + tf + ";background-image:" + poster(items[i], small ? "w185" : "w342", i) + '"></div>';
     }
     flow.innerHTML = html;
   }
@@ -142,7 +177,7 @@
       const year = (it.release_date || it.first_air_date || "").slice(0, 4);
       const type = it.media_type === "tv" ? "Series" : "Movie";
       const rate = it.vote_average ? it.vote_average.toFixed(1) : "";
-      return '<a class="card" href="#get" aria-label="' + title + '"><div class="poster" style="background-image:' + poster(it, "w342", i) + '">' +
+      return '<a class="card" href="#get" aria-label="' + title + '"><div class="poster" style="background-image:' + grad(i) + '"><img src="' + IMG + (window.innerWidth < 640 ? "w185" : "w342") + it.poster_path + '" alt="" loading="lazy" decoding="async">' +
         '<span class="num glass-chip">' + (i + 1) + "</span>" +
         (rate ? '<span class="rate glass-chip"><svg class="ic"><use href="#i-star"/></svg>' + rate + "</span>" : "") +
         "</div><h4>" + title + "</h4><small>" + type + (year ? " · " + year : "") + "</small></a>";
@@ -150,20 +185,25 @@
   }
 
   let posters = [];
-  fillBg([]);
   fillFlow([]);
   Promise.all([1, 2].map((p) => fetch(TMDB + p).then((r) => (r.ok ? r.json() : { results: [] })).catch(() => ({ results: [] }))))
     .then((pages) => {
       posters = pages.flatMap((p) => p.results || []).filter((x) => x.poster_path && (x.media_type === "movie" || x.media_type === "tv"));
       if (!posters.length) { fillRail([]); return; }
-      fillBg(posters.slice(10).concat(posters.slice(0, 10)));
+      paintBg(posters.slice(10).concat(posters.slice(0, 10)));
       fillFlow(posters);
       fillRail(posters);
       const bd = posters.find((x) => x.backdrop_path);
       if (bd) $("[data-backdrop]").style.backgroundImage = "url(" + IMG + "w780" + bd.backdrop_path + ")";
     });
   let rt;
-  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => fillFlow(posters), 150); });
+  let lastW = window.innerWidth;
+  window.addEventListener("resize", () => {
+    // phones fire resize when the address bar hides; only redraw when the width really changes
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    clearTimeout(rt); rt = setTimeout(() => fillFlow(posters), 150);
+  });
 
   $$("[data-scroll]").forEach((b) => b.addEventListener("click", () => {
     const rail = $("#rail");
@@ -171,7 +211,7 @@
   }));
 
   /* ---------------- Glass tilts toward the pointer ---------------- */
-  if (window.matchMedia("(hover: hover)").matches) {
+  if (window.matchMedia("(hover: hover)").matches && !document.documentElement.classList.contains("lite")) {
     $$(".feat, .steps li").forEach((el) => {
       el.addEventListener("pointermove", (e) => {
         const r = el.getBoundingClientRect();
