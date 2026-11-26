@@ -1,7 +1,4 @@
-- New "Audio & Dubs" section on every title: original audio, all dubbed languages and dubbed versions
-- Join us popup with Telegram & Facebook buttons
-- "Enjoying the movie?" share popup with WhatsApp and other apps
-- Coming Soon now shows upcoming titles
-- Anime tab shows real anime only
-- Liquid-glass posters, compact top bar
-- Online-only: without internet you get your Downloads
+- Push notifications: new movies, episodes and news with big poster pictures
+- Tap a notification to open the title in the app
+- Audio & Dubs section, Join us and Share popups
+- Bug fixes and improvements
