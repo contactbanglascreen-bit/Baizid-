@@ -1,2 +1,4 @@
+- Premium glass notifications page with big posters and a Watch now button
+- My List button now shows clearly on every theme colour
+- Cleaner search when nothing is found
 - Tap a notification to open that movie or series page directly
-- Notifications now appear in the 🔔 inbox even when they arrived while the app was closed

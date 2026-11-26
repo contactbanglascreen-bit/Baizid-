@@ -333,8 +333,9 @@ fun HeroBannerCarousel(
                                 .height(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    Brush.verticalGradient(listOf(Color.White, Color(0xFFEDE8E8)))
+                                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.14f)))
                                 )
+                                .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
                                 .clickable { onToggleWatchlist(item) },
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
@@ -342,14 +343,14 @@ fun HeroBannerCarousel(
                             Icon(
                                 imageVector = if (inWatchlist) Icons.Rounded.Check else Icons.Rounded.Add,
                                 contentDescription = if (inWatchlist) "Remove from My List" else "Add to My List",
-                                tint = TextPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "My List",
+                                text = if (inWatchlist) "Added" else "My List",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-                                color = TextPrimary,
+                                color = Color.White,
                                 maxLines = 1
                             )
                         }
@@ -1192,13 +1193,15 @@ fun EmptyLibraryCard(
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = title, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
-                textAlign = TextAlign.Center
-            )
+            if (subtitle.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

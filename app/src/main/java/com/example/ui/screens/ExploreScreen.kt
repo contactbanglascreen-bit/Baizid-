@@ -511,7 +511,7 @@ fun ExploreScreen(
                         EmptyLibraryCard(
                             icon = Icons.Rounded.Search,
                             title = "No titles matched",
-                            subtitle = "Try a different keyword, genre, or switch source between MovieBox & MovieLinkBD."
+                            subtitle = ""
                         )
                     }
                 } else {
