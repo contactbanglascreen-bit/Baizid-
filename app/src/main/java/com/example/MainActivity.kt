@@ -98,6 +98,12 @@ class MainActivity : ComponentActivity() {
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
         com.example.ui.components.AdminLock.load(applicationContext)
+        // Ask once for notification permission (Android 13+) so admin-panel pushes can be shown.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            runCatching { requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7001) }
+        }
         // Continue downloads that were running when the app was closed.
         com.example.ui.components.CinedorDownloader.resumeInterrupted(applicationContext)
         // PiP button: shrink the player to a floating window inside the app (keep browsing).

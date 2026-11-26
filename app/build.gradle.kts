@@ -114,6 +114,8 @@ dependencies {
   implementation("com.google.mlkit:translate:17.0.3")
   // Encrypted storage for the admin Console token
   implementation("androidx.security:security-crypto:1.0.0")
+  // Push notifications (FCM) sent from the Cinedor admin panel
+  implementation("com.google.firebase:firebase-messaging:24.1.0")
   // implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)
   // implementation(libs.firebase.firestore)

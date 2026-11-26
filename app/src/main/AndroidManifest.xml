@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <application
+        android:name=".CinedorApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -39,6 +40,19 @@
             android:name=".ui.components.DownloadWatchService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".ui.components.CinedorMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="cinedor_news" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_launcher_logo_mono" />
     </application>
 
 </manifest>
