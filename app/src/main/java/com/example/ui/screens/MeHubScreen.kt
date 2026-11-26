@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -179,7 +180,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
 // Me hub
 // ---------------------------------------------------------------------------
 
-private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN }
+private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,6 +243,7 @@ fun MeHubScreen(
                     MePage.SETTINGS -> "Settings"
                     MePage.ABOUT -> "About"
                     MePage.ADMIN -> "Console"
+                    MePage.FEEDBACK -> "Feedback"
                 },
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 24.sp),
                 color = TextPrimary,
@@ -321,6 +323,8 @@ fun MeHubScreen(
                         onClick = { adultMenuToggle(!preferences.safeMode) }
                     )
                     MenuDivider()
+                    MenuRow(Icons.Rounded.Feedback, "Feedback & help", "Report a problem or request a title") { page = MePage.FEEDBACK }
+                    MenuDivider()
                     MenuRow(Icons.Rounded.Settings, "Settings", "Player, downloads & privacy") { page = MePage.SETTINGS }
                     MenuDivider()
                     MenuRow(Icons.Rounded.Info, "About", "Cinedor · version & info") { page = MePage.ABOUT }
@@ -379,6 +383,7 @@ fun MeHubScreen(
 
             MePage.ABOUT -> AboutPage(onOpenAdmin = { page = MePage.ADMIN })
             MePage.ADMIN -> AdminGate(onLeave = { page = MePage.HUB })
+            MePage.FEEDBACK -> FeedbackPage()
         }
     }
 
