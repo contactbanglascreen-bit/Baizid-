@@ -513,7 +513,8 @@ class MovieBoxDirectClient {
         year: String,
         page: Int = 1,
         lang: String = "en",
-        safeMode: Boolean = true
+        safeMode: Boolean = true,
+        country: String = ""
     ): List<MediaItem> {
         val channelId = when (category.lowercase()) {
             "tv", "series", "drama", "dramas" -> 2
@@ -532,6 +533,7 @@ class MovieBoxDirectClient {
             if (year.isNotBlank() && !year.equals("All", ignoreCase = true)) {
                 put("year", year)
             }
+            if (country.isNotBlank()) put("country", country)
         }
         val (body, _) = mbRequest(
             path = "/wefeed-h5api-bff/subject/filter",

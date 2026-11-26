@@ -331,6 +331,16 @@ fun ExploreScreen(
             }
         }
 
+        // Browse by language / country (MovieBox-style)
+        item(key = "browse_language") {
+            Spacer(modifier = Modifier.height(18.dp))
+            com.example.ui.components.BrowseTiles("Browse by language", com.example.ui.components.BrowseCatalog.languages)
+        }
+        item(key = "browse_country") {
+            Spacer(modifier = Modifier.height(18.dp))
+            com.example.ui.components.BrowseTiles("Browse by country", com.example.ui.components.BrowseCatalog.countries)
+        }
+
         // OTT platform brand tiles
         item(key = "ott_platforms") {
             Spacer(modifier = Modifier.height(18.dp))

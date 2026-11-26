@@ -482,6 +482,12 @@ fun HomeScreen(
                                 }
                             }
 
+                            // Browse by language (MovieBox-style categories)
+                            item(key = "home_browse_language") {
+                                com.example.ui.components.BrowseTiles("Browse by language", com.example.ui.components.BrowseCatalog.languages)
+                                Spacer(modifier = Modifier.height(18.dp))
+                            }
+
                             // Ad banner (from the admin app; hidden for Premium)
                             item(key = "home_ad_banner") {
                                 com.example.ui.components.AdBanner()

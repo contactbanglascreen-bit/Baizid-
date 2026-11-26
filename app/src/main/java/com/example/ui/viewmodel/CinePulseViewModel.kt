@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 
 sealed interface UiState<out T> {
     data object Loading : UiState<Nothing>
@@ -371,6 +372,39 @@ class CinePulseViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * Category pages by language or country (MovieBox-style): asks the catalog for that country,
+     * searches the language name, and keeps only matching titles.
+     */
+    suspend fun browse(kind: String, value: String, type: String, page: Int): List<MediaItem> = kotlinx.coroutines.supervisorScope {
+        val prefs = preferences.value
+        val cats = when (type) { "Movies" -> listOf("movies"); "Series" -> listOf("tv"); else -> listOf("movies", "tv") }
+        val info = com.example.ui.components.BrowseCatalog.find(kind, value)
+        val filterJobs = cats.flatMap { c ->
+            listOf(page * 2 - 1, page * 2).map { p ->
+                async {
+                    runCatching {
+                        apiClient.filterCatalog(ContentSource.MOVIEBOX, c, "", "", p, prefs.safeMode, prefs.language.code, info?.country.orEmpty())
+                    }.getOrDefault(emptyList())
+                }
+            }
+        }
+        val searchJobs = (info?.keywords ?: listOf(value)).map { k ->
+            async { runCatching { apiClient.search(k, page, prefs.source, prefs.safeMode, prefs.language.code) }.getOrDefault(emptyList()) }
+        }
+        val pool = (filterJobs + searchJobs).flatMap { it.await() }
+        val matched = pool.filter { item -> info?.matches(item) ?: true }
+            .filter { item ->
+                when (type) {
+                    "Movies" -> item.mediaType == MediaCategoryType.MOVIE
+                    "Series" -> item.mediaType != MediaCategoryType.MOVIE
+                    else -> true
+                }
+            }
+        matched.distinctBy { it.title.lowercase().trim() }
+            .sortedByDescending { it.year.toIntOrNull() ?: 0 }
     }
 
     /** Builds the exact title from a cinedor://item link sent by the admin (notification or popup). */

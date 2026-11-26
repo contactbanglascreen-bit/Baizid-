@@ -436,31 +436,20 @@ fun DetailPlayerScreen(
                                 .clickable { infoExpanded = !infoExpanded }
                                 .padding(vertical = 2.dp)
                         )
-                    } else if (detail?.cast?.isNotEmpty() == true) {
-                        Text(
-                            text = if (infoExpanded) "Hide cast" else "Show cast",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = CinedorMagenta,
-                            modifier = Modifier
-                                .padding(top = 10.dp)
-                                .clickable { infoExpanded = !infoExpanded }
-                        )
                     }
 
                     // Expandable Info Drawer (Synopsis + Cast, hidden by default just like MovieBox!)
-                    AnimatedVisibility(visible = infoExpanded && detail?.cast?.isNotEmpty() == true) {
+                    // Cast & stars: always shown (tap a face to see their other titles)
+                    AnimatedVisibility(visible = detail?.cast?.isNotEmpty() == true) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 10.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(ObsidianCard)
-                                .padding(12.dp)
+                                .padding(top = 12.dp)
                         ) {
                             if (detail != null && detail.cast.isNotEmpty()) {
                                 Text(
-                                    text = "Cast & Stars",
-                                    style = MaterialTheme.typography.labelLarge,
+                                    text = "Cast",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 15.sp),
                                     color = TextPrimary
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -468,7 +457,7 @@ fun DetailPlayerScreen(
                                     items(detail.cast, key = { it.id }) { member ->
                                         Column(
                                             modifier = Modifier
-                                                .width(68.dp)
+                                                .width(76.dp)
                                                 .clip(RoundedCornerShape(10.dp))
                                                 .clickable { onOpenStaff(member) }
                                                 .padding(vertical = 4.dp),
@@ -476,8 +465,9 @@ fun DetailPlayerScreen(
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(48.dp)
+                                                    .size(62.dp)
                                                     .clip(CircleShape)
+                                                    .border(2.dp, CinedorMagenta.copy(alpha = 0.5f), CircleShape)
                                                     .background(ObsidianSurfaceVariant),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -499,11 +489,21 @@ fun DetailPlayerScreen(
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
                                                 text = member.name,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                color = TextSecondary,
-                                                maxLines = 1,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                                                color = TextPrimary,
+                                                maxLines = 2,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                                 overflow = TextOverflow.Ellipsis
                                             )
+                                            if (member.role.isNotBlank()) {
+                                                Text(
+                                                    text = member.role,
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                    color = TextMuted,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }

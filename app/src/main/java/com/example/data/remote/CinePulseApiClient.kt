@@ -362,10 +362,11 @@ class CinePulseApiClient(
         year: String,
         page: Int,
         safeMode: Boolean,
-        lang: String = "en"
+        lang: String = "en",
+        country: String = ""
     ): List<MediaItem> {
-        if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
-            return movieBoxDirect.filter(category, genre, year, page, lang, safeMode)
+        if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured || country.isNotBlank()) {
+            return movieBoxDirect.filter(category, genre, year, page, lang, safeMode, country)
         }
         return runCatching {
             val params = buildMap {

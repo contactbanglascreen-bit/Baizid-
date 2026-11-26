@@ -299,6 +299,18 @@ fun CinedorMainShell() {
     com.example.ui.components.ConsolePrompts()
     // "Enjoying the movie?" share popup after the watch time set in the Console.
     com.example.ui.components.SharePromptHost()
+    // Language / country category page
+    com.example.ui.components.BrowseCatalog.open?.let { target ->
+        com.example.ui.components.BrowsePage(
+            target = target,
+            load = { type, page -> viewModel.browse(target.kind, target.value, type, page) },
+            onOpen = { item ->
+                com.example.ui.components.BrowseCatalog.open = null
+                viewModel.openMediaDetail(item)
+            },
+            onClose = { com.example.ui.components.BrowseCatalog.open = null }
+        )
+    }
     // Full-screen ads before videos and the Premium page (no ads for Premium users).
     com.example.ui.components.FullscreenAdHost()
     if (com.example.ui.components.PremiumCta.open) {

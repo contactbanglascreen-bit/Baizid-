@@ -1,3 +1,4 @@
-- Cleaner player: top buttons are now icons only
-- Subtitles show on a single line
-- Featured popups and notifications open the exact title
+- Browse by language (বাংলা, Hindi, English, Korean, Chinese, Japanese, Tamil…) and by country
+- Cast shown on every title page with photos — tap to see their other titles
+- Premium with codes, ads from the Cinedor team, popups after the splash
+- Featured popup shows the full poster
