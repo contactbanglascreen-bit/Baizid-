@@ -239,6 +239,69 @@ object CinedorCloud {
         NotificationInbox.setRemoteUnread(context, fresh)
     }
 
+    // ------------------------------------------------------------ Premium (codes from the admin)
+
+    /** Premium end time in ms (0 = free). Cached so the app knows offline too. */
+    fun cachedPremiumUntil(context: Context): Long = prefs(context).getLong("premium_until", 0L)
+
+    suspend fun refreshPremium(context: Context): Long = withContext(Dispatchers.IO) {
+        runCatching {
+            val tok = token(context) ?: return@runCatching cachedPremiumUntil(context)
+            val r = http("$DOCS/premium/${uid(context)}", bearer = tok)
+            val until = if (r.code in 200..299) {
+                val f = JSONObject(r.body).optJSONObject("fields")
+                val start = f?.optJSONObject("start")?.optString("timestampValue").orEmpty()
+                val days = f?.optJSONObject("days")?.optString("integerValue")?.toLongOrNull() ?: 0L
+                val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+                val startMs = runCatching { iso.parse(start.take(19))?.time }.getOrNull() ?: 0L
+                if (startMs > 0) startMs + days * 86_400_000L else 0L
+            } else if (r.code == 404) 0L else cachedPremiumUntil(context)
+            prefs(context).edit().putLong("premium_until", until).apply()
+            PremiumState.until = until
+            until
+        }.getOrDefault(cachedPremiumUntil(context))
+    }
+
+    /** Redeems a code made in the admin app. Returns a message for the user. */
+    suspend fun redeem(context: Context, rawCode: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val code = rawCode.trim().uppercase(Locale.US).replace(Regex("[^A-Z0-9-]"), "")
+            if (code.length < 6) return@runCatching false to "Enter the full code"
+            val tok = token(context) ?: return@runCatching false to "Check the internet and try again"
+            val uid = uid(context)
+            val g = http("$DOCS/codes/$code", bearer = tok)
+            if (g.code == 404) return@runCatching false to "This code doesn't exist"
+            if (g.code !in 200..299) return@runCatching false to "Couldn't check the code (${g.code})"
+            val f = JSONObject(g.body).optJSONObject("fields")
+            if (f?.optJSONObject("used")?.optBoolean("booleanValue") == true) return@runCatching false to "This code was already used"
+            val days = f?.optJSONObject("days")?.optString("integerValue")?.toLongOrNull() ?: 0L
+            if (days <= 0) return@runCatching false to "This code isn't valid"
+            val root = "projects/$PROJECT/databases/(default)/documents"
+            val writes = JSONArray()
+                .put(
+                    JSONObject()
+                        .put("update", JSONObject().put("name", "$root/codes/$code").put("fields",
+                            JSONObject().put("used", JSONObject().put("booleanValue", true)).put("usedBy", str(uid))))
+                        .put("updateMask", JSONObject().put("fieldPaths", JSONArray().put("used").put("usedBy")))
+                        .put("currentDocument", JSONObject().put("exists", true))
+                        .put("updateTransforms", JSONArray().put(JSONObject().put("fieldPath", "usedAt").put("setToServerValue", "REQUEST_TIME")))
+                )
+                .put(
+                    JSONObject()
+                        .put("update", JSONObject().put("name", "$root/premium/$uid").put("fields",
+                            JSONObject().put("code", str(code)).put("days", JSONObject().put("integerValue", days.toString()))))
+                        .put("updateTransforms", JSONArray().put(JSONObject().put("fieldPath", "start").put("setToServerValue", "REQUEST_TIME")))
+                )
+            val r = http("https://firestore.googleapis.com/v1/$root:commit", "POST", JSONObject().put("writes", writes).toString(), tok)
+            if (r.code !in 200..299) {
+                Log.w(TAG, "Redeem failed ${r.code}: ${r.body.take(300)}")
+                return@runCatching false to "Couldn't activate the code. Try again."
+            }
+            refreshPremium(context)
+            true to "Premium activated for $days days 🎉"
+        }.getOrDefault(false to "Something went wrong. Try again.")
+    }
+
     /** On app start: tells the user (notification) about feedback the admin marked as fixed. */
     suspend fun checkFixed(context: Context) {
         val items = myFeedback(context).filter { it.isFixed }

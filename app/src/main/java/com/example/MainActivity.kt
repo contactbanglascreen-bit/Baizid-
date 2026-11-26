@@ -22,6 +22,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -47,6 +48,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -174,6 +178,7 @@ class MainActivity : ComponentActivity() {
                     return@CinePulseTheme
                 }
                 var showSplash by rememberSaveable { mutableStateOf(true) }
+                LaunchedEffect(showSplash) { if (!showSplash) com.example.ui.components.AppGate.ready = true }
                 Box(modifier = Modifier.fillMaxSize()) {
                     CinedorMainShell()
                     androidx.compose.animation.AnimatedVisibility(
@@ -181,7 +186,7 @@ class MainActivity : ComponentActivity() {
                         enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(1)),
                         exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(450))
                     ) {
-                        com.example.ui.components.CinedorSplash(onFinished = { showSplash = false })
+                        com.example.ui.components.CinedorSplash(onFinished = { showSplash = false; com.example.ui.components.AppGate.ready = true })
                     }
                 }
             }
@@ -294,6 +299,40 @@ fun CinedorMainShell() {
     com.example.ui.components.ConsolePrompts()
     // "Enjoying the movie?" share popup after the watch time set in the Console.
     com.example.ui.components.SharePromptHost()
+    // Full-screen ads before videos and the Premium page (no ads for Premium users).
+    com.example.ui.components.FullscreenAdHost()
+    if (com.example.ui.components.PremiumCta.open) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { com.example.ui.components.PremiumCta.open = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(ObsidianBackground)
+                    .then(Modifier.windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.statusBars))
+            ) {
+                Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                        androidx.compose.material3.IconButton(onClick = { com.example.ui.components.PremiumCta.open = false }) {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Back",
+                                tint = com.example.ui.theme.TextPrimary
+                            )
+                        }
+                        androidx.compose.material3.Text(
+                            "Premium",
+                            color = com.example.ui.theme.TextPrimary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                            fontSize = androidx.compose.ui.unit.TextUnit(20f, androidx.compose.ui.unit.TextUnitType.Sp)
+                        )
+                    }
+                    com.example.ui.components.PremiumPage()
+                }
+            }
+        }
+    }
     // Download notifications (progress, speed, complete) while the app is open.
     val notifierContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { com.example.ui.components.DownloadNotifier.run(notifierContext) }
@@ -534,6 +573,9 @@ fun CinedorMainShell() {
 
     // Detail / player on top (full screen, or an in-app floating mini player)
     val selectedDetail = detailState.selectedItem
+    LaunchedEffect(selectedDetail?.id) {
+        if (selectedDetail != null) com.example.ui.components.FullscreenAds.maybeShow()
+    }
     if (selectedDetail != null) {
         val detailDocId = sanitizeLocalDocId(selectedDetail.id, selectedDetail.title)
         val inWatchlist = watchlist.any { it.id == detailDocId || it.contentId == selectedDetail.id }

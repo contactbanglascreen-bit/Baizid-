@@ -37,6 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -75,7 +78,8 @@ data class PopupConfig(
     val secondaryUrl: String = "",
     val afterMinutes: Int = 20,
     val shareMessage: String = "",
-    val image: String = ""
+    val image: String = "",
+    val backdrop: String = ""
 )
 
 data class ConsoleConfig(
@@ -87,9 +91,28 @@ data class ConsoleConfig(
     val community: PopupConfig? = null,
     val sharePrompt: PopupConfig? = null,
     val spotlight: PopupConfig? = null,
+    val ads: AdsConfig = AdsConfig(),
     val audioDubsOn: Boolean = true,
     val audioDubsTitle: String = "Audio & Dubs"
 )
+
+/** One ad made in the admin app: a banner on Home or a full-screen ad before videos. */
+data class AdItem(val id: String, val type: String, val title: String, val image: String, val link: String, val enabled: Boolean)
+
+data class AdsConfig(
+    val enabled: Boolean = false,
+    val items: List<AdItem> = emptyList(),
+    val fullscreenEveryMinutes: Int = 10,
+    val skipAfterSeconds: Int = 5
+) {
+    val banners get() = if (enabled) items.filter { it.type == "banner" } else emptyList()
+    val fullscreens get() = if (enabled) items.filter { it.type == "fullscreen" } else emptyList()
+}
+
+/** True once the splash screen has finished, so popups never cover it. */
+object AppGate {
+    var ready by mutableStateOf(false)
+}
 
 /**
  * Cinedor Console: the app reads console/app-config.json from the GitHub repo at start-up,
@@ -220,7 +243,8 @@ object RemoteConsole {
             secondaryUrl = o.optString("secondaryUrl"),
             afterMinutes = o.optInt("afterMinutes", 20),
             shareMessage = o.optString("shareMessage"),
-            image = o.optString("image")
+            image = o.optString("image"),
+            backdrop = o.optString("backdrop")
         )
     }
 
@@ -235,8 +259,31 @@ object RemoteConsole {
             community = popup(root.optJSONObject("community")),
             sharePrompt = popup(root.optJSONObject("sharePrompt")),
             spotlight = popup(root.optJSONObject("spotlight")),
+            ads = parseAds(root.optJSONObject("ads")),
             audioDubsOn = root.optJSONObject("audioDubs")?.optBoolean("enabled", true) ?: true,
             audioDubsTitle = root.optJSONObject("audioDubs")?.optString("title", "Audio & Dubs") ?: "Audio & Dubs"
+        )
+    }
+
+    private fun parseAds(o: JSONObject?): AdsConfig {
+        if (o == null) return AdsConfig()
+        val arr = o.optJSONArray("items")
+        val items = if (arr == null) emptyList() else (0 until arr.length()).mapNotNull { i ->
+            val a = arr.optJSONObject(i) ?: return@mapNotNull null
+            AdItem(
+                id = a.optString("id", "ad$i"),
+                type = a.optString("type", "banner"),
+                title = a.optString("title"),
+                image = a.optString("image"),
+                link = a.optString("link"),
+                enabled = a.optBoolean("enabled", true)
+            )
+        }.filter { it.enabled && it.image.startsWith("http") }
+        return AdsConfig(
+            enabled = o.optBoolean("enabled", false),
+            items = items,
+            fullscreenEveryMinutes = o.optInt("fullscreenEveryMinutes", 10),
+            skipAfterSeconds = o.optInt("skipAfterSeconds", 5)
         )
     }
 
@@ -268,11 +315,17 @@ fun ConsolePrompts() {
     val context = LocalContext.current
     LaunchedEffect(Unit) { RemoteConsole.refresh() }
     val cfg = RemoteConsole.config ?: return
+    // Popups wait until the splash is gone and Home has had a moment to show.
+    var settled by remember { mutableStateOf(false) }
+    LaunchedEffect(AppGate.ready) {
+        if (AppGate.ready) { kotlinx.coroutines.delay(1800); settled = true }
+    }
 
     if (cfg.maintenanceOn) {
         MaintenanceScreen(cfg.maintenanceMessage)
         return
     }
+    if (!settled) return
 
     var premiumOpen by remember(cfg.premium) {
         mutableStateOf(cfg.premium != null && RemoteConsole.shouldShow(context, "premium", cfg.premium))
@@ -360,20 +413,35 @@ private fun SpotlightPopup(p: PopupConfig, onClose: () -> Unit, onWatch: () -> U
                 .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
                 .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
         ) {
-            Box(Modifier.fillMaxWidth().height(220.dp)) {
-                if (p.image.startsWith("http")) {
+            Box(Modifier.fillMaxWidth().height(300.dp)) {
+                val bg = p.backdrop.ifBlank { p.image }
+                if (bg.startsWith("http")) {
                     coil.compose.AsyncImage(
-                        model = p.image,
+                        model = bg,
                         contentDescription = null,
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize().blur(18.dp).alpha(0.55f)
                     )
                 }
                 Box(
                     Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.25f), 0.5f to Color.Transparent, 1f to Color(0xFF130A0C))
+                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.2f), 0.6f to Color.Transparent, 1f to Color(0xFF130A0C))
                     )
                 )
+                // Whole poster, never cut
+                if (p.image.startsWith("http")) {
+                    coil.compose.AsyncImage(
+                        model = p.image,
+                        contentDescription = p.title,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(top = 24.dp, bottom = 10.dp)
+                            .fillMaxHeight()
+                            .shadow(18.dp, RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                    )
+                }
                 Text(
                     "✨ Featured",
                     color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
@@ -808,15 +876,26 @@ private fun PremiumPopup(p: PopupConfig, onClose: () -> Unit, onAction: () -> Un
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Maybe later",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onClose)
-                        .padding(8.dp)
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "I have a code",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = gold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onClose(); PremiumCta.open = true }
+                            .padding(8.dp)
+                    )
+                    Text(
+                        "Maybe later",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onClose)
+                            .padding(8.dp)
+                    )
+                }
             }
         }
     }

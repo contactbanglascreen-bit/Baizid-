@@ -482,6 +482,11 @@ fun HomeScreen(
                                 }
                             }
 
+                            // Ad banner (from the admin app; hidden for Premium)
+                            item(key = "home_ad_banner") {
+                                com.example.ui.components.AdBanner()
+                            }
+
                             // 3. "Live" Sports Section (exact MovieBox match card row)
                             if (feed.sportsMatches.isNotEmpty()) {
                                 item(key = "live_sports_shelf") {

@@ -56,6 +56,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -180,7 +181,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
 // Me hub
 // ---------------------------------------------------------------------------
 
-private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK }
+private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK, PREMIUM }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,6 +245,7 @@ fun MeHubScreen(
                     MePage.ABOUT -> "About"
                     MePage.ADMIN -> "Console"
                     MePage.FEEDBACK -> "Feedback"
+                    MePage.PREMIUM -> "Premium"
                 },
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 24.sp),
                 color = TextPrimary,
@@ -311,6 +313,12 @@ fun MeHubScreen(
                     DownloadStore.entries(context).count { it.state == com.example.ui.components.DownloadState.DONE }
                 }
                 MenuCard {
+                    MenuRow(
+                        Icons.Rounded.WorkspacePremium,
+                        if (com.example.ui.components.PremiumState.isActive) "Premium · active" else "Go Premium",
+                        if (com.example.ui.components.PremiumState.isActive) "No ads · thank you!" else "Remove ads · redeem a code"
+                    ) { page = MePage.PREMIUM }
+                    MenuDivider()
                     MenuRow(Icons.Rounded.Bookmarks, "Library", "My List (${watchlist.size})") { page = MePage.LIBRARY }
                     MenuDivider()
                     MenuRow(Icons.Rounded.History, "Watch history", "${history.size} watched") { page = MePage.HISTORY }
@@ -384,6 +392,7 @@ fun MeHubScreen(
             MePage.ABOUT -> AboutPage(onOpenAdmin = { page = MePage.ADMIN })
             MePage.ADMIN -> AdminGate(onLeave = { page = MePage.HUB })
             MePage.FEEDBACK -> FeedbackPage()
+            MePage.PREMIUM -> com.example.ui.components.PremiumPage()
         }
     }
 
