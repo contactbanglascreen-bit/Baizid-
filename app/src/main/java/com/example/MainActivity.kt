@@ -278,9 +278,12 @@ fun CinedorMainShell() {
             if (item != null) {
                 viewModel.openMediaDetail(item)
             } else {
+                val q = if (pushLink.startsWith("cinedor://"))
+                    runCatching { android.net.Uri.parse(pushLink).getQueryParameter("t") }.getOrNull().orEmpty()
+                else pushLink
                 currentTab = CinedorTab.EXPLORE
-                viewModel.onSearchQueryChanged(pushLink)
-                viewModel.executeSearch(pushLink)
+                viewModel.onSearchQueryChanged(q)
+                viewModel.executeSearch(q)
             }
         }
     }

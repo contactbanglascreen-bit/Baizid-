@@ -74,7 +74,8 @@ data class PopupConfig(
     val secondaryText: String = "",
     val secondaryUrl: String = "",
     val afterMinutes: Int = 20,
-    val shareMessage: String = ""
+    val shareMessage: String = "",
+    val image: String = ""
 )
 
 data class ConsoleConfig(
@@ -85,6 +86,7 @@ data class ConsoleConfig(
     val minVersionCode: Int,
     val community: PopupConfig? = null,
     val sharePrompt: PopupConfig? = null,
+    val spotlight: PopupConfig? = null,
     val audioDubsOn: Boolean = true,
     val audioDubsTitle: String = "Audio & Dubs"
 )
@@ -217,7 +219,8 @@ object RemoteConsole {
             secondaryText = o.optString("secondaryText"),
             secondaryUrl = o.optString("secondaryUrl"),
             afterMinutes = o.optInt("afterMinutes", 20),
-            shareMessage = o.optString("shareMessage")
+            shareMessage = o.optString("shareMessage"),
+            image = o.optString("image")
         )
     }
 
@@ -231,6 +234,7 @@ object RemoteConsole {
             minVersionCode = root.optInt("minVersionCode", 0),
             community = popup(root.optJSONObject("community")),
             sharePrompt = popup(root.optJSONObject("sharePrompt")),
+            spotlight = popup(root.optJSONObject("spotlight")),
             audioDubsOn = root.optJSONObject("audioDubs")?.optBoolean("enabled", true) ?: true,
             audioDubsTitle = root.optJSONObject("audioDubs")?.optString("title", "Audio & Dubs") ?: "Audio & Dubs"
         )
@@ -276,6 +280,10 @@ fun ConsolePrompts() {
     var noticeOpen by remember(cfg.announcement) {
         mutableStateOf(cfg.announcement != null && RemoteConsole.shouldShow(context, "announcement", cfg.announcement))
     }
+    var spotlightOpen by remember(cfg.spotlight) {
+        mutableStateOf(cfg.spotlight != null && RemoteConsole.shouldShow(context, "spotlight", cfg.spotlight))
+    }
+    val spotlight = cfg.spotlight
     var communityOpen by remember(cfg.community) {
         mutableStateOf(cfg.community != null && RemoteConsole.shouldShow(context, "community", cfg.community))
     }
@@ -283,7 +291,21 @@ fun ConsolePrompts() {
 
     val premium = cfg.premium
     val notice = cfg.announcement
-    if (premiumOpen && premium != null) {
+    if (spotlightOpen && spotlight != null) {
+        SpotlightPopup(
+            p = spotlight,
+            onClose = {
+                RemoteConsole.markShown(context, "spotlight", spotlight)
+                spotlightOpen = false
+            },
+            onWatch = {
+                RemoteConsole.markShown(context, "spotlight", spotlight)
+                spotlightOpen = false
+                if (spotlight.buttonUrl.startsWith("cinedor://")) PushLink.pending = spotlight.buttonUrl
+                else openLink(context, spotlight.buttonUrl)
+            }
+        )
+    } else if (premiumOpen && premium != null) {
         PremiumPopup(
             p = premium,
             onClose = {
@@ -322,6 +344,91 @@ fun ConsolePrompts() {
                 openLink(context, url)
             }
         )
+    }
+}
+
+/** Featured title popup sent from the admin app: big poster, title, story and Watch now. */
+@Composable
+private fun SpotlightPopup(p: PopupConfig, onClose: () -> Unit, onWatch: () -> Unit) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            modifier = Modifier
+                .padding(22.dp)
+                .fillMaxWidth()
+                .shadow(28.dp, RoundedCornerShape(30.dp))
+                .clip(RoundedCornerShape(30.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
+        ) {
+            Box(Modifier.fillMaxWidth().height(220.dp)) {
+                if (p.image.startsWith("http")) {
+                    coil.compose.AsyncImage(
+                        model = p.image,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.25f), 0.5f to Color.Transparent, 1f to Color(0xFF130A0C))
+                    )
+                )
+                Text(
+                    "✨ Featured",
+                    color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(14.dp)
+                        .clip(CircleShape)
+                        .background(CinetorRed.copy(alpha = 0.85f))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+            }
+            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
+                Text(p.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                if (p.message.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(p.message, color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp, maxLines = 4)
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Brush.horizontalGradient(listOf(AccentBright, CinetorRedDark)))
+                        .clickable(onClick = onWatch),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("▶  " + p.buttonText.ifBlank { "Watch now" }, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                }
+                Text(
+                    "Maybe later",
+                    color = Color.White.copy(alpha = 0.55f),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onClose)
+                        .padding(8.dp)
+                )
+            }
+        }
     }
 }
 

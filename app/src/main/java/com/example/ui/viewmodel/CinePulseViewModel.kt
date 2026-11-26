@@ -373,9 +373,30 @@ class CinePulseViewModel(
         }
     }
 
+    /** Builds the exact title from a cinedor://item link sent by the admin (notification or popup). */
+    fun itemFromLink(link: String): MediaItem? {
+        if (!link.startsWith("cinedor://item")) return null
+        val uri = runCatching { android.net.Uri.parse(link) }.getOrNull() ?: return null
+        val id = uri.getQueryParameter("id").orEmpty()
+        val title = uri.getQueryParameter("t").orEmpty()
+        if (id.isBlank() || title.isBlank()) return null
+        return MediaItem(
+            id = id,
+            title = title,
+            posterUrl = uri.getQueryParameter("p").orEmpty(),
+            backdropUrl = uri.getQueryParameter("p").orEmpty(),
+            mediaType = MediaCategoryType.fromRaw(uri.getQueryParameter("type")),
+            source = uri.getQueryParameter("src").orEmpty().ifBlank { "moviebox" },
+            detailPath = uri.getQueryParameter("path").orEmpty()
+        )
+    }
+
     /** Finds the title a notification points to, so tapping it opens that movie/series page directly. */
     suspend fun findForPush(query: String): MediaItem? {
-        val q = query.trim()
+        itemFromLink(query.trim())?.let { return it }
+        val q = query.trim().let { l ->
+            if (l.startsWith("cinedor://")) runCatching { android.net.Uri.parse(l).getQueryParameter("t") }.getOrNull().orEmpty() else l
+        }
         if (q.isBlank()) return null
         val prefs = preferences.value
         val clean = q.replace(Regex("\\s*\\(\\d{4}\\)\\s*$"), "").trim()

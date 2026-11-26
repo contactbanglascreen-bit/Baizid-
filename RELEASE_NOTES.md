@@ -1,4 +1,3 @@
-- Premium glass notifications page with big posters and a Watch now button
-- My List button now shows clearly on every theme colour
-- Cleaner search when nothing is found
-- Tap a notification to open that movie or series page directly
+- Featured popups from the Cinedor team with poster and Watch now
+- Notifications and popups open the exact movie or series page
+- Premium glass notifications page, My List button fixed on all themes
