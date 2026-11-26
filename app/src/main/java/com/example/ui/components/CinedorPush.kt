@@ -97,10 +97,39 @@ object CinedorPush {
     private fun scaled(b: Bitmap, maxH: Int = 300): Bitmap =
         if (b.height <= maxH) b else Bitmap.createScaledBitmap(b, (b.width * maxH.toFloat() / b.height).toInt().coerceAtLeast(1), maxH, true)
 
+    /** Centre-crops a poster to the 2:3 shape of the notification tiles so rounded corners stay visible. */
+    private fun crop23(b: Bitmap): Bitmap {
+        val targetW = (b.height * 2f / 3f).toInt()
+        return when {
+            targetW in 1 until b.width -> Bitmap.createBitmap(b, (b.width - targetW) / 2, 0, targetW, b.height)
+            b.width < targetW -> {
+                val targetH = (b.width * 3f / 2f).toInt().coerceAtMost(b.height)
+                Bitmap.createBitmap(b, 0, (b.height - targetH) / 2, b.width, targetH)
+            }
+            else -> b
+        }
+    }
+
+    /** Small rounded tile; kept small because a notification can only carry about 1 MB of pictures. */
+    private fun tile(b: Bitmap, h: Int): Bitmap = rounded(scaled(crop23(b), h), 14f)
+
+    /** Downloads several posters at the same time (keeps their order). */
+    private fun loadAll(urls: List<String>): List<Bitmap?> {
+        if (urls.isEmpty()) return emptyList()
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(minOf(5, urls.size))
+        return try {
+            urls.map { u -> pool.submit<Bitmap?> { loadBitmap(u) } }
+                .map { f -> runCatching { f.get(15, java.util.concurrent.TimeUnit.SECONDS) }.getOrNull() }
+        } finally {
+            pool.shutdownNow()
+        }
+    }
+
     /**
      * Shows a notification like the big streaming apps:
-     * - one poster: title + text with the poster on the right (and a big picture when expanded)
-     * - several posters ([images]): title with up to three posters in a row
+     * - one poster: title with a small poster on the right; expanded, the description and a big poster
+     * - several posters ([images]): title with three posters in a row; expanded, up to ten posters
+     *   in two rows of five, the tenth marked "More"
      */
     fun show(context: Context, title: String, body: String, imageUrl: String?, link: String?, images: List<String> = emptyList()) {
         createChannel(context)
@@ -112,7 +141,7 @@ object CinedorPush {
             context, (System.currentTimeMillis() % 100000).toInt(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val b = NotificationCompat.Builder(context, CHANNEL_ID)
+        fun base() = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(com.example.R.drawable.ic_launcher_logo_mono)
             .setColor(0xFFE50914.toInt())
             .setContentTitle(title)
@@ -121,39 +150,84 @@ object CinedorPush {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pi)
 
-        val many = images.filter { it.startsWith("http") }.take(3)
-        if (many.size >= 2) {
-            val views = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_multi)
-            views.setTextViewText(com.example.R.id.n_title, title)
-            if (body.isBlank()) views.setViewVisibility(com.example.R.id.n_body, android.view.View.GONE)
-            else views.setTextViewText(com.example.R.id.n_body, body)
-            val ids = listOf(com.example.R.id.n_p1, com.example.R.id.n_p2, com.example.R.id.n_p3)
-            ids.forEachIndexed { i, id ->
-                val bmp = many.getOrNull(i)?.let { loadBitmap(it) }
-                if (bmp != null) views.setImageViewBitmap(id, rounded(scaled(bmp)))
-                else views.setViewVisibility(id, android.view.View.GONE)
-            }
-            b.setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                .setCustomContentView(views)
-                .setCustomBigContentView(views)
-        } else {
-            val poster = loadBitmap(imageUrl?.ifBlank { null } ?: many.firstOrNull())
-            if (poster != null) {
-                val small = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_poster)
+        val urls = images.filter { it.startsWith("http") }.distinct().take(10)
+        val id = (System.currentTimeMillis() % 1_000_000).toInt()
+        val nm = NotificationManagerCompat.from(context)
+        val gone = android.view.View.GONE
+        val visible = android.view.View.VISIBLE
+
+        if (urls.size >= 2) {
+            val bitmaps = loadAll(urls).filterNotNull()
+            if (bitmaps.size >= 2) {
+                val small = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_multi)
                 small.setTextViewText(com.example.R.id.n_title, title)
-                if (body.isBlank()) small.setViewVisibility(com.example.R.id.n_body, android.view.View.GONE)
-                else small.setTextViewText(com.example.R.id.n_body, body)
-                small.setImageViewBitmap(com.example.R.id.n_poster, rounded(scaled(poster)))
-                b.setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                    .setCustomContentView(small)
-                    .setCustomBigContentView(small)
-                    .setLargeIcon(poster)
-            } else {
-                b.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                val smallIds = listOf(com.example.R.id.n_p1, com.example.R.id.n_p2, com.example.R.id.n_p3)
+                smallIds.forEachIndexed { i, vid ->
+                    val bmp = bitmaps.getOrNull(i)
+                    if (bmp != null) small.setImageViewBitmap(vid, tile(bmp, 120)) else small.setViewVisibility(vid, gone)
+                }
+
+                fun bigView(maxTiles: Int, tileH: Int): android.widget.RemoteViews {
+                    val big = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_multi_big)
+                    big.setTextViewText(com.example.R.id.n_title, title)
+                    if (body.isBlank()) big.setViewVisibility(com.example.R.id.n_body, gone)
+                    else big.setTextViewText(com.example.R.id.n_body, body)
+                    val gridIds = listOf(
+                        com.example.R.id.n_g1, com.example.R.id.n_g2, com.example.R.id.n_g3, com.example.R.id.n_g4, com.example.R.id.n_g5,
+                        com.example.R.id.n_g6, com.example.R.id.n_g7, com.example.R.id.n_g8, com.example.R.id.n_g9, com.example.R.id.n_g10
+                    )
+                    val shown = bitmaps.take(maxTiles)
+                    // A full row of five looks tidy; with fewer than five, empty slots stay as space.
+                    gridIds.forEachIndexed { i, vid ->
+                        val bmp = shown.getOrNull(i)
+                        if (bmp != null) big.setImageViewBitmap(vid, tile(bmp, tileH))
+                        else big.setViewVisibility(vid, android.view.View.INVISIBLE)
+                    }
+                    if (shown.size <= 5) big.setViewVisibility(com.example.R.id.n_row2, gone)
+                    if (shown.size >= 10) big.setViewVisibility(com.example.R.id.n_more, visible)
+                    else big.setViewVisibility(com.example.R.id.n_g10_box, if (shown.size > 9) visible else android.view.View.INVISIBLE)
+                    return big
+                }
+
+                // Try the full picture grid first; if the phone refuses it as too large, use smaller tiles.
+                for ((maxTiles, tileH) in listOf(10 to 132, 10 to 96, 5 to 96)) {
+                    val ok = runCatching {
+                        nm.notify(
+                            id, base()
+                                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                                .setCustomContentView(small)
+                                .setCustomBigContentView(bigView(maxTiles, tileH))
+                                .build()
+                        )
+                    }.isSuccess
+                    if (ok) return
+                }
+                runCatching { nm.notify(id, base().setStyle(NotificationCompat.DecoratedCustomViewStyle()).setCustomContentView(small).build()) }
+                return
             }
         }
-        runCatching {
-            NotificationManagerCompat.from(context).notify((System.currentTimeMillis() % 1_000_000).toInt(), b.build())
+
+        val poster = loadBitmap(imageUrl?.ifBlank { null } ?: urls.firstOrNull())
+        if (poster != null) {
+            val small = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_poster)
+            small.setTextViewText(com.example.R.id.n_title, title)
+            small.setImageViewBitmap(com.example.R.id.n_poster, tile(poster, 120))
+            val big = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_poster_big)
+            big.setTextViewText(com.example.R.id.n_title, title)
+            if (body.isBlank()) big.setViewVisibility(com.example.R.id.n_body, gone)
+            else big.setTextViewText(com.example.R.id.n_body, body)
+            big.setImageViewBitmap(com.example.R.id.n_poster, rounded(scaled(crop23(poster), 300), 20f))
+            runCatching {
+                nm.notify(
+                    id, base()
+                        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                        .setCustomContentView(small)
+                        .setCustomBigContentView(big)
+                        .build()
+                )
+            }
+        } else {
+            runCatching { nm.notify(id, base().setStyle(NotificationCompat.BigTextStyle().bigText(body)).build()) }
         }
     }
 }

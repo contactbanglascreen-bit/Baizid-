@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Notification: title + text on the left, portrait poster on the right -->
+<!-- Notification (collapsed): title on the left, small portrait poster on the right -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -26,15 +26,16 @@
             style="@style/TextAppearance.Compat.Notification.Line2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:maxLines="3"
-            android:ellipsize="end" />
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ImageView
         android:id="@+id/n_poster"
-        android:layout_width="64dp"
-        android:layout_height="92dp"
+        android:layout_width="44dp"
+        android:layout_height="64dp"
         android:scaleType="centerCrop"
         android:contentDescription="@null" />
 </LinearLayout>
