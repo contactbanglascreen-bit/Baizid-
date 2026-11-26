@@ -145,6 +145,7 @@ fun HomeScreen(
     onToggleReminder: (MediaItem) -> Unit,
     onSportsClick: (SportsMatch) -> Unit,
     onRetry: () -> Unit,
+    onLoadMoreCategory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val watchlistIds = watchlist.map { it.contentId }.toSet() + watchlist.map { it.id }.toSet()
@@ -441,6 +442,19 @@ fun HomeScreen(
                                         }
                                         repeat(3 - rowItems.size) {
                                             Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                                // Endless scroll: reaching the bottom loads the next page
+                                if (homeState.filteredItems.isNotEmpty()) {
+                                    item(key = "cat_more_" + homeState.categoryPage) {
+                                        LaunchedEffect(homeState.categoryPage, homeState.selectedTab) { onLoadMoreCategory() }
+                                        Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                                            if (homeState.categoryEnd) {
+                                                Text("You've seen everything here", color = TextMuted, style = MaterialTheme.typography.labelMedium)
+                                            } else {
+                                                CircularProgressIndicator(color = CinetorRed, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                                            }
                                         }
                                     }
                                 }

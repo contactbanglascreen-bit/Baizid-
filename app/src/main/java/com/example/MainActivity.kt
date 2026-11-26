@@ -467,7 +467,8 @@ fun CinedorMainShell() {
                                 onRemoveHistory = { viewModel.removeHistoryItem(it) },
                                 onToggleReminder = { viewModel.toggleReminder(it) },
                                 onSportsClick = { match -> viewModel.openSportsMatch(match) },
-                                onRetry = { viewModel.loadHome(forceRefresh = true) }
+                                onRetry = { viewModel.loadHome(forceRefresh = true) },
+                                onLoadMoreCategory = { viewModel.loadMoreCategory() }
                             )
 
                             CinedorTab.EXPLORE -> ExploreScreen(

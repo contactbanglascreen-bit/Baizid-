@@ -54,6 +54,9 @@ data class HomeUiState(
     val feedState: UiState<HomeFeed> = UiState.Loading,
     val filteredItems: List<MediaItem> = emptyList(),
     val isCategoryLoading: Boolean = false,
+    val categoryPage: Int = 1,
+    val categoryLoadingMore: Boolean = false,
+    val categoryEnd: Boolean = false,
     val updates24h: List<MediaItem> = emptyList(),
     val ranking: List<MediaItem> = emptyList()
 )
@@ -315,37 +318,68 @@ class CinePulseViewModel(
                 _homeState.update { it.copy(filteredItems = upcoming.distinctBy { it.id }, isCategoryLoading = false) }
                 return@launch
             }
-            val catParam = when (tab) {
-                "Movies" -> "movies"
-                "Series" -> "tv"
-                "Anime" -> "anime"
-                "Dramas" -> "drama"
-                else -> "movies"
+            val items = fetchCategoryPage(tab, 1)
+            _homeState.update { it.copy(filteredItems = items, isCategoryLoading = false, categoryPage = 1, categoryEnd = items.isEmpty()) }
+        }
+    }
+
+    /** One page of a Home category tab (Movies, Series, Anime, Dramas). */
+    private suspend fun fetchCategoryPage(tab: String, page: Int): List<MediaItem> {
+        val prefs = preferences.value
+        val catParam = when (tab) {
+            "Movies" -> "movies"
+            "Series" -> "tv"
+            "Anime" -> "anime"
+            "Dramas" -> "drama"
+            else -> "movies"
+        }
+        return if (tab == "Anime") {
+            // The worker's anime list mixes in music videos and other clips, so use MovieBox's real
+            // anime channel and keep only animated titles.
+            val direct = runCatching {
+                apiClient.filterCatalog(ContentSource.MOVIEBOX, "anime", "", "", page, prefs.safeMode)
+            }.getOrDefault(emptyList())
+            val pool = direct.ifEmpty {
+                runCatching { apiClient.filterCatalog(prefs.source, "anime", "", "", page, prefs.safeMode) }
+                    .getOrDefault(emptyList())
             }
-            val items = if (tab == "Anime") {
-                // The worker's anime list mixes in music videos and other clips, so use MovieBox's real
-                // anime channel and keep only animated titles.
-                val direct = runCatching {
-                    apiClient.filterCatalog(ContentSource.MOVIEBOX, "anime", "", "", 1, prefs.safeMode)
-                }.getOrDefault(emptyList())
-                val pool = direct.ifEmpty {
-                    runCatching { apiClient.filterCatalog(prefs.source, "anime", "", "", 1, prefs.safeMode) }
-                        .getOrDefault(emptyList())
-                }
-                pool.filter { looksLikeAnime(it) }.ifEmpty { direct }
-            } else {
-                runCatching {
-                    apiClient.filterCatalog(
-                        source = prefs.source,
-                        category = catParam,
-                        genre = "",
-                        year = "",
-                        page = 1,
-                        safeMode = prefs.safeMode
+            pool.filter { looksLikeAnime(it) }.ifEmpty { direct }
+        } else {
+            runCatching {
+                apiClient.filterCatalog(
+                    source = prefs.source,
+                    category = catParam,
+                    genre = "",
+                    year = "",
+                    page = page,
+                    safeMode = prefs.safeMode
+                )
+            }.getOrDefault(emptyList())
+        }
+    }
+
+    /** Endless scrolling for the Home category tabs: loads the next page and adds new titles. */
+    fun loadMoreCategory() {
+        val st = _homeState.value
+        if (st.categoryLoadingMore || st.categoryEnd || st.isCategoryLoading) return
+        val tab = st.selectedTab
+        if (tab !in listOf("Movies", "Series", "Anime", "Dramas")) return
+        _homeState.update { it.copy(categoryLoadingMore = true) }
+        viewModelScope.launch {
+            val next = st.categoryPage + 1
+            val more = fetchCategoryPage(tab, next)
+            _homeState.update { cur ->
+                if (cur.selectedTab != tab) cur.copy(categoryLoadingMore = false)
+                else {
+                    val merged = (cur.filteredItems + more).distinctBy { it.title.lowercase().trim() + it.year }
+                    cur.copy(
+                        filteredItems = merged,
+                        categoryPage = next,
+                        categoryLoadingMore = false,
+                        categoryEnd = merged.size == cur.filteredItems.size
                     )
-                }.getOrDefault(emptyList())
+                }
             }
-            _homeState.update { it.copy(filteredItems = items, isCategoryLoading = false) }
         }
     }
 
