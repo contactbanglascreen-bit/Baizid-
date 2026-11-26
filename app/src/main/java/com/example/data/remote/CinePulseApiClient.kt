@@ -197,8 +197,11 @@ class CinePulseApiClient(
             val upcomingDeferred = async { runCatching { getUpcoming(source, safeMode, language.code) }.getOrDefault(emptyList()) }
             val trendingDeferred = async { runCatching { getTrending(source, safeMode, language.code) }.getOrDefault(emptyList()) }
 
-            val workerFeed = withTimeoutOrNull(4500L) { workerDeferred.await() }
+            // MovieBox answers fast; the worker (which brings MovieLinkBD) gets up to 6.5 s in total
+            // so its titles are not dropped when it is a little slow.
+            val homeStart = System.currentTimeMillis()
             val directFeed = withTimeoutOrNull(4500L) { directDeferred.await() }
+            val workerFeed = withTimeoutOrNull((6500L - (System.currentTimeMillis() - homeStart)).coerceAtLeast(1500L)) { workerDeferred.await() }
 
             val primary = when {
                 workerFeed != null && (workerFeed.sections.isNotEmpty() || workerFeed.banners.isNotEmpty()) -> workerFeed
@@ -426,7 +429,7 @@ class CinePulseApiClient(
 
             val directList = withTimeoutOrNull(4500L) { directDeferred.await() }.orEmpty()
             val workerList = if (directList.isNotEmpty()) {
-                withTimeoutOrNull(2600L) { workerDeferred.await() }.orEmpty()
+                withTimeoutOrNull(6000L) { workerDeferred.await() }.orEmpty()
             } else {
                 workerDeferred.await().orEmpty()
             }

@@ -336,14 +336,25 @@ class CinePulseViewModel(
         return if (tab == "Anime") {
             // The worker's anime list mixes in music videos and other clips, so use MovieBox's real
             // anime channel and keep only animated titles.
-            val direct = runCatching {
-                apiClient.filterCatalog(ContentSource.MOVIEBOX, "anime", "", "", page, prefs.safeMode)
-            }.getOrDefault(emptyList())
-            val pool = direct.ifEmpty {
-                runCatching { apiClient.filterCatalog(prefs.source, "anime", "", "", page, prefs.safeMode) }
-                    .getOrDefault(emptyList())
+            // MovieLinkBD's anime is fetched at the same time and added after MovieBox's.
+            kotlinx.coroutines.coroutineScope {
+                val directJob = async {
+                    runCatching { apiClient.filterCatalog(ContentSource.MOVIEBOX, "anime", "", "", page, prefs.safeMode) }
+                        .getOrDefault(emptyList())
+                }
+                val mlbdJob = async {
+                    if (prefs.source == ContentSource.MOVIEBOX) emptyList<MediaItem>()
+                    else runCatching { apiClient.filterCatalog(ContentSource.MOVIELINKBD, "anime", "", "", page, prefs.safeMode) }
+                        .getOrDefault(emptyList())
+                }
+                val direct = directJob.await()
+                val mlbd = mlbdJob.await().filter { it.source.equals("movielinkbd", ignoreCase = true) && looksLikeAnime(it) }
+                val pool = direct.ifEmpty {
+                    runCatching { apiClient.filterCatalog(prefs.source, "anime", "", "", page, prefs.safeMode) }
+                        .getOrDefault(emptyList())
+                }
+                (pool.filter { looksLikeAnime(it) }.ifEmpty { direct } + mlbd).distinctBy { "${it.source}:${it.id}" }
             }
-            pool.filter { looksLikeAnime(it) }.ifEmpty { direct }
         } else {
             runCatching {
                 apiClient.filterCatalog(
@@ -428,12 +439,25 @@ class CinePulseViewModel(
         val searchJobs = (info?.keywords ?: listOf(value)).map { k ->
             async { runCatching { apiClient.search(k, page, prefs.source, prefs.safeMode, prefs.language.code) }.getOrDefault(emptyList()) }
         }
+        // MovieLinkBD has no country filter, so its catalog and its own search are asked separately
+        // and the same language/country matching below keeps only the right titles.
+        val mlbdJobs = if (prefs.source == ContentSource.MOVIEBOX) emptyList<kotlinx.coroutines.Deferred<List<MediaItem>>>() else {
+            cats.map { c ->
+                async {
+                    runCatching { apiClient.filterCatalog(ContentSource.MOVIELINKBD, c, "", "", page, prefs.safeMode, prefs.language.code) }
+                        .getOrDefault(emptyList())
+                        .filter { it.source.equals("movielinkbd", ignoreCase = true) }
+                }
+            } + (info?.keywords ?: listOf(value)).map { k ->
+                async { runCatching { apiClient.search(k, page, ContentSource.MOVIELINKBD, prefs.safeMode, prefs.language.code) }.getOrDefault(emptyList()) }
+            }
+        }
         // Titles already loaded on Home are sorted in automatically too.
         val homeFeed = (_homeState.value.feedState as? UiState.Success)?.data
         val loaded = if (page == 1 && homeFeed != null)
             homeFeed.banners + homeFeed.trendingItems + homeFeed.sections.flatMap { it.items } + _homeState.value.updates24h + _homeState.value.ranking
         else emptyList()
-        val pool = loaded + (filterJobs + searchJobs).flatMap { it.await() }
+        val pool = loaded + (filterJobs + searchJobs + mlbdJobs).flatMap { it.await() }
         val matched = pool.filter { item -> info?.matches(item) ?: true }
             .filter { item ->
                 when (type) {
