@@ -93,7 +93,13 @@ import com.example.ui.viewmodel.CinePulseViewModel
 import com.example.ui.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra("cinedor_link")?.takeIf { it.isNotBlank() }?.let { com.example.ui.components.PushLink.pending = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        intent?.getStringExtra("cinedor_link")?.takeIf { it.isNotBlank() }?.let { com.example.ui.components.PushLink.pending = it }
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
@@ -250,6 +256,16 @@ fun CinedorMainShell() {
     }
 
     var currentTab by rememberSaveable { mutableStateOf(CinedorTab.HOME) }
+    // A notification with "Open in app" text opens Explore and searches for it.
+    val pushLink = com.example.ui.components.PushLink.pending
+    LaunchedEffect(pushLink) {
+        if (!pushLink.isNullOrBlank()) {
+            com.example.ui.components.PushLink.pending = null
+            currentTab = CinedorTab.EXPLORE
+            viewModel.onSearchQueryChanged(pushLink)
+            viewModel.executeSearch(pushLink)
+        }
+    }
 
     // Ask to update when a newer build is published on GitHub Releases.
     com.example.ui.components.AppUpdatePrompt()

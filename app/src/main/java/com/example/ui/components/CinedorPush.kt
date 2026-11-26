@@ -11,6 +11,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
@@ -116,6 +118,11 @@ object CinedorPush {
             NotificationManagerCompat.from(context).notify((System.currentTimeMillis() % 1_000_000).toInt(), b.build())
         }
     }
+}
+
+/** Text from a tapped notification ("Open in app"): the app searches for it. */
+object PushLink {
+    var pending by androidx.compose.runtime.mutableStateOf<String?>(null)
 }
 
 /** Receives FCM messages. Poster (image) notifications are shown with a big picture. */
