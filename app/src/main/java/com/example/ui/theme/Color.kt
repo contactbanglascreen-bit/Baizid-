@@ -104,7 +104,7 @@ val CinetorBlush: Color get() = P.blush
 val AccentBright: Color get() = lerp(P.accent, Color.White, 0.10f)
 
 // Chips / sheets / misc
-val ChipBg: Color get() = P.chipBg
+val ChipBg: Color get() = liquid(P.chipBg, 0.70f, 0.72f)
 val ChipBorder: Color get() = P.chipBorder
 val SheetBg: Color get() = if (P.isDark) P.surface else Color(0xFFF6F1EF)
 val ShimmerBase: Color get() = if (P.isDark) P.surfaceVariant else Color(0xFFEDE6E5)
@@ -125,8 +125,21 @@ val MediaCardDarkEnd = Color(0xFF0D0E12)
 // Surface hierarchy
 val ObsidianBackground: Color get() = P.background
 val ObsidianSurface: Color get() = P.surface
-val ObsidianSurfaceVariant: Color get() = P.surfaceVariant
-val ObsidianCard: Color get() = P.card
+val ObsidianSurfaceVariant: Color get() = liquid(P.surfaceVariant, 0.74f, 0.70f)
+val ObsidianCard: Color get() = liquid(P.card, 0.72f, 0.66f)
+
+/** Opaque versions, for places that must hide what is behind them (video player, sheets). */
+val SolidCard: Color get() = P.card
+val SolidSurfaceVariant: Color get() = P.surfaceVariant
+
+/**
+ * Liquid Glass: cards and chips are slightly see-through, so the soft colour lights of the
+ * screen background glow through them like frosted glass. A touch of white keeps the glass
+ * bright; alpha stays high enough that text is always easy to read.
+ */
+private fun liquid(c: Color, darkAlpha: Float, lightAlpha: Float): Color =
+    if (P.isDark) lerp(c, Color.White, 0.04f).copy(alpha = darkAlpha)
+    else lerp(c, Color.White, 0.35f).copy(alpha = lightAlpha)
 val ObsidianBorder: Color get() = P.border
 
 // Former logo gradient tokens -> accent family

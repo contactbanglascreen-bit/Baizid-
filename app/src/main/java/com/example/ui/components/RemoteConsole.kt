@@ -404,13 +404,14 @@ fun ConsolePrompts() {
 @Composable
 private fun SpotlightPopup(p: PopupConfig, onClose: () -> Unit, onWatch: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(22.dp)
                 .fillMaxWidth()
                 .shadow(28.dp, RoundedCornerShape(30.dp))
                 .clip(RoundedCornerShape(30.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .background(Brush.verticalGradient(listOf(Color(0xE61A0D10), Color(0xEB0C0809))))
                 .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
         ) {
             Box(Modifier.fillMaxWidth().height(300.dp)) {
@@ -504,13 +505,14 @@ private fun SpotlightPopup(p: PopupConfig, onClose: () -> Unit, onWatch: () -> U
 @Composable
 private fun CommunityPopup(p: PopupConfig, onClose: () -> Unit, onLink: (String) -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(22.dp)
                 .fillMaxWidth()
                 .shadow(24.dp, RoundedCornerShape(30.dp))
                 .clip(RoundedCornerShape(30.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .background(Brush.verticalGradient(listOf(Color(0xE61A0D10), Color(0xEB0C0809))))
                 .border(1.dp, CinetorRed.copy(alpha = 0.55f), RoundedCornerShape(30.dp))
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -668,13 +670,14 @@ fun SharePromptHost() {
         open = false
     }
     Dialog(onDismissRequest = { done() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(22.dp)
                 .fillMaxWidth()
                 .shadow(24.dp, RoundedCornerShape(30.dp))
                 .clip(RoundedCornerShape(30.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFF1A0D10), Color(0xFF0C0809))))
+                .background(Brush.verticalGradient(listOf(Color(0xE61A0D10), Color(0xEB0C0809))))
                 .border(1.5.dp, Brush.linearGradient(listOf(AccentBright, CinetorRedDark)), RoundedCornerShape(30.dp))
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -784,13 +787,14 @@ fun SharePromptHost() {
 private fun PremiumPopup(p: PopupConfig, onClose: () -> Unit, onAction: () -> Unit) {
     val gold = Color(0xFFF5C451)
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(22.dp)
                 .fillMaxWidth()
                 .shadow(24.dp, RoundedCornerShape(30.dp))
                 .clip(RoundedCornerShape(30.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xFF1C1206), Color(0xFF0D0A06))))
+                .background(Brush.verticalGradient(listOf(Color(0xE61C1206), Color(0xEB0D0A06))))
                 .border(1.dp, gold.copy(alpha = 0.45f), RoundedCornerShape(30.dp))
         ) {
             Box(
@@ -904,6 +908,7 @@ private fun PremiumPopup(p: PopupConfig, onClose: () -> Unit, onAction: () -> Un
 @Composable
 private fun AnnouncementPopup(p: PopupConfig, onClose: () -> Unit, onAction: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(24.dp)

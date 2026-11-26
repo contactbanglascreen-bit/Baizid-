@@ -228,7 +228,7 @@ fun BrowsePage(
         onDismissRequest = onClose,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(Modifier.fillMaxSize().background(ObsidianBackground)) {
+        Column(Modifier.fillMaxSize().glassBackground()) {
             Box(
                 Modifier
                     .fillMaxWidth()

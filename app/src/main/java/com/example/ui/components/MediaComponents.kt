@@ -220,7 +220,7 @@ fun HeroBannerCarousel(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(listOf(CinetorBlush, ObsidianBackground))
+                Brush.verticalGradient(listOf(CinetorBlush.copy(alpha = 0.55f), Color.Transparent))
             )
             .padding(top = 10.dp, bottom = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally

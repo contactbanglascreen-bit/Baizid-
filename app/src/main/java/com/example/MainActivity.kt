@@ -1,5 +1,7 @@
 package com.example
 
+import dev.chrisbanes.haze.hazeSource
+import com.example.ui.components.glassBackground
 import android.graphics.Color
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
@@ -322,7 +324,7 @@ fun CinedorMainShell() {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(ObsidianBackground)
+                    .glassBackground()
                     .statusBarsPadding()
             ) {
                 Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
@@ -390,15 +392,18 @@ fun CinedorMainShell() {
 
     // Full-screen overlay when a media detail/player is active
     Box(modifier = Modifier.fillMaxSize()) {
+    // Liquid Glass: the floating nav bar blurs the screen content scrolling under it.
+    val glassState = remember { dev.chrisbanes.haze.HazeState() }
+    androidx.compose.runtime.CompositionLocalProvider(com.example.ui.components.LiquidGlass.LocalState provides glassState) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .glassBackground()
     ) {
         val useNavRail = maxWidth >= 600.dp
 
         Scaffold(
-            containerColor = ObsidianBackground,
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -412,7 +417,7 @@ fun CinedorMainShell() {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                Row(modifier = Modifier.fillMaxSize()) {
+                Row(modifier = Modifier.fillMaxSize().hazeSource(glassState)) {
                     if (useNavRail) {
                         NavigationRail(
                             containerColor = ObsidianSurface,
@@ -584,6 +589,7 @@ fun CinedorMainShell() {
             }
         }
     }
+    }
 
     // Detail / player on top (full screen, or an in-app floating mini player)
     val selectedDetail = detailState.selectedItem
@@ -623,7 +629,7 @@ fun CinedorMainShell() {
                 } else {
                     Modifier
                         .fillMaxSize()
-                        .background(ObsidianBackground)
+                        .glassBackground()
                 }
             ) {
                 DetailPlayerScreen(

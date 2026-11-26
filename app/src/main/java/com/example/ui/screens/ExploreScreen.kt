@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBackground
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -123,7 +124,7 @@ fun ExploreScreen(
         },
         modifier = modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .glassBackground()
     ) {
     LazyColumn(
         modifier = Modifier
@@ -135,7 +136,7 @@ fun ExploreScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(CinetorBlush, ObsidianBackground)))
+                    .background(Brush.verticalGradient(listOf(CinetorBlush.copy(alpha = 0.55f), Color.Transparent)))
                     .padding(horizontal = 16.dp)
                     .padding(top = 14.dp, bottom = 10.dp)
             ) {

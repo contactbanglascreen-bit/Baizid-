@@ -255,6 +255,7 @@ fun AppUpdatePrompt(manualCheck: Boolean = false, onFinished: () -> Unit = {}) {
             dismissOnClickOutside = !forced
         )
     ) {
+        DialogBackdropBlur()
         Column(
             modifier = Modifier
                 .padding(22.dp)

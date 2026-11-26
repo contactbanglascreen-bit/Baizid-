@@ -113,6 +113,7 @@ fun NotificationInboxDialog(onClose: () -> Unit) {
         listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.04f))
     )
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DialogBackdropBlur()
         Box(
             Modifier
                 .fillMaxSize()

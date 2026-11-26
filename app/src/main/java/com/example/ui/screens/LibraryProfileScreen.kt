@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBackground
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -151,7 +152,7 @@ fun LibraryProfileScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .glassBackground()
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 96.dp)
     ) {
@@ -274,7 +275,7 @@ fun LibraryProfileScreen(
             ScrollableTabRow(
                 selectedTabIndex = selectedTab,
                 edgePadding = 12.dp,
-                containerColor = ObsidianBackground,
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
                 contentColor = TextPrimary,
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(

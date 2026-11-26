@@ -108,26 +108,7 @@ fun CinedorPremium3DNavBar(
                     ambientColor = CinetorRed.copy(alpha = 0.18f),
                     spotColor = Color.Black.copy(alpha = 0.28f)
                 )
-                .clip(pillShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            NavGlassTop,
-                            NavGlassBottom
-                        )
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            ObsidianBorder,
-                            CinetorRed.copy(alpha = 0.28f),
-                            ObsidianBorder
-                        )
-                    ),
-                    shape = pillShape
-                )
+                .liquidGlass(pillShape)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

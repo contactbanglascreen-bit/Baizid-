@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import dev.chrisbanes.haze.hazeSource
+import com.example.ui.components.liquidGlass
+import com.example.ui.components.glassBackground
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.CachePolicy
@@ -253,10 +256,12 @@ fun HomeScreen(
         }.take(12)
     }
 
+    // The sticky header blurs the posters scrolling under it (Liquid Glass).
+    val homeHaze = remember { dev.chrisbanes.haze.HazeState() }
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .glassBackground()
     ) {
         var pullRefreshing by remember { mutableStateOf(false) }
         LaunchedEffect(homeState.feedState) { pullRefreshing = false }
@@ -286,7 +291,7 @@ fun HomeScreen(
                         .padding(top = headerOffset)
                 )
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().hazeSource(homeHaze)
         ) {
         LazyColumn(
             state = listState,
@@ -876,13 +881,9 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            ObsidianBackground,
-                            CinetorBlush.copy(alpha = if (isScrolled) 0.98f else 0.96f)
-                        )
-                    )
+                .liquidGlass(
+                    RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp),
+                    state = homeHaze
                 )
                 .statusBarsPadding()
                 .padding(top = 6.dp, bottom = 8.dp)

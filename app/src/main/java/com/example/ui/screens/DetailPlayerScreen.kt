@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBackground
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import com.example.ui.components.QualityLadder
@@ -223,7 +224,7 @@ fun DetailPlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isFullscreen || PipState.inPip || miniMode) Color.Black else ObsidianBackground)
+            .then(if (isFullscreen || PipState.inPip || miniMode) Modifier.background(Color.Black) else Modifier.glassBackground())
             .then(
                 if (isFullscreen || PipState.inPip || miniMode) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()
             )

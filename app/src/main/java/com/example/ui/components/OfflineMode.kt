@@ -72,7 +72,7 @@ fun OfflineOnlyScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ObsidianBackground)
+            .glassBackground()
             .statusBarsPadding()
     ) {
         Row(

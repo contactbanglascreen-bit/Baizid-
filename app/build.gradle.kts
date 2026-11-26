@@ -91,6 +91,8 @@ dependencies {
   // implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
+  // Liquid Glass: real background blur on Android 12+, frosted tint on older phones
+  implementation(libs.haze)
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)
   // implementation(libs.androidx.camera.lifecycle)

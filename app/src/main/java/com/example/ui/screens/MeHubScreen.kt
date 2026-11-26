@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBackground
 import android.text.format.DateUtils
 import android.text.format.Formatter
 import android.widget.Toast
@@ -216,7 +217,8 @@ fun MeHubScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(CinetorBlush, ObsidianBackground, ObsidianBackground)))
+            .glassBackground()
+            .background(Brush.verticalGradient(listOf(CinetorBlush.copy(alpha = 0.5f), Color.Transparent, Color.Transparent)))
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(bottom = 110.dp)
