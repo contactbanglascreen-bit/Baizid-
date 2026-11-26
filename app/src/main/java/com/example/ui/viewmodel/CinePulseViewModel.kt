@@ -373,6 +373,22 @@ class CinePulseViewModel(
         }
     }
 
+    /** Finds the title a notification points to, so tapping it opens that movie/series page directly. */
+    suspend fun findForPush(query: String): MediaItem? {
+        val q = query.trim()
+        if (q.isBlank()) return null
+        val prefs = preferences.value
+        val clean = q.replace(Regex("\\s*\\(\\d{4}\\)\\s*$"), "").trim()
+        val results = runCatching { apiClient.search(clean, 1, prefs.source, prefs.safeMode, prefs.language.code) }
+            .getOrDefault(emptyList())
+        if (results.isEmpty()) return null
+        fun norm(t: String) = t.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val target = norm(clean)
+        return results.firstOrNull { norm(it.title) == target }
+            ?: results.firstOrNull { norm(it.title).startsWith(target) || target.startsWith(norm(it.title)) }
+            ?: results.first()
+    }
+
     fun onSearchQueryChanged(newQuery: String) {
         _exploreState.update { it.copy(query = newQuery) }
         suggestJob?.cancel()

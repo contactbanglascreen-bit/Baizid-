@@ -93,13 +93,26 @@ import com.example.ui.viewmodel.CinePulseViewModel
 import com.example.ui.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
+    /** Notification taps: our own notifications send "cinedor_link"; FCM tray notifications send the data keys. */
+    private fun handlePushIntent(i: android.content.Intent?) {
+        if (i == null) return
+        val link = i.getStringExtra("cinedor_link")?.ifBlank { null } ?: i.getStringExtra("link")?.ifBlank { null }
+        val title = i.getStringExtra("title")
+        if (title != null && i.getStringExtra("google.message_id") != null) {
+            com.example.ui.components.NotificationInbox.add(
+                applicationContext, title, i.getStringExtra("body").orEmpty(), i.getStringExtra("image"), link
+            )
+        }
+        if (link != null) com.example.ui.components.PushLink.pending = link
+    }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        intent.getStringExtra("cinedor_link")?.takeIf { it.isNotBlank() }?.let { com.example.ui.components.PushLink.pending = it }
+        handlePushIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        intent?.getStringExtra("cinedor_link")?.takeIf { it.isNotBlank() }?.let { com.example.ui.components.PushLink.pending = it }
+        handlePushIntent(intent)
         super.onCreate(savedInstanceState)
         com.example.ui.components.AppSettings.load(applicationContext)
         com.example.ui.components.AdultLock.load(applicationContext)
@@ -256,14 +269,19 @@ fun CinedorMainShell() {
     }
 
     var currentTab by rememberSaveable { mutableStateOf(CinedorTab.HOME) }
-    // A notification with "Open in app" text opens Explore and searches for it.
+    // Tapping a notification opens the movie/series it is about (falls back to search).
     val pushLink = com.example.ui.components.PushLink.pending
     LaunchedEffect(pushLink) {
         if (!pushLink.isNullOrBlank()) {
             com.example.ui.components.PushLink.pending = null
-            currentTab = CinedorTab.EXPLORE
-            viewModel.onSearchQueryChanged(pushLink)
-            viewModel.executeSearch(pushLink)
+            val item = viewModel.findForPush(pushLink)
+            if (item != null) {
+                viewModel.openMediaDetail(item)
+            } else {
+                currentTab = CinedorTab.EXPLORE
+                viewModel.onSearchQueryChanged(pushLink)
+                viewModel.executeSearch(pushLink)
+            }
         }
     }
 

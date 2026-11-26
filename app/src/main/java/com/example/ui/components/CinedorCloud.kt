@@ -205,14 +205,19 @@ object CinedorCloud {
     /** Notifications the admin sent (stored in Firestore), newest first, for the in-app inbox. */
     suspend fun announcements(context: Context): List<InboxItem> = withContext(Dispatchers.IO) {
         runCatching {
-            val tok = token(context) ?: return@runCatching emptyList()
+            // Public list (rules allow reading notifications without login); token only as a fallback.
+            val tok: String? = null
             val query = JSONObject().put(
                 "structuredQuery", JSONObject()
                     .put("from", JSONArray().put(JSONObject().put("collectionId", "notifications")))
                     .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "at")).put("direction", "DESCENDING")))
                     .put("limit", 40)
             )
-            val r = http("$DOCS:runQuery", "POST", query.toString(), tok)
+            var r = http("$DOCS:runQuery?key=$API_KEY", "POST", query.toString(), tok)
+            if (r.code !in 200..299) {
+                val t = token(context) ?: return@runCatching emptyList()
+                r = http("$DOCS:runQuery", "POST", query.toString(), t)
+            }
             if (r.code !in 200..299) return@runCatching emptyList()
             val arr = JSONArray(r.body)
             val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }

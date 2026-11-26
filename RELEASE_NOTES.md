@@ -1,6 +1,2 @@
-- Smoother playback: bigger buffer and automatic switch to a lower quality when the internet is slow
-- Resume: videos continue from where you stopped ("Resumed from 12:34 · Start over")
-- New Zoom & fit button in the player: Fit, Fill, Cut black bars, Stretch and 1.25x–2.5x zoom
-- 🔔 Notifications inbox on Home with unread badge
-- Settings › Internet speed: live KB/s–MB/s, speed test (ping, download, upload) and data used by Cinedor
-- Feedback & help: report a problem and get told when it's fixed
+- Tap a notification to open that movie or series page directly
+- Notifications now appear in the 🔔 inbox even when they arrived while the app was closed
