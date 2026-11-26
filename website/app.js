@@ -137,12 +137,12 @@
       }
       s.restore();
       ctx.clearRect(0, 0, W, H);
-      if ("filter" in ctx) { ctx.filter = "blur(6px) saturate(1.7) brightness(0.72)"; ctx.drawImage(src, -10, -10, W + 20, H + 20); ctx.filter = "none"; }
+      if ("filter" in ctx) { ctx.filter = "blur(6px) saturate(2.1) brightness(0.95) contrast(1.1)"; ctx.drawImage(src, -10, -10, W + 20, H + 20); ctx.filter = "none"; }
       else {
         // no canvas filter (older Safari): shrink further, then stretch = blur
         const t = document.createElement("canvas"); t.width = 34; t.height = Math.round(34 * H / W);
         t.getContext("2d").drawImage(src, 0, 0, t.width, t.height);
-        ctx.globalAlpha = 0.75; ctx.drawImage(t, 0, 0, W, H); ctx.globalAlpha = 1;
+        ctx.globalAlpha = 0.95; ctx.drawImage(t, 0, 0, W, H); ctx.globalAlpha = 1;
       }
       c.classList.add("ready");
     };

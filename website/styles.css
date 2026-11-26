@@ -41,7 +41,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: radial-gradient(ellipse at 50% 0%, #3a0a18, #12060c 60%); }
 .bg { transform: translateZ(0); }
 .bg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease; }
-.bg-canvas.ready { opacity: 0.9; }
+.bg-canvas.ready { opacity: 1; }
 /* soft colour lights: plain radial gradients (no blur filter), moved only with transform */
 .blob { position: absolute; border-radius: 50%; will-change: transform; animation: drift 24s ease-in-out infinite alternate; }
 .b1 { width: 70vmax; height: 70vmax; background: radial-gradient(circle, rgba(255,31,61,.55), transparent 65%); top: -30vmax; left: -25vmax; }
@@ -288,11 +288,18 @@ html[lang="bn"] h2 { line-height: 1.28; letter-spacing: 0; }
 html.lite .glass, html.lite .glass-chip, html.lite .btn-glass {
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-html.lite .glass { background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.06) 45%, rgba(255,255,255,.1)); }
-html.lite .glass-chip, html.lite .btn-glass:not(.red) { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.09)); }
+/* without a real backdrop blur, a lot of white washes the colours out, so the painted glass
+   uses only a thin white film plus a warm tint, letting the colourful background shine through */
+html.lite .glass { background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,70,100,.05) 40%, rgba(255,255,255,.03) 60%, rgba(255,255,255,.08)); }
+html.lite .bg::after { background: radial-gradient(ellipse at 50% 30%, rgba(18,6,12,0), rgba(18,6,12,.35) 80%); }
+html.lite .b1 { background: radial-gradient(circle, rgba(255,31,61,.7), transparent 65%); }
+html.lite .b2 { background: radial-gradient(circle, rgba(190,30,160,.6), transparent 65%); }
+html.lite .b3 { background: radial-gradient(circle, rgba(255,122,47,.5), transparent 65%); }
+html.lite .b4 { background: radial-gradient(circle, rgba(90,60,255,.4), transparent 65%); }
+html.lite .glass-chip, html.lite .btn-glass:not(.red) { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.06)); }
 html.lite .nav, html.lite .tabbar {
   -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
-  background: linear-gradient(135deg, rgba(40,14,22,.55), rgba(40,14,22,.4));
+  background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.05));
 }
 html.lite .blob, html.lite .shine, html.lite .app-icon .ring, html.lite .live::after { animation: none; }
 html.lite .bg-grain { display: none; }
