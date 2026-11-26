@@ -166,7 +166,10 @@ internal fun CinedorPlayerControlsOverlay(
     onPinchZoom: (Float) -> Unit = {},
     videoTracks: List<PlayerTrackOption> = emptyList(),
     videoAuto: Boolean = true,
-    onSelectVideoTrack: (PlayerTrackOption?) -> Unit = {}
+    onSelectVideoTrack: (PlayerTrackOption?) -> Unit = {},
+    zoomLevel: Float = 1f,
+    onSetZoom: ((Float) -> Unit)? = null,
+    onSetResize: ((VideoResizeOption) -> Unit)? = null
 ) {
     val ctx = LocalContext.current
     var containerHeightPx by remember { mutableIntStateOf(1) }
@@ -631,6 +634,19 @@ internal fun CinedorPlayerControlsOverlay(
                             testTag = "player_speed_button"
                         )
 
+                        if (onSetResize != null) {
+                            TopOverlayActionItem(
+                                icon = Icons.Rounded.AspectRatio,
+                                label = if (zoomLevel > 1.01f) "${"%.2f".format(zoomLevel).trimEnd('0').trimEnd('.')}x" else resizeOption.label.substringBefore(' '),
+                                active = resizeOption != VideoResizeOption.FIT || zoomLevel > 1.01f,
+                                onClick = {
+                                    interactionTick++
+                                    openPanel = PlayerPanel.ZOOM
+                                },
+                                testTag = "player_zoom_button"
+                            )
+                        }
+
                         if (streams.isNotEmpty() || videoTracks.size > 1) {
                             TopOverlayActionItem(
                                 icon = Icons.Rounded.HighQuality,
@@ -928,6 +944,7 @@ internal fun CinedorPlayerControlsOverlay(
                         text = when (panel) {
                             PlayerPanel.QUALITY -> "Video quality"
                             PlayerPanel.SPEED -> "Playback speed"
+                            PlayerPanel.ZOOM -> "Zoom & fit"
                             PlayerPanel.CAPTIONS -> "Subtitles"
                             PlayerPanel.AUDIO -> "Audio language"
                             PlayerPanel.TRANSLATE -> "AI translate subtitles to…"
@@ -998,6 +1015,44 @@ internal fun CinedorPlayerControlsOverlay(
                                                     android.widget.Toast.LENGTH_SHORT
                                                 ).show()
                                             }
+                                        }
+                                    )
+                                }
+                            }
+                            PlayerPanel.ZOOM -> {
+                                val fits = listOf(
+                                    VideoResizeOption.FIT to "Whole picture",
+                                    VideoResizeOption.ZOOM to "Fill the screen",
+                                    VideoResizeOption.CROP to "Cut black bars",
+                                    VideoResizeOption.FILL to "Stretch to screen"
+                                )
+                                items(fits, key = { "fit_" + it.first.name }) { (opt, desc) ->
+                                    PanelOptionCard(
+                                        title = opt.label,
+                                        badge = null,
+                                        subtitle = desc,
+                                        selected = resizeOption == opt && zoomLevel <= 1.01f,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            interactionTick++
+                                            onSetResize?.invoke(opt)
+                                            resizeToastText = "Display: ${opt.label}"
+                                            resizeToastTick++
+                                        }
+                                    )
+                                }
+                                items(listOf(1.25f, 1.5f, 2f, 2.5f), key = { "zoom_$it" }) { z ->
+                                    PanelOptionCard(
+                                        title = "${z}x",
+                                        badge = null,
+                                        subtitle = "Zoom in",
+                                        selected = kotlin.math.abs(zoomLevel - z) < 0.05f,
+                                        compact = !isFullscreen,
+                                        onClick = {
+                                            interactionTick++
+                                            onSetZoom?.invoke(z)
+                                            resizeToastText = "Zoom ${z}x · pinch to adjust"
+                                            resizeToastTick++
                                         }
                                     )
                                 }
@@ -1431,7 +1486,7 @@ private fun SleekVideoSeekBar(
     }
 }
 
-internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS, AUDIO, TRANSLATE }
+internal enum class PlayerPanel { QUALITY, SPEED, CAPTIONS, AUDIO, TRANSLATE, ZOOM }
 
 /** A built-in audio or subtitle track found inside the video stream. */
 data class PlayerTrackOption(

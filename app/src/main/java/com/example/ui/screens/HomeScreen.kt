@@ -908,6 +908,8 @@ fun HomeScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
+                com.example.ui.components.NotificationBellButton(40)
+                Spacer(modifier = Modifier.width(10.dp))
 
                 // Round white search button
                 Box(

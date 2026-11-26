@@ -12,6 +12,7 @@ class CinedorApp : Application() {
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             com.example.ui.components.CinedorCloud.reportDevice(this@CinedorApp)
             runCatching { com.example.ui.components.CinedorCloud.checkFixed(this@CinedorApp) }
+            runCatching { com.example.ui.components.CinedorCloud.refreshInboxBadge(this@CinedorApp) }
         }
     }
 }

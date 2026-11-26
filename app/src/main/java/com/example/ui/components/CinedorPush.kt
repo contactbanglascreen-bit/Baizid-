@@ -120,6 +120,72 @@ object CinedorPush {
     }
 }
 
+/** Notifications received on this phone, shown in the app's 🔔 inbox. */
+data class InboxItem(val title: String, val body: String, val image: String, val link: String, val at: Long)
+
+object NotificationInbox {
+    private const val PREFS = "cinedor_inbox"
+    var unread by androidx.compose.runtime.mutableIntStateOf(0)
+    private var loaded = false
+
+    private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    fun load(c: Context) {
+        if (loaded) return
+        loaded = true
+        unread = prefs(c).getInt("unread", 0)
+    }
+
+    fun items(c: Context): List<InboxItem> = runCatching {
+        val arr = org.json.JSONArray(prefs(c).getString("items", "[]"))
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            InboxItem(o.optString("title"), o.optString("body"), o.optString("image"), o.optString("link"), o.optLong("at"))
+        }
+    }.getOrDefault(emptyList())
+
+    @Synchronized
+    fun add(c: Context, title: String, body: String, image: String?, link: String?) {
+        val list = items(c).toMutableList()
+        list.add(0, InboxItem(title, body, image.orEmpty(), link.orEmpty(), System.currentTimeMillis()))
+        val arr = org.json.JSONArray()
+        list.take(60).forEach {
+            arr.put(org.json.JSONObject().put("title", it.title).put("body", it.body).put("image", it.image).put("link", it.link).put("at", it.at))
+        }
+        val n = prefs(c).getInt("unread", 0) + 1
+        prefs(c).edit().putString("items", arr.toString()).putInt("unread", n).apply()
+        unread = n
+    }
+
+    private var remoteUnread = 0
+
+    /** Unread admin notifications from the cloud are added to the badge. */
+    fun setRemoteUnread(c: Context, n: Int) {
+        remoteUnread = n
+        unread = prefs(c).getInt("unread", 0) + n
+    }
+
+    fun markAllRead(c: Context) {
+        prefs(c).edit().putInt("unread", 0).apply()
+        c.getSharedPreferences("cinedor_cloud", Context.MODE_PRIVATE).edit()
+            .putLong("inbox_seen_at", System.currentTimeMillis()).apply()
+        remoteUnread = 0
+        unread = 0
+    }
+
+    /** Local + cloud notifications merged, newest first, without duplicates. */
+    fun merge(local: List<InboxItem>, remote: List<InboxItem>): List<InboxItem> =
+        (local + remote)
+            .distinctBy { it.title.trim().lowercase() + "|" + (it.at / 600_000L) }
+            .distinctBy { it.title.trim().lowercase() + "|" + it.body.trim().lowercase() }
+            .sortedByDescending { it.at }
+
+    fun clear(c: Context) {
+        prefs(c).edit().putString("items", "[]").putInt("unread", 0).apply()
+        unread = 0
+    }
+}
+
 /** Text from a tapped notification ("Open in app"): the app searches for it. */
 object PushLink {
     var pending by androidx.compose.runtime.mutableStateOf<String?>(null)
@@ -133,6 +199,7 @@ class CinedorMessagingService : FirebaseMessagingService() {
         val title = data["title"] ?: n?.title ?: "Cinedor"
         val body = data["body"] ?: n?.body ?: ""
         val image = data["image"] ?: n?.imageUrl?.toString()
+        NotificationInbox.add(applicationContext, title, body, image, data["link"])
         CinedorPush.show(applicationContext, title, body, image, data["link"])
     }
 

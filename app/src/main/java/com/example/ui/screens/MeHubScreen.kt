@@ -818,6 +818,10 @@ private fun SettingsPage(
         runCatching { context.imageLoader.diskCache?.size ?: 0L }.getOrDefault(0L)
     }
 
+    SettingsCard("Internet speed") {
+        com.example.ui.components.NetSpeedCard()
+    }
+
     SettingsCard("Appearance") {
         CinedorPalettes.chunked(3).forEach { rowList ->
             Row(

@@ -684,7 +684,11 @@ class CinePulseViewModel(
         val initialIsMovie = item.mediaType == com.example.data.model.MediaCategoryType.MOVIE
         val startSeason = if (initialSeason > 1) initialSeason else (historyMatch?.season?.coerceAtLeast(1) ?: 1)
         val startEpisode = if (initialEpisode > 1) initialEpisode else (historyMatch?.episode?.coerceAtLeast(1) ?: 1)
-        val startPos = if (resumeMs > 0L) resumeMs else (historyMatch?.positionMs ?: 0L)
+        // Resume where the viewer stopped, unless they had basically finished it.
+        val savedPos = historyMatch?.let { h ->
+            if (h.durationMs > 0L && h.positionMs > h.durationMs - 60_000L) 0L else h.positionMs
+        } ?: 0L
+        val startPos = if (resumeMs > 0L) resumeMs else savedPos
 
         if (directStreamUrl.startsWith("http")) {
             val isHls = !(directStreamUrl.contains(".mp4", ignoreCase = true) &&
@@ -1036,7 +1040,7 @@ class CinePulseViewModel(
         val state = _detailState.value
         val item = state.selectedItem ?: return
         if (durationMs <= 0L || positionMs < 3000L) return
-        if (lastSavedProgressMs >= 0L && kotlin.math.abs(positionMs - lastSavedProgressMs) < 15_000L) return
+        if (lastSavedProgressMs >= 0L && kotlin.math.abs(positionMs - lastSavedProgressMs) < 3_000L) return
         lastSavedProgressMs = positionMs
         viewModelScope.launch {
             libraryRepository.saveWatchProgress(

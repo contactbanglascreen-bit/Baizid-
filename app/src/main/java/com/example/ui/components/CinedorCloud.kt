@@ -202,6 +202,38 @@ object CinedorCloud {
         }.getOrDefault(emptyList())
     }
 
+    /** Notifications the admin sent (stored in Firestore), newest first, for the in-app inbox. */
+    suspend fun announcements(context: Context): List<InboxItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val tok = token(context) ?: return@runCatching emptyList()
+            val query = JSONObject().put(
+                "structuredQuery", JSONObject()
+                    .put("from", JSONArray().put(JSONObject().put("collectionId", "notifications")))
+                    .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "at")).put("direction", "DESCENDING")))
+                    .put("limit", 40)
+            )
+            val r = http("$DOCS:runQuery", "POST", query.toString(), tok)
+            if (r.code !in 200..299) return@runCatching emptyList()
+            val arr = JSONArray(r.body)
+            val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+            (0 until arr.length()).mapNotNull { i ->
+                val f = arr.optJSONObject(i)?.optJSONObject("document")?.optJSONObject("fields") ?: return@mapNotNull null
+                val at = runCatching { iso.parse(field(f, "at").take(19))?.time }.getOrNull() ?: 0L
+                InboxItem(field(f, "title"), field(f, "body"), field(f, "image"), field(f, "link"), at)
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    /** On app start: counts admin notifications the user hasn't seen yet (for the 🔔 badge). */
+    suspend fun refreshInboxBadge(context: Context) {
+        val list = announcements(context)
+        if (list.isEmpty()) return
+        val p = prefs(context)
+        val seenAt = p.getLong("inbox_seen_at", 0L)
+        val fresh = list.count { it.at > seenAt }
+        NotificationInbox.setRemoteUnread(context, fresh)
+    }
+
     /** On app start: tells the user (notification) about feedback the admin marked as fixed. */
     suspend fun checkFixed(context: Context) {
         val items = myFeedback(context).filter { it.isFixed }
@@ -210,6 +242,7 @@ object CinedorCloud {
         val seen = p.getStringSet("seen_fixed", emptySet()).orEmpty()
         val fresh = items.filter { it.id !in seen }
         fresh.firstOrNull()?.let { f ->
+            NotificationInbox.add(context, "✅ Your problem is fixed", f.reply.ifBlank { f.message.take(80) }, null, null)
             CinedorPush.show(
                 context,
                 "✅ Your problem is fixed",

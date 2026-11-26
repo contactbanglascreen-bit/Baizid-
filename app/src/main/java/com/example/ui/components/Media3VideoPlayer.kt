@@ -22,6 +22,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -493,13 +495,17 @@ fun CinePulseVideoPlayer(
             // DefaultDataSource lets subtitles load from phone storage (content://) as well as http.
             val mediaSourceFactory = DefaultMediaSourceFactory(DefaultDataSource.Factory(context, dataSourceFactory))
                 .setLoadErrorHandlingPolicy(CinedorLoadErrorHandlingPolicy())
+            // Smooth playback: start after ~1.5 s of video, keep up to 2 minutes ahead, and after a stall
+            // wait for 3 s of video so it doesn't stop again right away.
             val fastLoadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    15_000, // minBufferMs
-                    50_000, // maxBufferMs
-                    500,    // bufferForPlaybackMs — MovieBox-grade instant ~0.5s first frame!
-                    1_200   // bufferForPlaybackAfterRebufferMs
+                    30_000,  // minBufferMs
+                    120_000, // maxBufferMs
+                    1_500,   // bufferForPlaybackMs
+                    3_000    // bufferForPlaybackAfterRebufferMs
                 )
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .setBackBuffer(30_000, true)
                 .build()
 
             ExoPlayer.Builder(context)
@@ -545,9 +551,38 @@ fun CinePulseVideoPlayer(
         if (exoPlayer == null) {
             return@DisposableEffect onDispose { }
         }
+        val stallTimes = ArrayDeque<Long>()
+        var wasReady = false
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Player.STATE_BUFFERING
+                // Slow internet: after 2 stalls within a minute, step down to a lower quality (same audio).
+                if (state == Player.STATE_BUFFERING && wasReady && exoPlayer.playWhenReady &&
+                    !stream.format.equals("HLS", ignoreCase = true) && !stream.label.contains("Live", ignoreCase = true)
+                ) {
+                    val now = System.currentTimeMillis()
+                    stallTimes.addLast(now)
+                    while (stallTimes.isNotEmpty() && now - stallTimes.first() > 60_000L) stallTimes.removeFirst()
+                    if (stallTimes.size >= 2) {
+                        val cur = QualityLadder.valueOf(stream)
+                        val lower = streams
+                            .filter { it.audioLanguage == stream.audioLanguage && it.url != stream.url }
+                            .map { it to QualityLadder.valueOf(it) }
+                            .filter { it.second in 1 until cur }
+                            .maxByOrNull { it.second }?.first
+                        if (lower != null) {
+                            stallTimes.clear()
+                            preservedPositionMs = exoPlayer.currentPosition
+                            android.widget.Toast.makeText(
+                                context,
+                                "Slow internet — switched to ${lower.quality.ifBlank { lower.label }} for smooth playback",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                            onSelectStream(lower)
+                        }
+                    }
+                }
+                if (state == Player.STATE_READY) wasReady = true
                 if (state == Player.STATE_READY) {
                     playbackError = null
                     val dur = exoPlayer.duration
@@ -655,8 +690,12 @@ fun CinePulseVideoPlayer(
         val lifecycleObserver = LifecycleEventObserver { _, event ->
             val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
                 context.findHostActivityForPlayer()?.isInPictureInPictureMode == true
-            if (event == Lifecycle.Event.ON_PAUSE && !inPip) {
-                exoPlayer.pause()
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                // Remember where we are, so the video resumes from here next time.
+                val p = exoPlayer.currentPosition
+                val d = exoPlayer.duration
+                if (p > 0L && d > 0L) latestOnProgressUpdate(p, d)
+                if (!inPip) exoPlayer.pause()
             }
             if (event == Lifecycle.Event.ON_STOP) {
                 exoPlayer.pause()
@@ -973,6 +1012,9 @@ fun CinePulseVideoPlayer(
                         .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
                         .build()
                 },
+                zoomLevel = pinchScale,
+                onSetZoom = { pinchScale = it.coerceIn(1f, 3f) },
+                onSetResize = { resizeOption = it; pinchScale = 1f },
                 onPinchZoom = { z ->
                     pinchScale = (pinchScale * z).coerceIn(1f, 3f)
                 },
@@ -1069,6 +1111,45 @@ fun CinePulseVideoPlayer(
                     contentDescription = if (isFullscreen) "Exit fullscreen" else "Back",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // "Resumed from 12:34 · Start over" pill for a few seconds when continuing a video.
+        var showResume by remember(initialPositionMs) { mutableStateOf(initialPositionMs > 10_000L && !stream.label.contains("Live", true)) }
+        LaunchedEffect(initialPositionMs) {
+            if (showResume) { delay(6000); showResume = false }
+        }
+        if (showResume && playbackError == null) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 14.dp, bottom = if (isFullscreen) 86.dp else 64.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Resumed from ${formatPlayerTime(initialPositionMs)}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Start over",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(com.example.ui.theme.CinetorRed)
+                        .clickable {
+                            showResume = false
+                            preservedPositionMs = 0L
+                            exoPlayer?.seekTo(0L)
+                            webViewRef?.evaluateJavascript("(function(){var v=document.querySelector('video');if(v)v.currentTime=0;})();", null)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
                 )
             }
         }
