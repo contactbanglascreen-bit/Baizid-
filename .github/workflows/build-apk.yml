@@ -1,10 +1,8 @@
 name: Build Cinedor APK
 
 on:
-  push:
-    branches:
-      - main
-      - master
+  # Builds run only when started by hand (Actions -> Run workflow), so pushing to
+  # main for the website on Vercel never makes a new app release by itself.
   workflow_dispatch:
     inputs:
       build_type:
