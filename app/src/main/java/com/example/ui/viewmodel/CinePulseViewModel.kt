@@ -394,7 +394,12 @@ class CinePulseViewModel(
         val searchJobs = (info?.keywords ?: listOf(value)).map { k ->
             async { runCatching { apiClient.search(k, page, prefs.source, prefs.safeMode, prefs.language.code) }.getOrDefault(emptyList()) }
         }
-        val pool = (filterJobs + searchJobs).flatMap { it.await() }
+        // Titles already loaded on Home are sorted in automatically too.
+        val homeFeed = (_homeState.value.feedState as? UiState.Success)?.data
+        val loaded = if (page == 1 && homeFeed != null)
+            homeFeed.banners + homeFeed.trendingItems + homeFeed.sections.flatMap { it.items } + _homeState.value.updates24h + _homeState.value.ranking
+        else emptyList()
+        val pool = loaded + (filterJobs + searchJobs).flatMap { it.await() }
         val matched = pool.filter { item -> info?.matches(item) ?: true }
             .filter { item ->
                 when (type) {

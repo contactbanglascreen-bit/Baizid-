@@ -488,6 +488,33 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(18.dp))
                             }
 
+                            // Every title sorted into its language automatically (বাংলা, Hindi, English…)
+                            val byLanguage = (allPool + homeState.updates24h + homeState.ranking)
+                                .distinctBy { it.title.lowercase().trim() }
+                                .groupBy { com.example.ui.components.BrowseCatalog.languageOf(it) }
+                            com.example.ui.components.BrowseCatalog.languages.forEach { lang ->
+                                val list = byLanguage[lang.value].orEmpty()
+                                if (list.size >= 4) {
+                                    item(key = "lang_row_" + lang.value) {
+                                        SectionHeaderRow(
+                                            title = lang.label,
+                                            actionLabel = "All",
+                                            onActionClick = { com.example.ui.components.BrowseCatalog.open = lang }
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            items(list.take(20), key = { "lr_${lang.value}_${it.source}_${it.id}" }) { item ->
+                                                PosterCard(item = item, onClick = { onOpenMedia(item) })
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(18.dp))
+                                    }
+                                }
+                            }
+
                             // Ad banner (from the admin app; hidden for Premium)
                             item(key = "home_ad_banner") {
                                 com.example.ui.components.AdBanner()

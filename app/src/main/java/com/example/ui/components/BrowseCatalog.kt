@@ -65,6 +65,7 @@ data class BrowseTarget(
     val languageWords: List<String> = emptyList()
 ) {
     fun matches(item: MediaItem): Boolean {
+        if (kind == "language") return BrowseCatalog.languageOf(item) == value
         val c = item.country.lowercase()
         val lang = (item.languageBadge + " " + item.title).lowercase()
         val byCountry = countryWords.any { it.lowercase() in c }
@@ -124,6 +125,46 @@ object BrowseCatalog {
             listOf("French"), listOf("france"), listOf("french"))
     )
 
+    /**
+     * Puts every title in one language automatically: a language tag in the title ("[Hindi]")
+     * wins, then the audio/language badge, then the country it comes from.
+     */
+    fun languageOf(item: MediaItem): String? {
+        val tag = Regex("\\[([^\\]]+)]").findAll(item.title).joinToString(" ") { it.groupValues[1] }.lowercase()
+        val badge = item.languageBadge.lowercase()
+        fun pick(text: String): String? = when {
+            text.isBlank() -> null
+            "bangla" in text || "bengali" in text || "বাংলা" in text -> "bangla"
+            "hindi" in text -> "hindi"
+            "tamil" in text -> "tamil"
+            "telugu" in text -> "telugu"
+            "korean" in text -> "korean"
+            "chinese" in text || "mandarin" in text || "cantonese" in text -> "chinese"
+            "japanese" in text -> "japanese"
+            "turkish" in text -> "turkish"
+            "spanish" in text -> "spanish"
+            "thai" in text -> "thai"
+            "english" in text -> "english"
+            else -> null
+        }
+        pick(tag)?.let { return it }
+        // first language in the badge ("English,Es" -> english)
+        pick(badge.substringBefore(',').substringBefore('/'))?.let { return it }
+        val c = item.country.lowercase()
+        return when {
+            "bangladesh" in c -> "bangla"
+            "india" in c -> "hindi"
+            "korea" in c -> "korean"
+            "china" in c || "taiwan" in c || "hong kong" in c -> "chinese"
+            "japan" in c -> "japanese"
+            "turkey" in c || "türkiye" in c -> "turkish"
+            "thailand" in c -> "thai"
+            "spain" in c || "mexico" in c || "argentina" in c -> "spanish"
+            "united states" in c || "usa" in c || "united kingdom" in c || c == "uk" || "canada" in c || "australia" in c -> "english"
+            else -> pick(badge)
+        }
+    }
+
     fun find(kind: String, value: String): BrowseTarget? =
         (if (kind == "country") countries else languages).firstOrNull { it.value == value }
 
@@ -150,7 +191,11 @@ fun BrowseTiles(title: String, targets: List<BrowseTarget>) {
                         .padding(10.dp)
                 ) {
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.18f), Color.Transparent))))
-                    Text(t.flag, fontSize = 22.sp, modifier = Modifier.align(Alignment.TopStart))
+                    Text(
+                        t.label.take(1).uppercase(),
+                        color = Color.White.copy(alpha = 0.22f), fontWeight = FontWeight.Black, fontSize = 44.sp,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
                     Text(t.label, color = Color.White, fontWeight = FontWeight.Black, fontSize = 15.sp, modifier = Modifier.align(Alignment.BottomStart))
                 }
             }
@@ -194,8 +239,6 @@ fun BrowsePage(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, end = 16.dp, top = 6.dp)) {
                         IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = TextPrimary) }
-                        Text(target.flag, fontSize = 26.sp)
-                        Spacer(Modifier.width(8.dp))
                         Column {
                             Text(target.label, color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 22.sp)
                             Text(
