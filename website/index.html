@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cinedor — Movies, Series &amp; Live Sports</title>
 <meta name="description" content="Download Cinedor for Android: movies, TV series, anime, dramas and live sports in HD with subtitles, dubbed audio and offline downloads.">
-<meta name="theme-color" content="#08060a">
+<meta name="theme-color" content="#12060c">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Cinedor — Movies, Series & Live Sports">
 <meta property="og:description" content="Stream in HD, download to watch offline, subtitles in any language. Free for Android.">
@@ -15,17 +15,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://image.tmdb.org">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
-<!-- Icon set -->
+<!-- Icons + liquid refraction filter -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <filter id="liquid" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
+      <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
+      <feDisplacementMap in="SourceGraphic" in2="nb" scale="38" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></symbol>
     <symbol id="i-android" viewBox="0 0 24 24"><path d="M7 10v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-7H7Zm0-1a5 5 0 0 1 10 0H7Zm2-4L8 3.5M15 5l1-1.5M4.5 10.5v5M19.5 10.5v5M10 18v3M14 18v3"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-8Z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/></symbol>
     <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
     <symbol id="i-cc" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6"/></symbol>
@@ -35,278 +44,185 @@
     <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><rect x="12" y="11.5" width="6.5" height="5" rx="1.2" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16ZM10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m8.8 12 2.2 2.2 4.3-4.4"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
-    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
-    <symbol id="i-tablet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M10.5 18h3"/></symbol>
-    <symbol id="i-tv" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="12.5" rx="2.5"/><path d="M8 21h8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-telegram" viewBox="0 0 24 24"><path d="M21 4 3 11l6 2 2 6 3-4 5 4 2-15ZM9 13l9-6.5"/></symbol>
     <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8Z"/></symbol>
   </defs>
 </svg>
 
-<header class="nav" id="nav">
-  <div class="nav-in">
+<!-- Living background the glass refracts -->
+<div class="bg" aria-hidden="true">
+  <div class="bg-posters" id="bgPosters"></div>
+  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span>
+  <div class="bg-grain"></div>
+</div>
+
+<!-- Floating glass nav -->
+<header class="nav-wrap">
+  <nav class="nav glass liquid" aria-label="Main">
     <a class="brand" href="#top" aria-label="Cinedor home">
-      <img src="/assets/logo.png" alt="" width="36" height="36">
+      <img src="/assets/logo.png" alt="" width="34" height="34">
       <span class="wordmark">CINE<b>DOR</b></span>
     </a>
-    <nav class="nav-links" id="menu" aria-label="Sections">
+    <div class="nav-links">
       <a href="#trending" data-i18n="nav_trending">Trending</a>
       <a href="#features" data-i18n="nav_features">Features</a>
       <a href="#install" data-i18n="nav_install">Install</a>
       <a href="#faq" data-i18n="nav_faq">FAQ</a>
-    </nav>
-    <div class="nav-actions">
-      <button class="lang" id="lang" type="button" aria-label="Change language"><span data-l="en">EN</span><span data-l="bn">বাং</span></button>
-      <a class="btn btn-sm" href="#get" data-download><svg class="ic"><use href="#i-download"/></svg><span data-i18n="nav_download">Download</span></a>
-      <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false"><svg class="ic"><use href="#i-menu"/></svg></button>
     </div>
-  </div>
+    <button class="lang glass-chip" id="lang" type="button" aria-label="Change language"><span data-l="en">EN</span><span data-l="bn">বাং</span></button>
+    <a class="btn-glass red nav-dl" href="#get" data-download><svg class="ic"><use href="#i-download"/></svg><span data-i18n="nav_download">Download</span></a>
+  </nav>
 </header>
 
 <main id="top">
   <!-- ===== HERO ===== -->
-  <section class="hero">
-    <div class="wall" aria-hidden="true">
-      <div class="wall-row" data-row="0"></div>
-      <div class="wall-row rev" data-row="1"></div>
-      <div class="wall-row" data-row="2"></div>
-      <div class="wall-row rev" data-row="3"></div>
-    </div>
-    <div class="hero-shade" aria-hidden="true"></div>
-
-    <div class="hero-in">
-      <div class="hero-copy">
-        <span class="pill"><span class="live"></span><span data-i18n="pill">Free for Android</span> · <b data-version>v1.0</b></span>
-        <h1><span data-i18n="h1a">Unlimited movies,</span><br><span data-i18n="h1b">series &amp; more.</span><br><span class="grad" data-i18n="h1c">All in one app.</span></h1>
-        <p class="lead" data-i18n="lead">Stream Hollywood, Bollywood, বাংলা, K-dramas, anime and live sports in HD — with subtitles in any language and downloads you can watch offline.</p>
-
-        <div class="cta" id="get">
-          <a class="btn btn-lg" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download>
-            <span class="btn-ic"><svg class="ic"><use href="#i-android"/></svg></span>
-            <span class="btn-txt"><small data-i18n="get_on">Download for</small><b>Android</b></span>
-          </a>
-          <div class="cta-meta">
-            <span><svg class="ic"><use href="#i-shield"/></svg><span data-i18n="safe">Official &amp; safe</span></span>
-            <span data-size>Android 7.0+</span>
-          </div>
-        </div>
-
-        <div class="qr-card" aria-hidden="true">
-          <div class="qr" id="qr"></div>
-          <div>
-            <b data-i18n="qr_t">On a computer?</b>
-            <span data-i18n="qr_s">Scan with your phone camera to download.</span>
-          </div>
-        </div>
+  <section class="hero" id="get">
+    <div class="hero-card glass liquid">
+      <div class="app-icon">
+        <span class="ring"></span>
+        <img src="/assets/logo.png" alt="Cinedor" width="96" height="96">
       </div>
-
-      <!-- Phone mockup -->
-      <div class="hero-device" aria-hidden="true">
-        <div class="phone">
-          <div class="phone-btn b1"></div><div class="phone-btn b2"></div>
-          <div class="screen">
-            <div class="isl"></div>
-            <div class="app-top">
-              <img src="/assets/logo.png" alt="">
-              <span class="wordmark sm">CINE<b>DOR</b></span>
-              <i class="dotbtn"><svg class="ic"><use href="#i-bell"/></svg></i>
-            </div>
-            <div class="app-chips"><b>For you</b><span>Movies</span><span>Series</span><span>Anime</span></div>
-            <div class="app-hero" data-backdrop>
-              <div class="app-hero-info">
-                <span class="tag">#1 Today</span>
-                <b data-hero-title>Tonight's pick</b>
-                <div class="app-hero-btns"><span class="play"><svg class="ic"><use href="#i-play"/></svg>Play</span><span class="ghost">+ My List</span></div>
-              </div>
-            </div>
-            <div class="app-row-t">Trending now</div>
-            <div class="app-row" data-phone-row="0"></div>
-            <div class="app-row-t">বাংলা</div>
-            <div class="app-row" data-phone-row="1"></div>
-            <div class="app-nav"><b></b><i></i><i></i><i></i><i></i></div>
-          </div>
-        </div>
-        <div class="float f1"><span class="f-ic"><svg class="ic"><use href="#i-bell"/></svg></span><div><b data-i18n="f1t">New episode out</b><small data-i18n="f1s">Tap to watch now</small></div></div>
-        <div class="float f2"><span class="f-ic green"><svg class="ic"><use href="#i-offline"/></svg></span><div><b data-i18n="f2t">Downloaded · 1080p</b><small data-i18n="f2s">Ready to watch offline</small></div></div>
+      <span class="chip glass-chip"><span class="live"></span><span data-i18n="pill">Free for Android</span> · <b data-version>v1.0</b></span>
+      <h1><span data-i18n="h1a">Movies, series &amp; sports.</span><br><span class="shine" data-i18n="h1c">Beautifully in one app.</span></h1>
+      <p class="lead" data-i18n="lead">Stream Hollywood, Bollywood, বাংলা, K-dramas, anime and live sports in HD — with subtitles in any language and downloads you can watch offline.</p>
+      <div class="hero-cta">
+        <a class="btn-glass red big" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download>
+          <svg class="ic"><use href="#i-android"/></svg>
+          <span><small data-i18n="get_on">Download for</small><b>Android</b></span>
+        </a>
+        <a class="btn-glass big ghost" href="#install"><svg class="ic"><use href="#i-help"/></svg><span><small data-i18n="how_s">1-minute guide</small><b data-i18n="how_b">How to install</b></span></a>
+      </div>
+      <div class="hero-meta">
+        <span><svg class="ic"><use href="#i-shield"/></svg><span data-i18n="safe">Official &amp; safe</span></span>
+        <span class="dot-sep"></span>
+        <span data-size>Android 7.0+</span>
+        <span class="dot-sep hide-sm"></span>
+        <span class="hide-sm qr-hint"><span class="qr" id="qr"></span><span data-i18n="qr_s">Scan on your phone</span></span>
       </div>
     </div>
 
-    <ul class="stats">
-      <li><b>4K</b><span data-i18n="st1">Ultra HD quality</span></li>
+    <!-- Cover-flow of real posters floating under glass -->
+    <div class="flow" id="flow" aria-hidden="true"></div>
+  </section>
+
+  <!-- ===== STATS ===== -->
+  <section class="stats-wrap">
+    <ul class="stats glass">
+      <li><b>4K</b><span data-i18n="st1">Ultra HD</span></li>
       <li><b>20+</b><span data-i18n="st2">Languages</span></li>
-      <li><b>100+</b><span data-i18n="st3">Subtitle languages</span></li>
-      <li><b>0৳</b><span data-i18n="st4">Free to use</span></li>
+      <li><b>100+</b><span data-i18n="st3">Subtitles</span></li>
+      <li><b>0৳</b><span data-i18n="st4">Free</span></li>
     </ul>
   </section>
 
-  <!-- ===== LANGUAGES MARQUEE ===== -->
-  <div class="marquee" aria-label="Languages">
-    <div class="marquee-track">
-      <span>বাংলা</span><span>English</span><span>हिन्दी</span><span>한국어</span><span>தமிழ்</span><span>తెలుగు</span><span>中文</span><span>日本語</span><span>Español</span><span>Türkçe</span><span>اردو</span><span>മലയാളം</span>
-      <span aria-hidden="true">বাংলা</span><span aria-hidden="true">English</span><span aria-hidden="true">हिन्दी</span><span aria-hidden="true">한국어</span><span aria-hidden="true">தமிழ்</span><span aria-hidden="true">తెలుగు</span><span aria-hidden="true">中文</span><span aria-hidden="true">日本語</span><span aria-hidden="true">Español</span><span aria-hidden="true">Türkçe</span><span aria-hidden="true">اردو</span><span aria-hidden="true">മലയാളം</span>
-    </div>
-  </div>
-
   <!-- ===== TRENDING ===== -->
   <section class="section" id="trending">
-    <div class="sec-head row">
-      <div>
-        <span class="kicker" data-i18n="tr_k">This week</span>
-        <h2 data-i18n="tr_h">Top 10 on Cinedor</h2>
-      </div>
-      <div class="arrows">
-        <button type="button" class="arrow" data-scroll="-1" aria-label="Scroll left"><svg class="ic flip"><use href="#i-chev"/></svg></button>
-        <button type="button" class="arrow" data-scroll="1" aria-label="Scroll right"><svg class="ic"><use href="#i-chev"/></svg></button>
-      </div>
+    <div class="sec-head">
+      <span class="eyebrow glass-chip" data-i18n="tr_k">This week</span>
+      <h2 data-i18n="tr_h">Top 10 on Cinedor</h2>
     </div>
-    <div class="rail" id="rail"></div>
+    <div class="shelf glass">
+      <button type="button" class="arrow glass-chip left" data-scroll="-1" aria-label="Scroll left"><svg class="ic flip"><use href="#i-chev"/></svg></button>
+      <div class="rail" id="rail"></div>
+      <button type="button" class="arrow glass-chip right" data-scroll="1" aria-label="Scroll right"><svg class="ic"><use href="#i-chev"/></svg></button>
+    </div>
   </section>
 
   <!-- ===== FEATURES ===== -->
   <section class="section" id="features">
     <div class="sec-head">
-      <span class="kicker" data-i18n="fe_k">Why Cinedor</span>
+      <span class="eyebrow glass-chip" data-i18n="fe_k">Why Cinedor</span>
       <h2 data-i18n="fe_h">Everything you need to enjoy watching</h2>
     </div>
-    <div class="bento">
-      <article class="tile tile-xl">
-        <div class="tile-txt">
-          <span class="t-ic"><svg class="ic"><use href="#i-bolt"/></svg></span>
-          <h3 data-i18n="b1t">A player that just works</h3>
-          <p data-i18n="b1p">Up to 4K, auto quality on slow internet, resume where you stopped, zoom to fill and one-line subtitles.</p>
-        </div>
-        <div class="mini-player" aria-hidden="true">
-          <div class="mp-screen" data-backdrop2>
-            <span class="mp-q">1080p</span>
-            <span class="mp-play"><svg class="ic"><use href="#i-play"/></svg></span>
-            <span class="mp-sub" data-i18n="b1sub">I'll be there before sunrise.</span>
+    <div class="features">
+      <article class="feat glass wide">
+        <span class="bubble"><svg class="ic"><use href="#i-bolt"/></svg></span>
+        <h3 data-i18n="b1t">A player that just works</h3>
+        <p data-i18n="b1p">Up to 4K, auto quality on slow internet, resume where you stopped, zoom to fill and one-line subtitles.</p>
+        <div class="player glass-inner" aria-hidden="true">
+          <div class="player-screen" data-backdrop>
+            <span class="pl-q glass-chip">1080p</span>
+            <span class="pl-play glass-chip"><svg class="ic"><use href="#i-play"/></svg></span>
+            <span class="pl-sub" data-i18n="b1sub">I'll be there before sunrise.</span>
           </div>
-          <div class="mp-bar"><i></i></div>
-          <div class="mp-row"><span>42:18</span><span class="mp-chips"><b>Auto</b><b>CC</b><b>1.0x</b></span><span>1:58:04</span></div>
+          <div class="pl-bar"><i></i></div>
         </div>
       </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-globe"/></svg></span>
-        <h3 data-i18n="b2t">Every language</h3>
-        <p data-i18n="b2p">Browse by language — বাংলা, Hindi, English, Korean and more.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-cc"/></svg></span>
-        <h3 data-i18n="b3t">Subtitles &amp; dubs</h3>
-        <p data-i18n="b3p">Subtitles in any language with AI translate, plus dubbed audio.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-offline"/></svg></span>
-        <h3 data-i18n="b4t">Offline downloads</h3>
-        <p data-i18n="b4p">Fast downloads in the quality you choose. No data needed later.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-trophy"/></svg></span>
-        <h3 data-i18n="b5t">Live sports</h3>
-        <p data-i18n="b5p">Follow live matches and get a ping when the game starts.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-pip"/></svg></span>
-        <h3 data-i18n="b6t">Picture-in-picture</h3>
-        <p data-i18n="b6p">Keep watching in a small window while you chat.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-bell"/></svg></span>
-        <h3 data-i18n="b7t">Never miss a release</h3>
-        <p data-i18n="b7p">Notifications with posters for new movies and episodes.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-film"/></svg></span>
-        <h3 data-i18n="b8t">My List &amp; resume</h3>
-        <p data-i18n="b8p">Save titles for later and continue every show right where you left off.</p>
-      </article>
-      <article class="tile">
-        <span class="t-ic"><svg class="ic"><use href="#i-star"/></svg></span>
-        <h3 data-i18n="b9t">Premium, no ads</h3>
-        <p data-i18n="b9p">Free to watch. Go Premium with a code to remove every ad.</p>
-      </article>
-    </div>
-  </section>
-
-  <!-- ===== DEVICES ===== -->
-  <section class="section devices">
-    <div class="dev-card">
-      <div class="dev-copy">
-        <span class="kicker" data-i18n="dv_k">Made for Android</span>
-        <h2 data-i18n="dv_h">Phone or tablet — it fits perfectly</h2>
-        <p class="muted" data-i18n="dv_p">Cinedor adapts to any screen size. Light and small, with automatic updates from inside the app.</p>
-      </div>
-      <ul class="dev-list">
-        <li><svg class="ic"><use href="#i-phone"/></svg><b data-i18n="dv1">Phones</b><span>Android 7.0+</span></li>
-        <li><svg class="ic"><use href="#i-tablet"/></svg><b data-i18n="dv2">Tablets</b><span data-i18n="dv2s">Big-screen layout</span></li>
-        <li><svg class="ic"><use href="#i-tv"/></svg><b data-i18n="dv3">Cast to TV</b><span data-i18n="dv3s">Watch on the big screen</span></li>
-      </ul>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-globe"/></svg></span><h3 data-i18n="b2t">Every language</h3><p data-i18n="b2p">Browse by language — বাংলা, Hindi, English, Korean and more.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-cc"/></svg></span><h3 data-i18n="b3t">Subtitles &amp; dubs</h3><p data-i18n="b3p">Subtitles in any language with AI translate, plus dubbed audio.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-offline"/></svg></span><h3 data-i18n="b4t">Offline downloads</h3><p data-i18n="b4p">Fast downloads in the quality you choose. No data needed later.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-trophy"/></svg></span><h3 data-i18n="b5t">Live sports</h3><p data-i18n="b5p">Follow live matches and get a ping when the game starts.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-pip"/></svg></span><h3 data-i18n="b6t">Picture-in-picture</h3><p data-i18n="b6p">Keep watching in a small window while you chat.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-bell"/></svg></span><h3 data-i18n="b7t">Never miss a release</h3><p data-i18n="b7p">Notifications with posters for new movies and episodes.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-heart"/></svg></span><h3 data-i18n="b8t">My List &amp; resume</h3><p data-i18n="b8p">Save titles for later and continue every show right where you left off.</p></article>
+      <article class="feat glass"><span class="bubble"><svg class="ic"><use href="#i-crown"/></svg></span><h3 data-i18n="b9t">Premium, no ads</h3><p data-i18n="b9p">Free to watch. Go Premium with a code to remove every ad.</p></article>
     </div>
   </section>
 
   <!-- ===== INSTALL ===== -->
   <section class="section" id="install">
     <div class="sec-head">
-      <span class="kicker" data-i18n="in_k">Takes 1 minute</span>
+      <span class="eyebrow glass-chip" data-i18n="in_k">Takes 1 minute</span>
       <h2 data-i18n="in_h">How to install</h2>
-      <p class="muted" data-i18n="in_p">Cinedor is installed from this website, not the Play Store.</p>
+      <p data-i18n="in_p">Cinedor is installed from this website, not the Play Store.</p>
     </div>
     <ol class="steps">
-      <li><span class="num">1</span><h3 data-i18n="s1t">Download</h3><p data-i18n="s1p">Tap the Download button. The APK file is small and safe.</p></li>
-      <li><span class="num">2</span><h3 data-i18n="s2t">Allow install</h3><p data-i18n="s2p">Open the file. If asked, tap Settings → turn on “Allow from this source”.</p></li>
-      <li><span class="num">3</span><h3 data-i18n="s3t">Enjoy</h3><p data-i18n="s3p">Tap Install, then Open. New versions update right inside the app.</p></li>
+      <li class="glass"><span class="step-n">1</span><div><h3 data-i18n="s1t">Download</h3><p data-i18n="s1p">Tap the Download button. The APK file is small and safe.</p></div></li>
+      <li class="glass"><span class="step-n">2</span><div><h3 data-i18n="s2t">Allow install</h3><p data-i18n="s2p">Open the file. If asked, tap Settings → turn on “Allow from this source”.</p></div></li>
+      <li class="glass"><span class="step-n">3</span><div><h3 data-i18n="s3t">Enjoy</h3><p data-i18n="s3p">Tap Install, then Open. New versions update right inside the app.</p></div></li>
     </ol>
   </section>
 
   <!-- ===== FAQ ===== -->
   <section class="section" id="faq">
     <div class="sec-head">
-      <span class="kicker" data-i18n="fq_k">Questions</span>
+      <span class="eyebrow glass-chip" data-i18n="fq_k">Questions</span>
       <h2 data-i18n="fq_h">Frequently asked</h2>
     </div>
     <div class="faq">
-      <details><summary data-i18n="q1">Is Cinedor free?</summary><p data-i18n="a1">Yes, you can watch for free. An optional Premium removes ads.</p></details>
-      <details><summary data-i18n="q2">Is it safe to install?</summary><p data-i18n="a2">Download Cinedor only from this website. The app checks that it is the official copy and updates itself securely.</p></details>
-      <details><summary data-i18n="q3">Which devices are supported?</summary><p data-i18n="a3">Android phones and tablets with Android 7.0 or newer. iPhone is not supported yet.</p></details>
-      <details><summary data-i18n="q4">Android says “blocked” — what now?</summary><p data-i18n="a4">That is normal for apps outside the Play Store. Tap Settings, allow installs from your browser, then go back and tap Install.</p></details>
-      <details><summary data-i18n="q5">How do I update?</summary><p data-i18n="a5">When a new version is out, Cinedor shows an Update window. Tap Update now — your downloads and My List stay.</p></details>
-      <details><summary data-i18n="q6">How do I report a problem?</summary><p data-i18n="a6">Open Cinedor → Me → Feedback. We reply there and tell you when it is fixed.</p></details>
+      <details class="glass"><summary><span data-i18n="q1">Is Cinedor free?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a1">Yes, you can watch for free. An optional Premium removes ads.</p></details>
+      <details class="glass"><summary><span data-i18n="q2">Is it safe to install?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a2">Download Cinedor only from this website. The app checks that it is the official copy and updates itself securely.</p></details>
+      <details class="glass"><summary><span data-i18n="q3">Which devices are supported?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a3">Android phones and tablets with Android 7.0 or newer. iPhone is not supported yet.</p></details>
+      <details class="glass"><summary><span data-i18n="q4">Android says “blocked” — what now?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a4">That is normal for apps outside the Play Store. Tap Settings, allow installs from your browser, then go back and tap Install.</p></details>
+      <details class="glass"><summary><span data-i18n="q5">How do I update?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a5">When a new version is out, Cinedor shows an Update window. Tap Update now — your downloads and My List stay.</p></details>
+      <details class="glass"><summary><span data-i18n="q6">How do I report a problem?</span><i class="plus"><svg class="ic"><use href="#i-plus"/></svg></i></summary><p data-i18n="a6">Open Cinedor → Me → Feedback. We reply there and tell you when it is fixed.</p></details>
     </div>
   </section>
 
-  <!-- ===== FINAL CTA ===== -->
-  <section class="final">
-    <div class="final-in">
-      <img class="final-logo" src="/assets/logo.png" alt="" width="84" height="84">
+  <!-- ===== FINAL ===== -->
+  <section class="section final-wrap">
+    <div class="final glass liquid">
+      <div class="app-icon sm"><span class="ring"></span><img src="/assets/logo.png" alt="" width="72" height="72"></div>
       <h2 data-i18n="fn_h">Ready to start watching?</h2>
       <p data-i18n="fn_p">Free, fast and updated every week.</p>
-      <a class="btn btn-lg" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download>
-        <span class="btn-ic"><svg class="ic"><use href="#i-download"/></svg></span>
-        <span class="btn-txt"><small data-version-long>Latest version</small><b data-i18n="fn_b">Download APK</b></span>
+      <a class="btn-glass red big" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download>
+        <svg class="ic"><use href="#i-download"/></svg>
+        <span><small data-version-long>Latest version</small><b data-i18n="fn_b">Download APK</b></span>
       </a>
     </div>
   </section>
 </main>
 
 <footer class="footer">
-  <div class="foot-in">
-    <a class="brand" href="#top"><img src="/assets/logo.png" alt="" width="30" height="30"><span class="wordmark">CINE<b>DOR</b></span></a>
-    <div class="social" data-social></div>
-    <p class="muted small" data-i18n="legal">Cinedor does not host any files. Titles and posters belong to their owners.</p>
-    <p class="muted small">© <span data-year></span> Cinedor</p>
-  </div>
+  <a class="brand" href="#top"><img src="/assets/logo.png" alt="" width="28" height="28"><span class="wordmark">CINE<b>DOR</b></span></a>
+  <div class="social" data-social></div>
+  <p data-i18n="legal">Cinedor does not host any files. Titles and posters belong to their owners.</p>
+  <p>© <span data-year></span> Cinedor</p>
 </footer>
 
-<!-- Sticky download bar on phones -->
-<div class="sticky-dl" id="sticky">
-  <img src="/assets/logo.png" alt="" width="36" height="36">
-  <div><b>Cinedor</b><small data-size-short>Free · Android</small></div>
-  <a class="btn btn-sm" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download data-i18n="nav_download">Download</a>
-</div>
+<!-- iOS-style floating glass tab bar (phones) -->
+<nav class="tabbar glass liquid" aria-label="Quick links">
+  <a href="#top"><svg class="ic"><use href="#i-home"/></svg><span data-i18n="tb_home">Home</span></a>
+  <a href="#trending"><svg class="ic"><use href="#i-spark"/></svg><span data-i18n="nav_trending">Trending</span></a>
+  <a href="#features"><svg class="ic"><use href="#i-list"/></svg><span data-i18n="nav_features">Features</span></a>
+  <a href="#faq"><svg class="ic"><use href="#i-help"/></svg><span data-i18n="nav_faq">FAQ</span></a>
+  <a class="tab-dl" href="https://github.com/contactbanglascreen-bit/Baizid-/releases/latest" data-download aria-label="Download"><svg class="ic"><use href="#i-download"/></svg></a>
+</nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script src="/app.js" defer></script>

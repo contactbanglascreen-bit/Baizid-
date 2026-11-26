@@ -1,4 +1,4 @@
-// Cinedor website
+// Cinedor website — liquid glass edition
 (function () {
   "use strict";
   const REPO = "contactbanglascreen-bit/Baizid-";
@@ -20,12 +20,13 @@
   const BN = {
     nav_trending: "ট্রেন্ডিং", nav_features: "ফিচার", nav_install: "ইনস্টল", nav_faq: "প্রশ্ন", nav_download: "ডাউনলোড",
     pill: "Android এর জন্য ফ্রি",
-    h1a: "আনলিমিটেড মুভি,", h1b: "সিরিজ আর আরও অনেক কিছু।", h1c: "সব এক অ্যাপে।",
+    h1a: "মুভি, সিরিজ আর খেলা।", h1c: "সব সুন্দর করে এক অ্যাপে।",
+    how_s: "১ মিনিটের গাইড", how_b: "কিভাবে ইনস্টল করবেন", tb_home: "হোম",
     lead: "হলিউড, বলিউড, বাংলা, কোরিয়ান ড্রামা, অ্যানিমে আর লাইভ খেলা দেখুন HD তে — যেকোনো ভাষার সাবটাইটেল আর অফলাইনে দেখার জন্য ডাউনলোড সহ।",
     get_on: "ডাউনলোড করুন", safe: "অফিসিয়াল ও নিরাপদ",
-    qr_t: "কম্পিউটারে আছেন?", qr_s: "ফোনের ক্যামেরা দিয়ে স্ক্যান করে ডাউনলোড করুন।",
+    qr_t: "কম্পিউটারে আছেন?", qr_s: "ফোন দিয়ে স্ক্যান করুন",
     f1t: "নতুন এপিসোড এসেছে", f1s: "এখনই দেখতে চাপুন", f2t: "ডাউনলোড হয়েছে · 1080p", f2s: "অফলাইনে দেখার জন্য রেডি",
-    st1: "আল্ট্রা HD কোয়ালিটি", st2: "ভাষা", st3: "সাবটাইটেলের ভাষা", st4: "একদম ফ্রি",
+    st1: "আল্ট্রা HD", st2: "ভাষা", st3: "সাবটাইটেল", st4: "ফ্রি",
     tr_k: "এই সপ্তাহে", tr_h: "Cinedor এর টপ ১০",
     fe_k: "কেন Cinedor", fe_h: "দেখার মজার জন্য যা যা দরকার, সব আছে",
     b1t: "স্মুথ ভিডিও প্লেয়ার", b1p: "4K পর্যন্ত কোয়ালিটি, স্লো নেটে নিজে কোয়ালিটি ঠিক করে, যেখানে থেমেছিলেন সেখান থেকে চালু, জুম আর এক লাইনের সাবটাইটেল।",
@@ -55,42 +56,19 @@
     fn_h: "দেখা শুরু করতে রেডি?", fn_p: "ফ্রি, দ্রুত আর প্রতি সপ্তাহে আপডেট।", fn_b: "APK ডাউনলোড",
     legal: "Cinedor কোনো ফাইল হোস্ট করে না। নাম আর পোস্টার তাদের মালিকদের।",
   };
-  const EN = {};
-  $$("[data-i18n]").forEach((el) => { EN[el.dataset.i18n] = el.innerHTML; });
 
+  const EN = {};
+  $$("[data-i18n]").forEach((el) => { if (!(el.dataset.i18n in EN)) EN[el.dataset.i18n] = el.innerHTML; });
   function setLang(lang) {
     const dict = lang === "bn" ? BN : EN;
     document.documentElement.lang = lang;
-    $$("[data-i18n]").forEach((el) => {
-      const v = dict[el.dataset.i18n];
-      if (v != null) el.innerHTML = v;
-    });
+    $$("[data-i18n]").forEach((el) => { const v = dict[el.dataset.i18n]; if (v != null) el.innerHTML = v; });
     store.set("cinedor-lang", lang);
   }
-  const savedLang = store.get("cinedor-lang");
-  const startLang = savedLang || ((navigator.language || "").toLowerCase().startsWith("bn") ? "bn" : "en");
-  if (startLang === "bn") setLang("bn"); else document.documentElement.lang = "en";
+  const saved = store.get("cinedor-lang");
+  const start = saved || ((navigator.language || "").toLowerCase().startsWith("bn") ? "bn" : "en");
+  if (start === "bn") setLang("bn"); else document.documentElement.lang = "en";
   $("#lang").addEventListener("click", () => setLang(document.documentElement.lang === "bn" ? "en" : "bn"));
-
-  /* ---------------- Nav ---------------- */
-  const nav = $("#nav");
-  const burger = $("#burger");
-  const sticky = $("#sticky");
-  function onScroll() {
-    const y = window.scrollY;
-    nav.classList.toggle("solid", y > 10 || nav.classList.contains("open"));
-    sticky.classList.toggle("show", y > window.innerHeight * 0.8 && (window.innerHeight + y) < document.body.scrollHeight - 200);
-  }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-  function setMenu(open) {
-    nav.classList.toggle("open", open);
-    burger.setAttribute("aria-expanded", String(open));
-    burger.innerHTML = '<svg class="ic"><use href="#i-' + (open ? "close" : "menu") + '"/></svg>';
-    onScroll();
-  }
-  burger.addEventListener("click", () => setMenu(!nav.classList.contains("open")));
-  $$("#menu a").forEach((a) => a.addEventListener("click", () => setMenu(false)));
 
   $$("[data-year]").forEach((el) => (el.textContent = new Date().getFullYear()));
 
@@ -115,103 +93,113 @@
       if (apk && apk.size) {
         const mb = Math.round(apk.size / 1048576);
         $$("[data-size]").forEach((el) => (el.textContent = mb + " MB · Android 7.0+"));
-        $$("[data-size-short]").forEach((el) => (el.textContent = "Free · " + mb + " MB"));
       }
     })
     .catch(() => {});
 
-  /* ---------------- QR code (for computers) ---------------- */
-  function makeQr() {
+  /* ---------------- QR (computers) ---------------- */
+  window.addEventListener("load", () => {
     const box = $("#qr");
-    if (!box || !window.QRCode) return;
-    box.innerHTML = "";
-    new window.QRCode(box, { text: location.origin + "/", width: 128, height: 128, colorDark: "#0b0708", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M });
-  }
-  window.addEventListener("load", makeQr);
+    if (!box || !window.QRCode || getComputedStyle(box.parentElement).display === "none") return;
+    new window.QRCode(box, { text: location.origin + "/", width: 96, height: 96, colorDark: "#12060c", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M });
+  });
 
   /* ---------------- Posters ---------------- */
-  const PLACEHOLDER = [
-    ["#ff8a5b", "#7a1a2a"], ["#6dd5ed", "#1f3c88"], ["#f6d365", "#c0392b"], ["#a18cd1", "#3b1f5f"],
-    ["#43e97b", "#136a3a"], ["#fa709a", "#7b1e3a"], ["#30cfd0", "#330867"], ["#f093fb", "#a3215b"],
-  ];
-  const grad = (i) => "linear-gradient(160deg," + PLACEHOLDER[i % 8][0] + "," + PLACEHOLDER[i % 8][1] + ")";
+  const PAL = [["#ff8a5b", "#7a1a2a"], ["#6dd5ed", "#1f3c88"], ["#f6d365", "#c0392b"], ["#a18cd1", "#3b1f5f"], ["#43e97b", "#136a3a"], ["#fa709a", "#7b1e3a"], ["#30cfd0", "#330867"], ["#f093fb", "#a3215b"]];
+  const grad = (i) => "linear-gradient(160deg," + PAL[i % 8][0] + "," + PAL[i % 8][1] + ")";
+  const poster = (it, size, i) => (it && it.poster_path ? "url(" + IMG + size + it.poster_path + ")" : grad(i));
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  function fillWall(items) {
-    $$(".wall-row").forEach((row, r) => {
-      const list = [];
-      for (let i = 0; i < 14; i++) {
-        const it = items.length ? items[(i * 4 + r * 3) % items.length] : null;
-        list.push(it ? "url(" + IMG + "w185" + it.poster_path + ")" : grad(i + r));
-      }
-      const html = list.concat(list).map((bg) => '<div class="wp" style="background-image:' + bg + '"></div>').join("");
-      row.innerHTML = html;
-    });
+  function fillBg(items) {
+    const box = $("#bgPosters");
+    let html = "";
+    for (let i = 0; i < 40; i++) html += '<div style="background-image:' + poster(items[i % Math.max(items.length, 1)], "w185", i) + '"></div>';
+    box.innerHTML = html;
+    requestAnimationFrame(() => box.classList.add("ready"));
   }
-  function fillPhone(items) {
-    $$("[data-phone-row]").forEach((row, r) => {
-      let html = "";
-      for (let i = 0; i < 3; i++) {
-        const it = items[1 + r * 3 + i];
-        html += '<div class="pp" style="background-image:' + (it ? "url(" + IMG + "w185" + it.poster_path + ")" : grad(i + r * 3)) + '"></div>';
-      }
-      row.innerHTML = html;
-    });
-    const top = items.find((x) => x.backdrop_path);
-    if (top) {
-      $("[data-backdrop]").style.backgroundImage = "url(" + IMG + "w500" + top.backdrop_path + ")";
-      $("[data-hero-title]").textContent = top.title || top.name || "";
+
+  // fanned cover-flow; the centre card is biggest, the sides tilt away
+  function fillFlow(items) {
+    const flow = $("#flow");
+    const small = window.innerWidth < 640;
+    const n = small ? 5 : 7;
+    const mid = (n - 1) / 2;
+    const spread = small ? Math.min(78, window.innerWidth / 5.2) : Math.min(165, window.innerWidth / 8.5);
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      const d = i - mid;
+      const tf = "translateX(" + d * spread + "px) translateY(" + Math.abs(d) * (small ? 14 : 22) + "px) rotateY(" + (-d * 14) + "deg) rotateZ(" + d * 3 + "deg) scale(" + (1 - Math.abs(d) * 0.07) + ")";
+      html += '<div class="fp" style="z-index:' + (10 - Math.abs(d)) + ";transform:" + tf + ";background-image:" + poster(items[i], "w342", i) + '"></div>';
     }
-    const second = items.filter((x) => x.backdrop_path)[1];
-    if (second) $("[data-backdrop2]").style.backgroundImage = "url(" + IMG + "w780" + second.backdrop_path + ")";
+    flow.innerHTML = html;
   }
-  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
   function fillRail(items) {
-    const rail = $("#rail");
     const top = items.slice(0, 10);
-    if (!top.length) { rail.classList.add("empty"); $("#trending").style.display = "none"; return; }
-    rail.innerHTML = top.map((it, i) => {
+    if (!top.length) { $("#trending").style.display = "none"; return; }
+    $("#rail").innerHTML = top.map((it, i) => {
       const title = esc(it.title || it.name || "");
       const year = (it.release_date || it.first_air_date || "").slice(0, 4);
       const type = it.media_type === "tv" ? "Series" : "Movie";
       const rate = it.vote_average ? it.vote_average.toFixed(1) : "";
-      return '<a class="rank" href="#get" aria-label="' + title + '">' +
-        '<span class="n">' + (i + 1) + "</span>" +
-        '<div class="poster" style="background-image:url(' + IMG + "w342" + it.poster_path + ')">' +
-        (rate ? '<span class="rate"><svg class="ic"><use href="#i-star"/></svg>' + rate + "</span>" : "") +
+      return '<a class="card" href="#get" aria-label="' + title + '"><div class="poster" style="background-image:' + poster(it, "w342", i) + '">' +
+        '<span class="num glass-chip">' + (i + 1) + "</span>" +
+        (rate ? '<span class="rate glass-chip"><svg class="ic"><use href="#i-star"/></svg>' + rate + "</span>" : "") +
         "</div><h4>" + title + "</h4><small>" + type + (year ? " · " + year : "") + "</small></a>";
     }).join("");
   }
-  fillWall([]);
-  fillPhone([]);
+
+  let posters = [];
+  fillBg([]);
+  fillFlow([]);
   Promise.all([1, 2].map((p) => fetch(TMDB + p).then((r) => (r.ok ? r.json() : { results: [] })).catch(() => ({ results: [] }))))
     .then((pages) => {
-      const items = pages.flatMap((p) => p.results || []).filter((x) => x.poster_path && (x.media_type === "movie" || x.media_type === "tv"));
-      if (!items.length) { fillRail([]); return; }
-      fillWall(items);
-      fillPhone(items);
-      fillRail(items);
+      posters = pages.flatMap((p) => p.results || []).filter((x) => x.poster_path && (x.media_type === "movie" || x.media_type === "tv"));
+      if (!posters.length) { fillRail([]); return; }
+      fillBg(posters.slice(10).concat(posters.slice(0, 10)));
+      fillFlow(posters);
+      fillRail(posters);
+      const bd = posters.find((x) => x.backdrop_path);
+      if (bd) $("[data-backdrop]").style.backgroundImage = "url(" + IMG + "w780" + bd.backdrop_path + ")";
     });
+  let rt;
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => fillFlow(posters), 150); });
 
   $$("[data-scroll]").forEach((b) => b.addEventListener("click", () => {
     const rail = $("#rail");
     rail.scrollBy({ left: Number(b.dataset.scroll) * rail.clientWidth * 0.8, behavior: "smooth" });
   }));
 
-  /* ---------------- Tile glow follows the pointer ---------------- */
-  $$(".tile").forEach((t) => t.addEventListener("pointermove", (e) => {
-    const r = t.getBoundingClientRect();
-    t.style.setProperty("--mx", (e.clientX - r.left) + "px");
-    t.style.setProperty("--my", (e.clientY - r.top) + "px");
-  }));
+  /* ---------------- Glass tilts toward the pointer ---------------- */
+  if (window.matchMedia("(hover: hover)").matches) {
+    $$(".feat, .steps li").forEach((el) => {
+      el.addEventListener("pointermove", (e) => {
+        const r = el.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+        el.style.transform = "perspective(900px) rotateX(" + (-y * 5) + "deg) rotateY(" + (x * 6) + "deg) translateY(-4px)";
+      });
+      el.addEventListener("pointerleave", () => { el.style.transform = ""; });
+    });
+  }
 
-  /* ---------------- Reveal on scroll ---------------- */
-  const revealEls = $$(".sec-head, .tile, .steps li, .faq details, .dev-card, .final-in, .rail");
+  /* ---------------- Reveal + tab bar highlight ---------------- */
   if ("IntersectionObserver" in window) {
-    revealEls.forEach((el) => el.classList.add("reveal"));
+    const els = $$(".sec-head, .feat, .steps li, .faq details, .final, .shelf, .stats");
+    els.forEach((el) => el.classList.add("reveal"));
     const io = new IntersectionObserver((entries) => {
       entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
     }, { rootMargin: "0px 0px -8% 0px" });
-    revealEls.forEach((el) => io.observe(el));
+    els.forEach((el) => io.observe(el));
+
+    const tabs = $$(".tabbar a[href^='#']");
+    const spy = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        const id = en.target.id === "get" ? "top" : en.target.id;
+        tabs.forEach((t) => t.classList.toggle("on", t.getAttribute("href") === "#" + id));
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    ["get", "trending", "features", "install", "faq"].forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
   }
 
   /* ---------------- Telegram / Facebook from the Admin app ---------------- */
