@@ -1304,31 +1304,22 @@ private fun TopOverlayActionItem(
     onClick: () -> Unit,
     testTag: String
 ) {
-    Row(
+    // Icon-only round glass button (the label is kept for accessibility).
+    Box(
         modifier = Modifier
+            .size(38.dp)
             .clip(CircleShape)
             .background(if (active) CinedorMagenta else Color.Black.copy(alpha = 0.42f))
-            .border(1.dp, Color.White.copy(alpha = if (active) 0f else 0.16f), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = if (active) 0f else 0.18f), CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
             .testTag(testTag),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = Color.White,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = Color.White,
-            maxLines = 1
+            modifier = Modifier.size(19.dp)
         )
     }
 }

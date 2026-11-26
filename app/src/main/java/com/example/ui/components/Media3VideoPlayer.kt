@@ -435,6 +435,7 @@ fun CinePulseVideoPlayer(
     var videoAuto by remember { mutableStateOf(true) }
     var preservedPositionMs by remember(initialPositionMs) { mutableLongStateOf(initialPositionMs) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
 
     val speeds = remember { listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f) }
     val activeProfile = profiles[profileIndex.coerceIn(0, profiles.lastIndex)]
@@ -588,6 +589,17 @@ fun CinePulseVideoPlayer(
                     val dur = exoPlayer.duration
                     if (dur > 0L) durationMs = dur
                 }
+            }
+
+            // Show every subtitle on one line (line breaks inside a cue are joined with spaces).
+            override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) {
+                val sv = playerViewRef?.subtitleView ?: return
+                val oneLine = cueGroup.cues.map { c ->
+                    val t = c.text
+                    if (t == null || !t.contains('\n')) c
+                    else c.buildUpon().setText(t.toString().replace(Regex("\\s*\\n\\s*"), " ")).build()
+                }
+                sv.post { sv.setCues(oneLine) }
             }
 
             override fun onIsPlayingChanged(playing: Boolean) {
@@ -797,6 +809,7 @@ fun CinePulseVideoPlayer(
             AndroidView(
                 factory = { ctx ->
                     (LayoutInflater.from(ctx).inflate(R.layout.cinedor_player_view, null, false) as PlayerView).apply {
+                        playerViewRef = this
                         player = exoPlayer
                         keepScreenOn = true
                         useController = false

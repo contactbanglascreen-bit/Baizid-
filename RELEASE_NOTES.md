@@ -1,3 +1,3 @@
-- Featured popups from the Cinedor team with poster and Watch now
-- Notifications and popups open the exact movie or series page
-- Premium glass notifications page, My List button fixed on all themes
+- Cleaner player: top buttons are now icons only
+- Subtitles show on a single line
+- Featured popups and notifications open the exact title
