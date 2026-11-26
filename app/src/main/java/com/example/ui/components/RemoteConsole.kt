@@ -123,8 +123,20 @@ object RemoteConsole {
         }
     }.getOrNull()
 
+    /** Settings saved from the Cinedor Admin app live in Firestore (config/app); read without login. */
+    private fun firestoreConfig(): String? {
+        val body = get(
+            "https://firestore.googleapis.com/v1/projects/cinedor-60aac/databases/(default)/documents/config/app" +
+                "?key=AIzaSyCddEpMsakf5vHeLlHuJLMPUCC50uTYOpY"
+        ) ?: return null
+        return runCatching {
+            JSONObject(body).optJSONObject("fields")?.optJSONObject("json")?.optString("stringValue")
+        }.getOrNull()?.takeIf { it.isNotBlank() && runCatching { JSONObject(it) }.isSuccess }
+    }
+
     suspend fun refresh() {
         val result = withContext(Dispatchers.IO) {
+            firestoreConfig()?.let { return@withContext "firestore" to it }
             // GitHub API first (no CDN delay), then raw files as a fallback.
             REFS.firstNotNullOfOrNull { ref ->
                 get("https://api.github.com/repos/$REPO/contents/$PATH?ref=$ref", "application/vnd.github.raw+json")
@@ -134,7 +146,7 @@ object RemoteConsole {
                     ?.let { ref to it }
             }
         } ?: return
-        loadedRef = result.first
+        if (result.first != "firestore") loadedRef = result.first
         rawJson = result.second
         config = runCatching { parse(JSONObject(result.second)) }.getOrNull()
     }
