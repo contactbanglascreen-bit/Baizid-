@@ -1,3 +1,3 @@
-- Movies, TV Series, Anime and Dramas tabs now keep loading as you scroll — see every title
+- New notification style: poster on the right, or three posters in a row for collections
+- Movies, TV Series, Anime and Dramas tabs keep loading as you scroll — every title shows up
 - Browse by language and country, cast on every title page
-- Premium with codes, ads, popups after the splash

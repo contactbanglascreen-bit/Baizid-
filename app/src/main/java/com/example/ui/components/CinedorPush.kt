@@ -84,7 +84,25 @@ object CinedorPush {
         }.getOrNull()
     }
 
-    fun show(context: Context, title: String, body: String, imageUrl: String?, link: String?) {
+    /** Rounded-corner copy of a poster so it looks like a card in the notification. */
+    private fun rounded(src: Bitmap, radius: Float = 18f): Bitmap {
+        val out = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(out)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        paint.shader = android.graphics.BitmapShader(src, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(android.graphics.RectF(0f, 0f, src.width.toFloat(), src.height.toFloat()), radius, radius, paint)
+        return out
+    }
+
+    private fun scaled(b: Bitmap, maxH: Int = 300): Bitmap =
+        if (b.height <= maxH) b else Bitmap.createScaledBitmap(b, (b.width * maxH.toFloat() / b.height).toInt().coerceAtLeast(1), maxH, true)
+
+    /**
+     * Shows a notification like the big streaming apps:
+     * - one poster: title + text with the poster on the right (and a big picture when expanded)
+     * - several posters ([images]): title with up to three posters in a row
+     */
+    fun show(context: Context, title: String, body: String, imageUrl: String?, link: String?, images: List<String> = emptyList()) {
         createChannel(context)
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -94,7 +112,6 @@ object CinedorPush {
             context, (System.currentTimeMillis() % 100000).toInt(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val poster = loadBitmap(imageUrl)
         val b = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(com.example.R.drawable.ic_launcher_logo_mono)
             .setColor(0xFFE50914.toInt())
@@ -103,16 +120,37 @@ object CinedorPush {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pi)
-        if (poster != null) {
-            b.setLargeIcon(poster)
-            b.setStyle(
-                NotificationCompat.BigPictureStyle()
-                    .bigPicture(poster)
-                    .bigLargeIcon(null as Bitmap?)
-                    .setSummaryText(body)
-            )
+
+        val many = images.filter { it.startsWith("http") }.take(3)
+        if (many.size >= 2) {
+            val views = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_multi)
+            views.setTextViewText(com.example.R.id.n_title, title)
+            if (body.isBlank()) views.setViewVisibility(com.example.R.id.n_body, android.view.View.GONE)
+            else views.setTextViewText(com.example.R.id.n_body, body)
+            val ids = listOf(com.example.R.id.n_p1, com.example.R.id.n_p2, com.example.R.id.n_p3)
+            ids.forEachIndexed { i, id ->
+                val bmp = many.getOrNull(i)?.let { loadBitmap(it) }
+                if (bmp != null) views.setImageViewBitmap(id, rounded(scaled(bmp)))
+                else views.setViewVisibility(id, android.view.View.GONE)
+            }
+            b.setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(views)
+                .setCustomBigContentView(views)
         } else {
-            b.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            val poster = loadBitmap(imageUrl?.ifBlank { null } ?: many.firstOrNull())
+            if (poster != null) {
+                val small = android.widget.RemoteViews(context.packageName, com.example.R.layout.notif_poster)
+                small.setTextViewText(com.example.R.id.n_title, title)
+                if (body.isBlank()) small.setViewVisibility(com.example.R.id.n_body, android.view.View.GONE)
+                else small.setTextViewText(com.example.R.id.n_body, body)
+                small.setImageViewBitmap(com.example.R.id.n_poster, rounded(scaled(poster)))
+                b.setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                    .setCustomContentView(small)
+                    .setCustomBigContentView(small)
+                    .setLargeIcon(poster)
+            } else {
+                b.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            }
         }
         runCatching {
             NotificationManagerCompat.from(context).notify((System.currentTimeMillis() % 1_000_000).toInt(), b.build())
@@ -199,8 +237,9 @@ class CinedorMessagingService : FirebaseMessagingService() {
         val title = data["title"] ?: n?.title ?: "Cinedor"
         val body = data["body"] ?: n?.body ?: ""
         val image = data["image"] ?: n?.imageUrl?.toString()
-        NotificationInbox.add(applicationContext, title, body, image, data["link"])
-        CinedorPush.show(applicationContext, title, body, image, data["link"])
+        val images = data["images"].orEmpty().split(",").map { it.trim() }.filter { it.startsWith("http") }
+        NotificationInbox.add(applicationContext, title, body, image?.ifBlank { null } ?: images.firstOrNull(), data["link"])
+        CinedorPush.show(applicationContext, title, body, image, data["link"], images)
     }
 
     override fun onNewToken(token: String) {
