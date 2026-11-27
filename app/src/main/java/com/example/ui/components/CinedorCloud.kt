@@ -72,6 +72,9 @@ object CinedorCloud {
 
     fun uid(context: Context): String = prefs(context).getString("uid", "").orEmpty()
 
+    /** Fresh sign-in token for Cinedor's own worker (Cinedor Ai). Call off the main thread. */
+    fun authToken(context: Context): String? = runCatching { token(context) }.getOrNull()
+
     /** Signs this phone in anonymously (once) and keeps a fresh ID token. */
     private fun token(context: Context): String? {
         if (idToken != null && System.currentTimeMillis() < expiresAt) return idToken

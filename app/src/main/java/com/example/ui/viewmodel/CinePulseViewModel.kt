@@ -470,6 +470,13 @@ class CinePulseViewModel(
             .sortedByDescending { it.year.toIntOrNull() ?: 0 }
     }
 
+    /** Plain catalog search used by Cinedor Ai to turn suggested titles into real posters. */
+    suspend fun searchTitles(query: String): List<MediaItem> {
+        val prefs = preferences.value
+        return runCatching { apiClient.search(query, 1, prefs.source, prefs.safeMode, prefs.language.code) }
+            .getOrDefault(emptyList())
+    }
+
     /** Builds the exact title from a cinedor://item link sent by the admin (notification or popup). */
     fun itemFromLink(link: String): MediaItem? {
         if (!link.startsWith("cinedor://item")) return null

@@ -392,6 +392,8 @@ fun CinedorMainShell() {
 
     // Full-screen overlay when a media detail/player is active
     Box(modifier = Modifier.fillMaxSize()) {
+    // Cinedor Ai looks its suggestions up in the same catalog search as the app.
+    androidx.compose.runtime.SideEffect { com.example.ui.components.CinedorAi.searcher = { q -> viewModel.searchTitles(q) } }
     // Liquid Glass: the floating nav bar blurs the screen content scrolling under it.
     val glassState = remember { dev.chrisbanes.haze.HazeState() }
     androidx.compose.runtime.CompositionLocalProvider(com.example.ui.components.LiquidGlass.LocalState provides glassState) {

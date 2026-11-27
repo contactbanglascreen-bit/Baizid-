@@ -25,6 +25,7 @@ import com.example.data.model.MediaItem
 import com.example.ui.components.CinedorNavDestination
 import com.example.ui.components.CinedorPremium3DNavBar
 import com.example.ui.components.LiquidGlass
+import com.example.ui.components.glassBackground
 import com.example.ui.screens.HomeScreen
 import com.example.ui.theme.CinePulseTheme
 import com.example.ui.theme.CinedorPalettes
@@ -140,4 +141,30 @@ class GlassScreenshotTest {
     @Test fun homeDaylight() = shot(5, "home-daylight")
     @Test fun homeDaylightFrosted() { LiquidGlass.forceFrosted = true; try { shot(5, "home-daylight-frosted") } finally { LiquidGlass.forceFrosted = false } }
     @Test fun homeCinema() = shot(0, "home-cinema")
+
+    @Test fun aiPage() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        ThemeState.current = CinedorPalettes[5]
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            CinePulseTheme {
+                Box(Modifier.fillMaxSize().then(Modifier).let { it }) {
+                    Box(Modifier.fillMaxSize().then(Modifier.glassBackground())) {
+                        com.example.ui.components.CinedorAiPage(onSearch = { emptyList() }, onOpenMedia = {})
+                    }
+                }
+            }
+        }
+        repeat(30) { rule.mainClock.advanceTimeByFrame() }
+        Thread.sleep(800)
+        repeat(5) { rule.mainClock.advanceTimeByFrame() }
+        var bmp: Bitmap? = null
+        rule.activityRule.scenario.onActivity { act ->
+            val v = act.window.decorView
+            val b = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+            v.draw(Canvas(b)); bmp = b
+        }
+        val out = File(System.getenv("SCREENSHOT_DIR") ?: ctx.cacheDir.absolutePath).apply { mkdirs() }
+        File(out, "ai-page.png").outputStream().use { bmp!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
 }

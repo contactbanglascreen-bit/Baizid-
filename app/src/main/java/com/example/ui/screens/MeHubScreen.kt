@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.ui.components.glassBackground
 import android.text.format.DateUtils
 import android.text.format.Formatter
@@ -182,7 +183,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
 // Me hub
 // ---------------------------------------------------------------------------
 
-private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK, PREMIUM }
+private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK, PREMIUM, AI }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,6 +249,7 @@ fun MeHubScreen(
                     MePage.ADMIN -> "Console"
                     MePage.FEEDBACK -> "Feedback"
                     MePage.PREMIUM -> "Premium"
+                    MePage.AI -> "Cinedor Ai"
                 },
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 24.sp),
                 color = TextPrimary,
@@ -335,6 +337,8 @@ fun MeHubScreen(
                     MenuDivider()
                     MenuRow(Icons.Rounded.Feedback, "Feedback & help", "Report a problem or request a title") { page = MePage.FEEDBACK }
                     MenuDivider()
+                    MenuRow(Icons.Rounded.AutoAwesome, "Cinedor Ai", "Can't find a movie? Ask the AI") { page = MePage.AI }
+                    MenuDivider()
                     MenuRow(Icons.Rounded.Settings, "Settings", "Player, downloads & privacy") { page = MePage.SETTINGS }
                     MenuDivider()
                     MenuRow(Icons.Rounded.Info, "About", "Cinedor · version & info") { page = MePage.ABOUT }
@@ -388,13 +392,18 @@ fun MeHubScreen(
                 onUpdateLanguage = onUpdateLanguage,
                 onUpdateSafeMode = guardedSafeMode,
                 onLockNow = onUpdateSafeMode,
-                onClearHistory = onClearHistory
+                onClearHistory = onClearHistory,
+                onOpenAi = { page = MePage.AI }
             )
 
             MePage.ABOUT -> AboutPage(onOpenAdmin = { page = MePage.ADMIN })
             MePage.ADMIN -> AdminGate(onLeave = { page = MePage.HUB })
             MePage.FEEDBACK -> FeedbackPage()
             MePage.PREMIUM -> com.example.ui.components.PremiumPage()
+            MePage.AI -> com.example.ui.components.CinedorAiPage(
+                onSearch = { q -> com.example.ui.components.CinedorAi.searcher?.invoke(q).orEmpty() },
+                onOpenMedia = onOpenMedia
+            )
         }
     }
 
@@ -818,7 +827,8 @@ private fun SettingsPage(
     onUpdateLanguage: (ContentLanguage) -> Unit,
     onUpdateSafeMode: (Boolean) -> Unit,
     onLockNow: (Boolean) -> Unit,
-    onClearHistory: () -> Unit
+    onClearHistory: () -> Unit,
+    onOpenAi: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var confirmClearHistory by remember { mutableStateOf(false) }
@@ -827,6 +837,28 @@ private fun SettingsPage(
     val downloadsSize = remember(storageTick) { downloadedBytes(context) }
     val cacheSize = remember(storageTick) {
         runCatching { context.imageLoader.diskCache?.size ?: 0L }.getOrDefault(0L)
+    }
+
+    SettingsCard("Cinedor Ai") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenAi)
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(46.dp).clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(Color(0xFFFF5A6A), Color(0xFF7B5CFF)))),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Color.White) }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Cinedor Ai", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("কোনো মুভি খুঁজে না পেলে গল্পটা বলুন, AI খুঁজে দেবে", color = TextSecondary, fontSize = 12.5.sp)
+            }
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp).graphicsLayer { rotationZ = 180f })
+        }
     }
 
     SettingsCard("Internet speed") {
