@@ -896,16 +896,14 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Logo + wordmark (tap switches source ALL / MovieBox).
-                // MovieLinkBD is hidden while its server returns no titles; to bring it back,
-                // make MOVIEBOX go to MOVIELINKBD again here and in UserPreferencesRepository.
+                // Logo + wordmark (tap cycles source ALL / MovieBox / MovieLinkBD)
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             val next = when (preferences.source) {
                                 ContentSource.ALL -> ContentSource.MOVIEBOX
-                                ContentSource.MOVIEBOX -> ContentSource.ALL
+                                ContentSource.MOVIEBOX -> ContentSource.MOVIELINKBD
                                 ContentSource.MOVIELINKBD -> ContentSource.ALL
                             }
                             onCycleSource(next)

@@ -31,9 +31,7 @@ class UserPreferencesRepository(context: Context) {
 
     val preferencesFlow: Flow<UserPreferences> = dataStore.data.map { prefs ->
         UserPreferences(
-            // MovieLinkBD is hidden for now (its server returns no titles), so anyone who had picked
-            // it gets "All" instead of an empty Home.
-            source = ContentSource.fromApi(prefs[Keys.SOURCE]).let { if (it == ContentSource.MOVIELINKBD) ContentSource.ALL else it },
+            source = ContentSource.fromApi(prefs[Keys.SOURCE]),
             language = ContentLanguage.fromCode(prefs[Keys.LANGUAGE]),
             safeMode = prefs[Keys.SAFE_MODE] ?: true,
             customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty()
