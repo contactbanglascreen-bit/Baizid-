@@ -565,7 +565,7 @@ fun CinedorMainShell() {
                 }
 
                 // Premium 3D Sculpted 5-Tab Bottom Bar with Raised Domed-Glass Center "Shorts" Orb
-                if (!useNavRail) {
+                if (!useNavRail && !com.example.ui.components.CinedorAi.isOpen) {
                     val activeDestination = when (currentTab) {
                         CinedorTab.HOME -> CinedorNavDestination.HOME
                         CinedorTab.EXPLORE -> CinedorNavDestination.EXPLORE

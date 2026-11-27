@@ -215,6 +215,16 @@ fun MeHubScreen(
 
     BackHandler(enabled = page != MePage.HUB) { page = MePage.HUB }
 
+    // Cinedor Ai is a full-screen chat, not part of the scrolling Me page.
+    if (page == MePage.AI) {
+        com.example.ui.components.CinedorAiScreen(
+            onBack = { page = MePage.HUB },
+            onSearch = { q -> com.example.ui.components.CinedorAi.searcher?.invoke(q).orEmpty() },
+            onOpenMedia = onOpenMedia
+        )
+        return
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -400,10 +410,7 @@ fun MeHubScreen(
             MePage.ADMIN -> AdminGate(onLeave = { page = MePage.HUB })
             MePage.FEEDBACK -> FeedbackPage()
             MePage.PREMIUM -> com.example.ui.components.PremiumPage()
-            MePage.AI -> com.example.ui.components.CinedorAiPage(
-                onSearch = { q -> com.example.ui.components.CinedorAi.searcher?.invoke(q).orEmpty() },
-                onOpenMedia = onOpenMedia
-            )
+            MePage.AI -> Unit
         }
     }
 

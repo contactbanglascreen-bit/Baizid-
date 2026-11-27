@@ -1,6 +1,11 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import android.content.Context
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,13 +86,17 @@ data class AiMessage(val fromUser: Boolean, val text: String, val items: List<Me
 object CinedorAi {
     private const val DEFAULT_URL = "https://fragrant-dust-19c9.khanbhai19u.workers.dev/ai"
 
+    /** True while the chat is on screen (the bottom navigation bar hides). */
+    var isOpen by mutableStateOf(false)
+
     /** Catalog search, set by MainActivity (the screen itself has no view model). */
     var searcher: (suspend (String) -> List<MediaItem>)? = null
 
     data class Answer(val reply: String, val titles: List<String>, val keywords: List<String>)
 
     suspend fun ask(context: Context, history: List<AiMessage>): Answer = withContext(Dispatchers.IO) {
-        val token = CinedorCloud.authToken(context) ?: throw IllegalStateException("Couldn't sign in. Check your internet.")
+        val token = CinedorCloud.authToken(context)
+            ?: throw IllegalStateException("সাইন-ইন হচ্ছে না। ইন্টারনেট চেক করুন। (Admin: Firebase এ Anonymous sign-in চালু আছে কিনা দেখুন)")
         val msgs = JSONArray()
         history.takeLast(8).forEach { m ->
             msgs.put(JSONObject().put("role", if (m.fromUser) "user" else "assistant").put("content", m.text))
@@ -139,23 +148,37 @@ private val suggestions = listOf(
     "Korean drama like Crash Landing on You"
 )
 
-/** The Cinedor Ai chat screen (opened from Settings). */
+/** Chat kept while the app is open, so leaving and coming back keeps the conversation. */
+private val chatHistory = mutableStateListOf(
+    AiMessage(false, "আসসালামু আলাইকুম! আমি Cinedor Ai।\nকোন মুভি বা সিরিজ খুঁজে পাচ্ছেন না? নাম মনে না থাকলেও গল্পটা একটু বলুন, আমি খুঁজে দেব।")
+)
+
+/**
+ * Full-screen Cinedor Ai chat, like a messenger: header with the Cinedor logo, chat bubbles,
+ * posters you can tap, animated typing dots and a message bar that sits above the keyboard.
+ */
 @Composable
-fun CinedorAiPage(
+fun CinedorAiScreen(
+    onBack: () -> Unit,
     onSearch: suspend (String) -> List<MediaItem>,
     onOpenMedia: (MediaItem) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val messages = remember {
-        mutableStateListOf(
-            AiMessage(false, "আসসালামু আলাইকুম! আমি Cinedor Ai।\nকোন মুভি বা সিরিজ খুঁজে পাচ্ছেন না? নাম মনে না থাকলেও গল্পটা একটু বলুন, আমি খুঁজে দেব।")
-        )
-    }
+    val messages = chatHistory
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
-    LaunchedEffect(messages.size, busy) { listState.animateScrollToItem((messages.size + if (busy) 1 else 0).coerceAtLeast(1) - 1) }
+    androidx.activity.compose.BackHandler(onBack = onBack)
+    // The bottom navigation bar hides while the chat is open.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        CinedorAi.isOpen = true
+        onDispose { CinedorAi.isOpen = false }
+    }
+    LaunchedEffect(messages.size, busy) {
+        val last = messages.size + (if (busy) 1 else 0) + (if (messages.size == 1) 1 else 0) - 1
+        if (last >= 0) listState.animateScrollToItem(last)
+    }
 
     fun send(text: String) {
         val q = text.trim()
@@ -169,29 +192,67 @@ fun CinedorAiPage(
                 val posters = CinedorAi.findPosters(answer, onSearch)
                 val text2 = when {
                     posters.isNotEmpty() -> answer.reply.ifBlank { "এগুলো দেখুন 👇" }
-                    answer.titles.isNotEmpty() -> answer.reply.ifBlank { "" } +
+                    answer.titles.isNotEmpty() -> answer.reply +
                         "\n\nএই নামগুলো পেয়েছি, কিন্তু এখন Cinedor এ নেই: " + answer.titles.joinToString(", ")
                     else -> answer.reply.ifBlank { "দুঃখিত, বুঝতে পারিনি। আরেকটু বিস্তারিত বলবেন?" }
                 }
                 AiMessage(false, text2.trim(), posters)
-            }.getOrElse { AiMessage(false, "⚠️ " + (it.message ?: "Cinedor Ai is busy. Try again.")) }
+            }.getOrElse { AiMessage(false, "⚠️ " + (it.message ?: "Cinedor Ai এখন ব্যস্ত। একটু পরে আবার চেষ্টা করুন।")) }
             messages.add(reply)
             busy = false
         }
     }
 
-    Column(Modifier.fillMaxSize().imePadding()) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .glassBackground()
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liquidGlass(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))
+                .statusBarsPadding()
+                .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+            }
+            Box {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(Color.White).padding(4.dp)
+                )
+                Box(
+                    Modifier.align(Alignment.BottomEnd).size(12.dp).clip(CircleShape)
+                        .background(Color.White).padding(2.dp).clip(CircleShape).background(Color(0xFF22C55E))
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Cinedor Ai", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                Text(if (busy) "লিখছে…" else "অনলাইন • মুভি খুঁজে দেয়", color = if (busy) CinetorRed else TextSecondary, fontSize = 12.sp)
+            }
+            if (messages.size > 1) {
+                androidx.compose.material3.IconButton(onClick = {
+                    if (!busy) { val first = messages.first(); messages.clear(); messages.add(first) }
+                }) { Icon(Icons.Rounded.Refresh, contentDescription = "New chat", tint = TextSecondary) }
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             itemsIndexed(messages) { _, m -> AiBubble(m, onOpenMedia) }
-            if (busy) item { TypingBubble() }
             if (messages.size == 1 && !busy) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 40.dp, top = 2.dp)) {
                         Text("যেমন জিজ্ঞেস করতে পারেন:", color = TextMuted, fontSize = 12.sp)
                         suggestions.forEach { s ->
                             Box(
@@ -202,12 +263,16 @@ fun CinedorAiPage(
                     }
                 }
             }
+            if (busy) item { TypingBubble() }
         }
-        // Input bar
+
+        // Message bar, above the keyboard and the phone's navigation
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 10.dp)
                 .liquidGlass(RoundedCornerShape(28.dp))
                 .padding(start = 4.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -242,43 +307,48 @@ fun CinedorAiPage(
 }
 
 @Composable
+private fun AiAvatar() {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
+        contentDescription = null,
+        modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White).padding(3.dp)
+    )
+}
+
+@Composable
 private fun AiBubble(m: AiMessage, onOpenMedia: (MediaItem) -> Unit) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start) {
-        if (!m.fromUser) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) {
-                // Cinedor's own logo as the AI's face
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp).clip(CircleShape).background(Color.White).padding(2.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Cinedor Ai", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    val shape = RoundedCornerShape(
+        topStart = 20.dp, topEnd = 20.dp,
+        bottomStart = if (m.fromUser) 20.dp else 6.dp, bottomEnd = if (m.fromUser) 6.dp else 20.dp
+    )
+    if (m.fromUser) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Box(Modifier.widthIn(max = 290.dp).glassAccent(shape).padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(m.text, color = Color.White, fontSize = 14.5.sp, lineHeight = 20.sp)
             }
         }
-        val shape = RoundedCornerShape(
-            topStart = 20.dp, topEnd = 20.dp,
-            bottomStart = if (m.fromUser) 20.dp else 6.dp, bottomEnd = if (m.fromUser) 6.dp else 20.dp
-        )
-        if (m.text.isNotBlank()) {
-            Box(
-                Modifier.widthIn(max = 300.dp)
-                    .then(if (m.fromUser) Modifier.glassAccent(shape) else Modifier.glassBubble(shape))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                Text(m.text, color = if (m.fromUser) Color.White else TextPrimary, fontSize = 14.5.sp, lineHeight = 20.sp)
+        return
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+        AiAvatar()
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            if (m.text.isNotBlank()) {
+                Box(Modifier.widthIn(max = 290.dp).glassBubble(shape).padding(horizontal = 14.dp, vertical = 10.dp)) {
+                    Text(m.text, color = TextPrimary, fontSize = 14.5.sp, lineHeight = 20.sp)
+                }
             }
-        }
-        if (m.items.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(m.items.distinctBy { it.source + it.id }, key = { it.source + it.id }) { item ->
-                    Column(Modifier.width(108.dp).clickable { onOpenMedia(item) }) {
-                        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp)).glassRim(RoundedCornerShape(14.dp))) {
-                            FastPosterImage(url = item.posterUrl, contentDescription = item.title, thumbWidth = 240, modifier = Modifier.fillMaxSize())
+            if (m.items.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(m.items.distinctBy { it.source + it.id }, key = { it.source + it.id }) { item ->
+                        Column(Modifier.width(104.dp).clickable { onOpenMedia(item) }) {
+                            Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp)).glassRim(RoundedCornerShape(14.dp))) {
+                                FastPosterImage(url = item.posterUrl, contentDescription = item.title, thumbWidth = 240, modifier = Modifier.fillMaxSize())
+                            }
+                            Text(item.title, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
+                            if (item.year.isNotBlank()) Text(item.year, color = TextMuted, fontSize = 11.sp)
                         }
-                        Text(item.title, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
-                        if (item.year.isNotBlank()) Text(item.year, color = TextMuted, fontSize = 11.sp)
                     }
                 }
             }
@@ -286,14 +356,33 @@ private fun AiBubble(m: AiMessage, onOpenMedia: (MediaItem) -> Unit) {
     }
 }
 
+/** Three bouncing dots while Cinedor Ai thinks. */
 @Composable
 private fun TypingBubble() {
-    Row(
-        Modifier.glassBubble(RoundedCornerShape(20.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CircularProgressIndicator(color = CinetorRed, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "typing")
+    Row(verticalAlignment = Alignment.Bottom) {
+        AiAvatar()
         Spacer(Modifier.width(8.dp))
-        Text("Cinedor Ai খুঁজছে…", color = TextSecondary, fontSize = 13.sp)
+        Row(
+            Modifier.glassBubble(RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(3) { i ->
+                val y by t.animateFloat(
+                    initialValue = 0f, targetValue = 1f,
+                    animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                        androidx.compose.animation.core.keyframes {
+                            durationMillis = 900
+                            0f at (i * 150)
+                            1f at (i * 150 + 200)
+                            0f at (i * 150 + 400)
+                        }
+                    ),
+                    label = "dot$i"
+                )
+                Box(Modifier.padding(bottom = (y * 6).dp).size(8.dp).clip(CircleShape).background(CinetorRed.copy(alpha = 0.55f + y * 0.45f)))
+            }
+        }
     }
 }

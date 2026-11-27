@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.local.UserPreferences
 import com.example.data.model.HomeFeed
@@ -150,7 +153,7 @@ class GlassScreenshotTest {
             CinePulseTheme {
                 Box(Modifier.fillMaxSize().then(Modifier).let { it }) {
                     Box(Modifier.fillMaxSize().then(Modifier.glassBackground())) {
-                        com.example.ui.components.CinedorAiPage(onSearch = { emptyList() }, onOpenMedia = {})
+                        com.example.ui.components.CinedorAiScreen(onBack = {}, onSearch = { emptyList() }, onOpenMedia = {})
                     }
                 }
             }
@@ -166,5 +169,24 @@ class GlassScreenshotTest {
         }
         val out = File(System.getenv("SCREENSHOT_DIR") ?: ctx.cacheDir.absolutePath).apply { mkdirs() }
         File(out, "ai-page.png").outputStream().use { bmp!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    /** Typing a message and pressing Send must always end with a reply bubble (answer or error). */
+    @Test fun aiSendShowsReply() {
+        ThemeState.current = CinedorPalettes[5]
+        rule.setContent {
+            CinePulseTheme {
+                com.example.ui.components.CinedorAiScreen(onBack = {}, onSearch = { emptyList() }, onOpenMedia = {})
+            }
+        }
+        rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Gopal Bhar")
+        rule.onNodeWithContentDescription("Send").performClick()
+        rule.waitUntil(timeoutMillis = 60_000) {
+            rule.onAllNodes(androidx.compose.ui.test.hasText("⚠️", substring = true) or androidx.compose.ui.test.hasText("এগুলো", substring = true))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        val texts = rule.onAllNodes(androidx.compose.ui.test.hasText("⚠️", substring = true)).fetchSemanticsNodes()
+            .map { it.config.toString().take(200) }
+        println("REPLY $texts")
     }
 }
