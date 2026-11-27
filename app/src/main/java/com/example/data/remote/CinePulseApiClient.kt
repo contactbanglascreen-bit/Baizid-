@@ -283,8 +283,10 @@ class CinePulseApiClient(
         }
 
         val feed: HomeFeed = if (server2Only.isEmpty() && source == ContentSource.ALL && Server2Client.enabled) {
-            // Server 2 can be slow on mobile networks: give it time instead of dropping its titles.
-            val extra = withTimeoutOrNull(15000L) { server2Deferred.await() }.orEmpty()
+            // No waiting: use Server 2's answer if it is already here, else its saved list. The
+            // fresh list is added a moment later by the ViewModel (mergeServer2).
+            val extra = (if (server2Deferred.isCompleted) server2Deferred.await() else emptyList())
+                .ifEmpty { Server2Client.cachedHome() }
             if (extra.isEmpty()) baseFeed
             else baseFeed.copy(sections = listOf(HomeSection("s2_latest", "Latest uploads", extra.take(24))) + baseFeed.sections)
         } else baseFeed

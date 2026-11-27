@@ -272,6 +272,17 @@ class CinePulseViewModel(
                 shownFeedKey = feedKey
                 _homeState.update { it.copy(feedState = UiState.Success(feed)) }
                 launch { feedCache?.write(feedKey, feed) }
+                // Fresh Server 2 (MovieLink) titles slot in as soon as they arrive, without holding Home back.
+                if (prefs.source == com.example.data.model.ContentSource.ALL) launch {
+                    val fresh = runCatching { com.example.data.remote.Server2Client.home() }.getOrDefault(emptyList())
+                    if (fresh.isNotEmpty()) _homeState.update { st ->
+                        val cur = (st.feedState as? UiState.Success)?.data ?: return@update st
+                        val shelf = com.example.data.model.HomeSection("s2_latest", "Latest uploads", fresh.take(24))
+                        val merged = cur.copy(sections = listOf(shelf) + cur.sections.filter { it.id != "s2_latest" })
+                        launch { feedCache?.write(feedKey, merged) }
+                        st.copy(feedState = UiState.Success(merged))
+                    }
+                }
                 updatesJob.join()
             } catch (e: CancellationException) {
                 throw e

@@ -9,6 +9,7 @@ class CinedorApp : Application() {
         super.onCreate()
         // Remember crashes so the details reach the admin's Feedback list on the next start.
         com.example.ui.components.CrashReporter.install(this)
+        com.example.data.remote.Server2Client.cacheDir = filesDir
         com.example.ui.components.CinedorPush.start(this)
         com.example.ui.components.PremiumState.load(this)
         // Country / phone stats for the admin, and "your problem is fixed" notices.

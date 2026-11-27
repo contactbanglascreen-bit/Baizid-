@@ -56,6 +56,19 @@ object Server2Client {
     /** Last good answer per address, so a slow or failed request still shows titles. */
     private val lastGood = java.util.concurrent.ConcurrentHashMap<String, JSONObject>()
 
+    /** Where the last good Home list is kept on the phone (set by CinedorApp). */
+    @Volatile var cacheDir: java.io.File? = null
+
+    private fun diskFile() = cacheDir?.let { java.io.File(it, "server2_home.json") }
+
+    /** Titles from the last good Home answer, read instantly (memory, then the phone's copy). */
+    fun cachedHome(): List<MediaItem> {
+        lastGood["/home"]?.let { return items(it) }
+        val j = runCatching { diskFile()?.takeIf { it.exists() }?.readText()?.let { JSONObject(it) } }.getOrNull() ?: return emptyList()
+        lastGood["/home"] = j
+        return items(j)
+    }
+
     private fun fetch(base: String, path: String): JSONObject? {
         val req = Request.Builder().url(base.trimEnd('/') + path).header("Accept", "application/json").build()
         return runCatching {
@@ -77,6 +90,7 @@ object Server2Client {
             val j = fetch(b, path)
             if (j != null && !j.has("error") && (j.optJSONArray("items")?.length() ?: 1) > 0) {
                 lastGood[path] = j
+                if (path == "/home") runCatching { diskFile()?.writeText(j.toString()) }
                 return j
             }
         }
