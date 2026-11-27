@@ -1,0 +1,238 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="ATNBanglaUK.uk@SD",ATN Bangla UK (576p)
+https://app.ncare.live/c3VydmVyX8RpbEU9Mi8xNy8yMDE0GIDU6RgzQ6NTAgdEoaeFzbF92YWxIZTO0U0ezN1IzMyfvcGVMZEJCTEFWeVN3PTOmdFsaWRtaW51aiPhnPTI2/atnbanglauk-off.stream/playlist.m3u8
+#EXTINF:-1 tvg-id="ChannelS.uk@SD",Channel S UK (576p)
+https://app.ncare.live/c3VydmVyX8RpbEU9Mi8xNy8yMDE0GIDU6RgzQ6NTAgdEoaeFzbF92YWxIZTO0U0ezN1IzMyfvcGVMZEJCTEFWeVN3PTOmdFsaWRtaW51aiPhnPTI/chsukoff.stream/playlist.m3u8
+#EXTINF:-1 tvg-id="IqraBangla.uk@SD",Iqra Bangla (576p)
+https://tvsen3.aynaott.com/EuEy5mBW/index.m3u8
+#EXTINF:-1 tvg-id="IqraTV.uk@SD",Iqra TV
+https://cdn149.anystream.uk:8082/app/iq53la/playlist.m3u8
+#EXTINF:-1 tvg-id="IslamChannel.uk@SD",Islam Channel (576p)
+https://live.islamchannel.tv/live11/islamtv_english/bitrate1.isml/live.m3u8
+#EXTINF:-1 tvg-id="EmanChannel.uk@SD",Eman Channel (576p)
+https://ap02.iqplay.tv:8082/iqb8002/3m9n/playlist.m3u8
+#EXTINF:-1 tvg-id="TakbeerTV.uk@SD",Takbeer TV (720p)
+https://cd198.anystream.uk:9092/iqapp/t5kb86tv/playlist.m3u8
+#EXTINF:-1 tvg-id="NoorTV.uk@SD",Noor TV (720p)
+https://sscsott.com/srt/noortvuk/index.m3u8
+#EXTINF:-1 tvg-id="DeenTV.uk@SD",Deen TV (576p)
+https://cd198.anystream.uk:9092/iqapp/d33ntv/playlist.m3u8
+#EXTINF:-1 tvg-id="DeenTV.uk@SD",Deen TV (576p)
+https://ap02.iqplay.tv:8082/iqb8002/d33ntv/playlist.m3u8
+#EXTINF:-1 tvg-id="AhlulbaytTV.uk@SD",Ahlulbayt TV (1080p)
+https://cd198.anystream.uk:8082/hls/abtv3ng/index.m3u8
+#EXTINF:-1 tvg-id="BBCOne.uk@London",BBC One (720p)
+https://r.eu.cdn-redge.media/livehls/oeu/mt/live/bbc_one/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="BBCOne.uk@London",BBC One (720p)
+http://193.239.186.231/BBC1/index.m3u8
+#EXTINF:-1 tvg-id="BBCTwo.uk@HD",BBC Two HD (720p)
+https://n-5-1.eu.cdn-redge.media/livehls/oeu/mt/live/bbc_two/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="BBCFour.uk@UK",BBC Four (720p)
+https://r.eu.cdn-redge.media/livehls/oeu/mt/live/bbc_four/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="BBCFour.uk@UK",BBC Four
+https://cdn.stmify.com/bbc/stream/BBC_FOUR/hevc_iptv_mse_v0.mpd
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (720p)
+https://n-5-1.eu.cdn-redge.media/livehls/oeu/mt/live/bbc_news/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (576p)
+https://tvsen1.aynaott.com/shn6jGTk/index.m3u8
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (720p)
+https://mumbai-edge.smartplaytv.in/BBCNews/index.m3u8
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (576p)
+http://46.32.176.50/bbcworld/index.m3u8
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (576p)
+http://stream.mcquack.net/85/index.m3u8
+#EXTINF:-1 tvg-id="BBCNews.uk@UKHD",BBC News (576p)
+https://stream8.cinerama.uz/1251/tracks-v1a1/mono.m3u8
+#EXTINF:-1 tvg-id="CBBC.uk@HD",CBBC
+https://cdn.stmify.com/bbc/stream/CBBC/hevc_iptv_mse_v0.mpd
+#EXTINF:-1 tvg-id="CBeebies.uk@HD",CBeebies
+https://cdn.stmify.com/bbc/stream/CBEEBIES/hevc_iptv_mse_v0.mpd
+#EXTINF:-1 tvg-id="CBeebies.uk@HD",CBeebies (720p)
+http://193.46.58.239:8080/CbeebiesHD/index.m3u8
+#EXTINF:-1 tvg-id="Channel4.uk@UK",Channel 4 (576p)
+https://r.eu.cdn-redge.media/livehls/oeu/mt/live/channel_4/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="Channel4.uk@UK",Channel 4 (360p)
+https://lb.iptvnetwork.net/ls28/10104/playlist.m3u8
+#EXTINF:-1 tvg-id="Channel5.uk@SD",Channel 5 (360p)
+https://lb.iptvnetwork.net/ls28/10105/playlist.m3u8
+#EXTINF:-1 tvg-id="E4.uk@SD",E4 (360p)
+https://lb.iptvnetwork.net/ls28/10113/playlist.m3u8
+#EXTINF:-1 tvg-id="More4.uk@SD",More4 (576p)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://82.47.42.44/stream/402/index.m3u8
+#EXTINF:-1 tvg-id="More4.uk@SD",More4 (360p)
+https://lb.iptvnetwork.net/ls28/10114/playlist.m3u8
+#EXTINF:-1 tvg-id="5USA.uk@SD",5USA (360p)
+https://lb.iptvnetwork.net/ls28/10115/playlist.m3u8
+#EXTINF:-1 tvg-id="GBNews.uk@SD",GB News (1080p)
+https://live-gbnews.simplestreamcdn.com/live5/gbnews/bitrate1.isml/manifest.m3u8
+#EXTINF:-1 tvg-id="GBNews.uk@SD",GB News (1080p)
+https://hlspackager.akamaized.net/live/DB/GB_NEWS/HLS/GB_NEWS.m3u8
+#EXTINF:-1 tvg-id="GBNews.uk@SD",GB News (1080p)
+https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="GBNews.uk@SD",GB News (1080p)
+https://live-gbnews.simplestreamcdn.com/s3/gbnews_subs/index.m3u8
+#EXTINF:-1 tvg-id="TalkTV.uk@SD",TalkTV (1080p)
+https://488f4ce4.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/TEctZ2JfVGFsa19ITFM/playlist.m3u8
+#EXTINF:-1 tvg-id="CNBCEurope.uk@SD",CNBC Europe (720p)
+https://r.eu.cdn-redge.media/livehls/oeu/mt/live/cnbc_europe/live.livx/playlist.m3u8
+#EXTINF:-1 tvg-id="BloombergTV.us@Europe",Bloomberg TV Europe (720p)
+https://bloomberg.com/media-manifest/streams/eu.m3u8
+#EXTINF:-1 tvg-id="SkyNewsWeather.uk@SD",Sky News Weather (720p)
+https://distro001-gb-hls1-prd.delivery.skycdp.com/easel_cdn/ngrp:weather_loop.stream_all/playlist.m3u8
+#EXTINF:-1 tvg-id="SkySportsF1.uk@SD",Sky Sports F1 (720p)
+#EXTVLCOPT:http-referrer=https://stmify.com/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36
+https://cdn.stmify.com/out/v1/SKY_SPORTS_F1/index.m3u8
+#EXTINF:-1 tvg-id="SkySportsPremierLeague.uk@SD",Sky Sports Premier League (576p)
+#EXTVLCOPT:http-referrer=https://stmify.com/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+https://cdn.stmify.com/out/v1/SKY_SPORTS_PREMIER_LEAGUE/index.m3u8
+#EXTINF:-1 tvg-id="SkySportsAction.uk@SD",Sky Sports Action (720p)
+#EXTVLCOPT:http-referrer=https://stmify.com/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36
+https://cdn.stmify.com/out/v1/SKY_SPORTS_ACTION/index.m3u8
+#EXTINF:-1 tvg-id="TNTSports1.uk@SD",TNT Sports 1
+http://37.49.224.5/stream/1/index.m3u8
+#EXTINF:-1 tvg-id="TNTSports2.uk@SD",TNT Sports 2
+http://37.49.224.5/stream/2/index.m3u8
+#EXTINF:-1 tvg-id="TNTSports3.uk@SD",TNT Sports 3
+http://37.49.224.5/stream/3/index.m3u8
+#EXTINF:-1 tvg-id="TNTSports4.uk@SD",TNT Sports 4
+http://37.49.224.5/stream/4/index.m3u8
+#EXTINF:-1 tvg-id="SetantaSports.uk@SD",Setanta Sports (1080p)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36
+http://stream.mcquack.net/313/index.m3u8
+#EXTINF:-1 tvg-id="DAZN1.uk@Germany",DAZN 1
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://45.142.104.86/stream/25/index.m3u8
+#EXTINF:-1 tvg-id="DAZN2.uk@Germany",DAZN 2
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://45.142.104.86/stream/15/index.m3u8
+#EXTINF:-1 tvg-id="DAZNF1.uk@Spain",DAZN F1
+https://tvorb.net/ZTV/6918-live.m3u8
+#EXTINF:-1 tvg-id="EurovisionSport.uk@Europe",Eurovision Sport (1080p)
+https://amg26268-amg26268c34-amgplt0018.playout.now3.amagi.tv/ts-us-e2-n1/playlist/amg26268-amg26268c34-amgplt0018/playlist.m3u8
+#EXTINF:-1 tvg-id="FIFAPlus.uk@English",FIFA+ (720p)
+https://a62dad94.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWV1X0ZJRkFQbHVzRW5nbGlzaF9ITFM/playlist.m3u8
+#EXTINF:-1 tvg-id="FIFAPlus.uk@English",FIFA+ (720p)
+https://d2w9q46ikgrcwx.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-of5cbk3sav3w5/v1/sysdata_s_p_a_fifa_7/samsungheadend_us/latest/main/hls/playlist.m3u8
+#EXTINF:-1 tvg-id="FIFAPlusWomen.uk@English",FIFA+ Women (720p)
+https://cffda8ff.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/U2Ftc3VuZy1nYl9GSUZBUGx1c3dvbWVuX0hMUw/playlist.m3u8
+#EXTINF:-1 tvg-id="talkSPORT.uk@SD",talkSPORT (1080p)
+https://af7a8b4e.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/TEctZ2JfdGFsa1NQT1JUX0hMUw/playlist.m3u8
+#EXTINF:-1 tvg-id="talkSPORT.uk@SD",talkSPORT (720p)
+https://tvsen6.aynaott.com/talkSPORT/index.m3u8
+#EXTINF:-1 tvg-id="MUTV.uk@SD",MUTV
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://103.253.74.210:7070/stream/136/index.m3u8
+#EXTINF:-1 tvg-id="HardKnocks.ca@SD",Hard Knocks (1080p)
+https://d3uyzhwvmemdyf.cloudfront.net/v1/master/9d062541f2ff39b5c0f48b743c6411d25f62fc25/HardKnocks-SportsTribal/121.m3u8
+#EXTINF:-1 tvg-id="SKITV.ch@SD",SKI TV (1080p)
+https://d2xeo83q8fcni6.cloudfront.net/v1/master/9d062541f2ff39b5c0f48b743c6411d25f62fc25/SkiTV-SportsTribal/193.m3u8
+#EXTINF:-1 tvg-id="SportsGrid.us@SD",SportsGrid (1080p)
+https://sportsgrid-tribal.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="MoonbugKids.uk@SD",Moonbug Kids (720p)
+https://mumbai-edge.smartplaytv.in/Moonbug/index.m3u8
+#EXTINF:-1 tvg-id="MoonbugKids.uk@SD",Moonbug Kids (576p)
+https://tvsen6.aynaott.com/MoonbugKids/index.m3u8
+#EXTINF:-1 tvg-id="Pop.uk@SD",Pop (1080p)
+https://amg01753-narrativeentert-popkids-lggb-xyy5k.amagi.tv/ts-eu-w1-n2/playlist/amg01753-narrativeentert-popkids-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="Pop.uk@SD",Pop (1080p)
+https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01753-narrativeentert-popkids-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="TinyPop.uk@SD",Tiny Pop (1080p)
+https://amg01753-narrativeuk-amg01753c1-lg-gb-1830.playouts.now.amagi.tv/playlist/amg01753-narrativeuk-tinypop-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="TinyPop.uk@SD",Tiny Pop (576p)
+http://92.114.85.72:8000/play/a08g
+#EXTINF:-1 tvg-id="MrBeanLiveAction.uk@English",Mr Bean Live Action (1080p)
+https://amg00627-amg00627c40-rakuten-uk-5725.playouts.now.amagi.tv/playlist/amg00627-banijayfast-mrbeanpopupcc-rakutenuk/playlist.m3u8
+#EXTINF:-1 tvg-id="JimJamEurope.uk@SD",JimJam (720p)
+http://212.5.144.156:8080/jimjam/index.m3u8
+#EXTINF:-1 tvg-id="JimJamEurope.uk@SD",JimJam (576p)
+http://stream.mcquack.net/150/index.m3u8
+#EXTINF:-1 tvg-id="PlanetFun.uk@SD",Planet Fun (1080p)
+http://66.102.126.10:8000/play/a02k/index.m3u8
+#EXTINF:-1 tvg-id="DiscoveryChannel.uk@UK",Discovery Channel
+http://37.49.224.5/stream/11/index.m3u8
+#EXTINF:-1 tvg-id="DiscoveryHistory.uk@SD",Discovery History
+http://37.49.224.5/stream/12/index.m3u8
+#EXTINF:-1 tvg-id="DiscoveryScienceEurope.uk@UK",Discovery Science
+http://37.49.224.5/stream/9/index.m3u8
+#EXTINF:-1 tvg-id="DiscoveryTurbo.uk@SD",Discovery Turbo
+http://37.49.224.5/stream/13/index.m3u8
+#EXTINF:-1 tvg-id="AnimalPlanet.uk@SD",Animal Planet
+http://37.49.224.5/stream/10/index.m3u8
+#EXTINF:-1 tvg-id="NationalGeographic.uk@SD",National Geographic
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://82.47.42.44/stream/405/index.m3u8
+#EXTINF:-1 tvg-id="Quest.uk@SD",Quest
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+http://82.47.42.44/stream/385/index.m3u8
+#EXTINF:-1 tvg-id="Really.uk@SD",Really
+http://37.49.224.5/stream/36/index.m3u8
+#EXTINF:-1 tvg-id="PBSAmerica.uk@SD",PBS America (576p)
+http://185.19.191.2:8090/PBS/index.m3u8
+#EXTINF:-1 tvg-id="SpaceLivepoweredbysen.uk@SD",Space Live (1080p)
+https://linear-1224.frequency.stream/dist/lg-uk/1224/hls/master/playlist.m3u8
+#EXTINF:-1 tvg-id="Foodxp.uk@SD",Foodxp (1080p)
+#EXTVLCOPT:http-referrer=https://bhoomtv.org/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
+https://techtraveleat.in/stream.m3u8?id=foodxp
+#EXTINF:-1 tvg-id="MasterChefsAcademyTV.uk@HD",Master Chefs Academy TV (720p)
+https://platform-iuoamc.uk/iptv/mca-tv/index.m3u8
+#EXTINF:-1 tvg-id="HorseCountryTV.uk@SD",Horse & Country TV (1080p)
+https://hnc-free-viewlift.amagi.tv/HNC_AUSTRALIA.m3u8
+#EXTINF:-1 tvg-id="StarPlus.uk@SD",StarPlus (576p)
+https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunks.m3u8
+#EXTINF:-1 tvg-id="StarBharat.uk@SD",Star Bharat (576p)
+https://raw.githubusercontent.com/amazeyourself/adaptive-streams/refs/heads/main/streams/gb/YuppTV/UtsavBharat.m3u8
+#EXTINF:-1 tvg-id="UtsavBharat.uk@SD",Utsav Bharat (720p)
+https://d1taaads3ztvmu.cloudfront.net/120723/smil:lifeokuk.smil/playlist.m3u8?hdnts=st=1735898689~exp=1835898688~acl=*~hmac=f5fe24724fe05481e3841f9eb5ab8efdee0a3dd83645ae9dcf45703f525bab7b
+#EXTINF:-1 tvg-id="UtsavPlus.uk@SD",Utsav Plus (720p)
+https://raw.githubusercontent.com/amazeyourself/adaptive-streams/refs/heads/main/streams/gb/YuppTV/UtsavPlus.m3u8
+#EXTINF:-1 tvg-id="ZeeOne.uk@UK",Zee One (1080p)
+https://4bc5d2b3.wurl.com/v1/asia_tv_limited_zeeworld_1/ohlscdn_us/V00000001/7200/HLS/playlist.m3u8
+#EXTINF:-1 tvg-id="BritAsiaTV.uk@HD",Brit Asia TV (1080p)
+https://hls.autopo.st/hls/britasiatv/index.m3u8
+#EXTINF:-1 tvg-id="BritAsiaTV.uk@HD",Brit Asia TV (576p)
+http://51.75.127.199:3141/britasia/index.m3u8
+#EXTINF:-1 tvg-id="GREATmovies.uk@UK",GREAT! movies (1080p)
+https://amg01753-narrativeuk-amg01753c3-lg-gb-1833.playouts.now.amagi.tv/playlist/amg01753-narrativeuk-greatmovies-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="GREATromance.uk@UK",GREAT! romance movies (1080p)
+https://amg01753-narrativeuk-amg01753c2-lg-gb-1832.playouts.now.amagi.tv/playlist/amg01753-narrativeuk-greatchristmas-lggb/playlist.m3u8
+#EXTINF:-1 tvg-id="TalkingPicturesTV.uk@SD",Talking Pictures TV (576p)
+http://92.114.85.72:8000/play/a0la
+#EXTINF:-1 tvg-id="TheGrahamNortonShow.uk@SD",The Graham Norton Show (1080p)
+https://amg00654-itv-amg00654c35-rakuten-gb-7598.playouts.now.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="TogetherTV.uk@SD",Together TV (576p)
+http://92.114.85.72:8000/play/a0j8
+#EXTINF:-1 tvg-id="ThatsTV.uk@SD",That's TV (576p)
+http://92.114.85.72:8000/play/a0lb
+#EXTINF:-1 tvg-id="UAlibi.uk@SD",U&Alibi (576p)
+http://92.114.85.72:8000/play/a0bi
+#EXTINF:-1 tvg-id="UW.uk@SD",U&W
+http://92.114.85.72:8000/play/a0bj
+#EXTINF:-1 tvg-id="TVOne.uk@SD",TV One (576p)
+http://92.114.85.72:8000/play/a070
+#EXTINF:-1 tvg-id="ENTChannel.uk@HD",ENT Channel (720p)
+https://cdn.global.elektamedia.com/live/c7eds/ENT_Channel/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="ENTFamily.uk@HD",ENT Family (720p)
+https://cdn.global.elektamedia.com/live/c7eds/ENT_Family/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="EnglishClubTV.uk@SD",English Club TV (576p)
+https://stream8.cinerama.uz/1442/tracks-v1a1/mono.m3u8
+#EXTINF:-1 tvg-id="Now80s.uk@SD",Now 80s Music (720p)
+https://lightning-now80s-samsungnz.amagi.tv/playlist720p.m3u8
+#EXTINF:-1 tvg-id="Thats70s.uk@SD",That's 70s Music (576p)
+http://92.114.85.72:8000/play/a0lc
+#EXTINF:-1 tvg-id="Totalmusic.uk@HD",Totalmusic (1080p)
+https://cdn.global.elektamedia.com/live/c7eds/Totalmusic/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="Totalmusic80s.uk@HD",Totalmusic 80s (720p)
+https://cdn.global.elektamedia.com/live/c7eds/Totalmusic_80s/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="Totalmusic2000s.uk@HD",Totalmusic 2000s (720p)
+https://cdn.global.elektamedia.com/live/c7eds/Totalmusic_00s/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="TotalmusicConcerts.uk@HD",Totalmusic Concerts (720p)
+https://cdn.global.elektamedia.com/live/c7eds/Totalmusic_Concerts/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="TotalmusicDance.uk@HD",Totalmusic Dance (720p)
+https://cdn.global.elektamedia.com/live/c7eds/Totalmusic_Dance/SA_LIVE_hls_enc/master.m3u8
+#EXTINF:-1 tvg-id="AfrobeatTVEntertainment.uk@SD",Afrobeats Music (1080p)
+https://stream.ecable.tv/afrobeats/index.m3u8

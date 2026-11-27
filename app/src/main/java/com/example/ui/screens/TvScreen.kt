@@ -53,6 +53,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.remote.TvChannel
 import com.example.data.remote.TvChannels
+import com.example.data.remote.TvHealth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.ui.components.glassAccent
 import com.example.ui.components.glassBackground
 import com.example.ui.components.glassBubble
@@ -76,11 +79,25 @@ fun TvScreen(onPlay: (TvChannel) -> Unit, modifier: Modifier = Modifier) {
     var channels by remember { mutableStateOf<List<TvChannel>?>(null) }
     var group by rememberSaveable { mutableStateOf("All") }
     var query by rememberSaveable { mutableStateOf("") }
+    var checking by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     LaunchedEffect(Unit) {
+        TvHealth.lastChecked?.let { channels = it; return@LaunchedEffect }
         val list = TvChannels.load(context)
-        channels = list
+        channels = TvHealth.applyKnown(context, list)
         // Official logos are filled in as soon as they are ready (first time needs a download).
-        channels = TvChannels.withLogos(context, list)
+        val withLogos = TvChannels.withLogos(context, list)
+        channels = TvHealth.applyKnown(context, withLogos)
+        // Only working channels are kept: every link is tested from this phone.
+        if (!TvHealth.enabled) return@LaunchedEffect
+        checking = 0 to withLogos.size
+        val checked = TvHealth.check(context, withLogos) { done, total, current ->
+            withContext(Dispatchers.Main) {
+                checking = done to total
+                channels = current
+            }
+        }
+        channels = checked
+        checking = null
     }
 
     val all = channels.orEmpty()
@@ -106,7 +123,10 @@ fun TvScreen(onPlay: (TvChannel) -> Unit, modifier: Modifier = Modifier) {
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Live TV", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                    Text("${all.size} channels • 24/7", color = TextSecondary, fontSize = 12.sp)
+                    Text(
+                        checking?.let { (d, t) -> "${all.size} চ্যানেল • চালু কিনা দেখা হচ্ছে $d/$t" } ?: "${all.size} চালু চ্যানেল • 24/7",
+                        color = TextSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
                 }
                 Row(
                     Modifier.clip(CircleShape).background(CinetorRed).padding(horizontal = 10.dp, vertical = 4.dp),

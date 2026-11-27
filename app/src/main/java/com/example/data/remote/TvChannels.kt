@@ -41,7 +41,10 @@ object TvChannels {
     private const val LOGOS_URL = "https://iptv-org.github.io/api/logos.json"
     private const val LOGO_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
-    val groups = listOf("All", "Bangladesh", "Bangla", "News", "Entertainment", "Movies", "Music", "Sports", "Kids", "Devotional", "India")
+    val groups = listOf(
+        "All", "Bangladesh", "Bangla", "Sports", "News", "Entertainment", "Movies", "Kids", "Music",
+        "Documentary", "Devotional", "India", "International"
+    )
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -75,9 +78,10 @@ object TvChannels {
             val extra = async {
                 playlistUrl.takeIf { it.startsWith("http") }?.let { remotePlaylist(context, it, "tv_extra.m3u") }.orEmpty()
             }
-            val bundled = runCatching {
-                context.assets.open("tv_channels.m3u").bufferedReader().use { it.readText() }
+            fun asset(name: String) = runCatching {
+                context.assets.open(name).bufferedReader().use { it.readText() }
             }.getOrDefault("")
+            val bundled = asset("tv_channels.m3u") + "\n" + asset("tv_more.m3u")
             val list = parse(bundled + "\n" + extra.await() + "\n" + india.await())
             list.also { if (it.isNotEmpty()) cache = it }
         }
@@ -216,8 +220,9 @@ object TvChannels {
         add(group)
         if (country == "bd") add("Bangladesh")
         if (country == "in") add("India")
+        if (country.isNotBlank() && country != "bd" && country != "in") add("International")
         val n = name.lowercase()
-        if (country == "bd" || listOf("bangla", "kolkata", "jalsha", "ananda", "ghanta", "spondon", "aath", "aakaash").any { it in n }) {
+        if (country == "bd" || listOf("bangla", "kolkata", "jalsha", "ananda", "ghanta", "spondon", "aath", "aakaash", "channel s uk").any { it in n }) {
             add("Bangla")
         }
     }
@@ -227,7 +232,12 @@ object TvChannels {
         val n = name.lowercase()
         fun has(vararg k: String) = k.any { it in n }
         return when {
-            has("kids", "kidz", "cartoon", "pogo", "nick", "duronto", "yay", "jungle book", "green gold", "peques") -> "Kids"
+            has("kids", "kidz", "cartoon", "pogo", "nick", "duronto", "yay", "jungle book", "green gold", "peques",
+                "cbbc", "cbeebies", "tiny pop", "jimjam", "mr bean", "planet fun", "baby") || n == "pop" -> "Kids"
+            has("iqra", "islam", "eman channel", "takbeer", "noor tv", "deen tv", "ahlulbayt", "madani", "peace tv") -> "Devotional"
+            has("discovery", "national geographic", "nat geo", "animal planet", "bbc earth", "history", "pbs america",
+                "quest", "really", "space live", "foodxp", "food food", "travelxp", "docubay", "horse & country", "master chef") -> "Documentary"
+            has("sport", "kabaddi", "khel", "dazn", "fifa", "mutv", "hard knocks", "ski tv", "setanta", "pickleball", "ten ", "gazi", "ptv sports") -> "Sports"
             has("aastha", "bhakti", "bhakthi", "bhajan", "sanskar", "satsang", "gurbani", "gurbaani", "angel tv", "hosanna",
                 "shalom", "calvary", "mercy tv", "svbc", "vedic", "dharm", "jinvani", "peace of mind", "harvest tv", "goodness",
                 "sadhna", "divya", "krsna", "madha tv", "shubh tv", "god", "jesus", "church", "sai tv", "sairam", "nanaksar",
@@ -241,12 +251,14 @@ object TvChannels {
                 "puthiya", "thanthi", "sakshi", "hmtv", "ntv telugu", "v6 ", "t news", "manorama news", "mathrubhumi",
                 "reporter tv", "media one", "kairali news", "janam", "24 ghanta", "kolkata tv", "spondon", "prag ", "dy 365",
                 "bansal", "india voice", "inh ", "first india", "argus", "kalinga", "kanak", "odisha tv", "jai maharashtra",
-                "lokshahi", "saam tv", "pudhari", "zee business", "news18", "rt india", "toi global") -> "News"
-            has("sport", "kabaddi", "khel", "ten ", "gazi", "pickleball", "ptv sports") -> "Sports"
+                "lokshahi", "saam tv", "pudhari", "zee business", "news18", "rt india", "toi global", "bloomberg",
+                "talktv", "sky news") -> "News"
             has("music", "9xm", "mastiii", "beats", "gaane", "hits", "tunes", "sangeet", "balle balle", "isai", "zing",
-                "jalwa", "jhakaas", "tashan", "mtv", "gaan", "dhoom", "raga", "songdew", "insync", "e 24", "b4u kadak") -> "Music"
+                "jalwa", "jhakaas", "tashan", "mtv", "gaan", "dhoom", "raga", "songdew", "insync", "e 24", "b4u kadak",
+                "totalmusic", "afrobeats") -> "Music"
             has("movie", "cinema", "cineplex", "flix", "goldmines", "b4u bhojpuri", "pitaara", "dhinchaak", "manoranjan",
-                "shubh cinema", "jalsha movies", "bollygold", "the movie club", "anmol", "zee action", "big magic", "dangal 2", "epic tv") -> "Movies"
+                "shubh cinema", "jalsha movies", "bollygold", "the movie club", "anmol", "zee action", "big magic", "dangal 2", "epic tv",
+                "talking pictures") -> "Movies"
             else -> "Entertainment"
         }
     }

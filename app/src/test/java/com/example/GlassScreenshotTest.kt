@@ -219,6 +219,9 @@ class GlassScreenshotTest {
     @Test fun tvPage() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         ThemeState.current = CinedorPalettes[0]
+        com.example.data.remote.TvHealth.enabled = false
+        val more = com.example.data.remote.TvChannels.parse(ctx.assets.open("tv_more.m3u").bufferedReader().readText())
+        println("UK CHANNELS ${more.size}: " + more.joinToString { it.name + "(" + it.group + "," + it.sources.size + ")" })
         val channels = com.example.data.remote.TvChannels.parse(ctx.assets.open("tv_channels.m3u").bufferedReader().readText())
         println("TV CHANNELS ${channels.size}: " + channels.joinToString { it.name + "(" + it.group + "," + it.sources.size + ")" })
         rule.mainClock.autoAdvance = false
