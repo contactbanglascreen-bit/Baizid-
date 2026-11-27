@@ -1,5 +1,7 @@
 package com.example
 
+import androidx.compose.material.icons.outlined.LiveTv
+import androidx.compose.material.icons.rounded.LiveTv
 import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.glassBackground
 import android.graphics.Color
@@ -227,6 +229,7 @@ private enum class CinedorTab(
 ) {
     HOME("Home", Icons.Rounded.Home, Icons.Outlined.Home, "nav_home"),
     EXPLORE("Explore", Icons.Rounded.Explore, Icons.Outlined.Explore, "nav_explore"),
+    TV("TV", Icons.Rounded.LiveTv, Icons.Outlined.LiveTv, "nav_tv"),
     REELS("Shorts", Icons.Rounded.PlayCircle, Icons.Outlined.PlayCircle, "nav_reels"),
     MY_LIST("My List", Icons.Rounded.Bookmarks, Icons.Outlined.Bookmarks, "nav_library"),
     ME("Me", Icons.Rounded.Person, Icons.Outlined.Person, "nav_me")
@@ -501,6 +504,10 @@ fun CinedorMainShell() {
                                 onRetry = { viewModel.loadFilteredCatalog(reset = true) }
                             )
 
+                            CinedorTab.TV -> com.example.ui.screens.TvScreen(
+                                onPlay = { viewModel.openTvChannel(it) }
+                            )
+
                             CinedorTab.REELS -> ReelsScreen(
                                 state = reelsState,
                                 onEnsureLoaded = { viewModel.ensureReelsLoaded() },
@@ -580,6 +587,7 @@ fun CinedorMainShell() {
                     val activeDestination = when (currentTab) {
                         CinedorTab.HOME -> CinedorNavDestination.HOME
                         CinedorTab.EXPLORE -> CinedorNavDestination.EXPLORE
+                        CinedorTab.TV -> CinedorNavDestination.TV
                         CinedorTab.REELS -> CinedorNavDestination.REELS
                         CinedorTab.MY_LIST -> CinedorNavDestination.MY_LIST
                         CinedorTab.ME -> CinedorNavDestination.ME
@@ -591,6 +599,7 @@ fun CinedorMainShell() {
                             currentTab = when (dest) {
                                 CinedorNavDestination.HOME -> CinedorTab.HOME
                                 CinedorNavDestination.EXPLORE -> CinedorTab.EXPLORE
+                                CinedorNavDestination.TV -> CinedorTab.TV
                                 CinedorNavDestination.REELS -> CinedorTab.REELS
                                 CinedorNavDestination.MY_LIST -> CinedorTab.MY_LIST
                                 CinedorNavDestination.ME -> CinedorTab.ME

@@ -253,6 +253,7 @@ object RemoteConsole {
     private fun parse(root: JSONObject): ConsoleConfig {
         val m = root.optJSONObject("maintenance")
         com.example.data.remote.Server2Client.baseUrl = root.optString("server2Url", "").trim()
+        com.example.data.remote.TvChannels.playlistUrl = root.optString("tvPlaylistUrl", "").trim()
         return ConsoleConfig(
             premium = popup(root.optJSONObject("premium")),
             announcement = popup(root.optJSONObject("announcement")),

@@ -215,4 +215,24 @@ class GlassScreenshotTest {
         val out = File(System.getenv("SCREENSHOT_DIR") ?: ctx.cacheDir.absolutePath).apply { mkdirs() }
         File(out, "me-page.png").outputStream().use { bmp!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
+
+    @Test fun tvPage() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        ThemeState.current = CinedorPalettes[0]
+        val channels = com.example.data.remote.TvChannels.parse(ctx.assets.open("tv_channels.m3u").bufferedReader().readText())
+        println("TV CHANNELS ${channels.size}: " + channels.joinToString { it.name + "(" + it.group + "," + it.sources.size + ")" })
+        rule.mainClock.autoAdvance = false
+        rule.setContent { CinePulseTheme { com.example.ui.screens.TvScreen(onPlay = {}) } }
+        repeat(30) { rule.mainClock.advanceTimeByFrame() }
+        Thread.sleep(1500)
+        repeat(10) { rule.mainClock.advanceTimeByFrame() }
+        var bmp: Bitmap? = null
+        rule.activityRule.scenario.onActivity { act ->
+            val v = act.window.decorView
+            val b = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+            v.draw(Canvas(b)); bmp = b
+        }
+        val out = File(System.getenv("SCREENSHOT_DIR") ?: ctx.cacheDir.absolutePath).apply { mkdirs() }
+        File(out, "tv-page.png").outputStream().use { bmp!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
 }

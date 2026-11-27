@@ -795,6 +795,39 @@ class CinePulseViewModel(
         }
     }
 
+    /** Plays a live TV channel; every link of the channel is a server, tried in turn if one fails. */
+    fun openTvChannel(channel: com.example.data.remote.TvChannel) {
+        if (channel.sources.isEmpty()) return
+        val item = MediaItem(
+            id = channel.id,
+            title = channel.name,
+            posterUrl = channel.logo,
+            backdropUrl = channel.logo,
+            mediaType = com.example.data.model.MediaCategoryType.MOVIE,
+            source = "tv",
+            description = "Live TV • ${channel.group}"
+        )
+        val options = channel.sources.mapIndexed { i, src ->
+            StreamOption(
+                id = "tv_${channel.id}_$i",
+                label = "Live • ${src.quality} • Server ${i + 1}",
+                quality = src.quality,
+                url = src.url,
+                format = if (src.url.contains(".mp4", ignoreCase = true) && !src.url.contains(".m3u8", ignoreCase = true)) "MP4" else "HLS",
+                headers = mapOf("User-Agent" to src.userAgent.ifBlank { MovieBoxDirectClient.CHROME_USER_AGENT })
+            )
+        }
+        _detailState.value = DetailUiState(
+            selectedItem = item,
+            detailState = UiState.Success(MediaDetail(item = item, synopsis = item.description)),
+            isMovie = true,
+            streams = options,
+            selectedStream = options.first(),
+            isStreamLoading = false,
+            resumePositionMs = 0L
+        )
+    }
+
     fun openSportsMatch(match: SportsMatch) {
         val status = match.statusText.lowercase()
         val ended = listOf("ended", "finished", "full time", "fulltime", "final", "ft").any { status.contains(it) } &&

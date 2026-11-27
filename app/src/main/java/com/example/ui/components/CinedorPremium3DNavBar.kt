@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.material.icons.outlined.LiveTv
+import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -63,6 +65,7 @@ import com.example.ui.theme.TextSecondary
 enum class CinedorNavDestination(val label: String, val tag: String) {
     HOME("Home", "nav_home"),
     EXPLORE("Explore", "nav_explore"),
+    TV("TV", "nav_tv"),
     REELS("Shorts", "nav_reels"),
     MY_LIST("My List", "nav_library"),
     ME("Me", "nav_me")
@@ -71,6 +74,7 @@ enum class CinedorNavDestination(val label: String, val tag: String) {
 private fun CinedorNavDestination.icon(selected: Boolean): ImageVector = when (this) {
     CinedorNavDestination.HOME -> if (selected) Icons.Rounded.Home else Icons.Outlined.Home
     CinedorNavDestination.EXPLORE -> if (selected) Icons.Rounded.Explore else Icons.Outlined.Explore
+    CinedorNavDestination.TV -> if (selected) Icons.Rounded.LiveTv else Icons.Outlined.LiveTv
     CinedorNavDestination.REELS -> if (selected) Icons.Rounded.PlayCircle else Icons.Outlined.PlayCircle
     CinedorNavDestination.MY_LIST -> if (selected) Icons.Rounded.Bookmarks else Icons.Outlined.Bookmarks
     CinedorNavDestination.ME -> if (selected) Icons.Rounded.Person else Icons.Outlined.Person
