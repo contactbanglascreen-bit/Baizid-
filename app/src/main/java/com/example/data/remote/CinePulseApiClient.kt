@@ -179,7 +179,9 @@ class CinePulseApiClient(
             } else emptyList()
         }
         val server2Only = if (source == ContentSource.MOVIELINKBD && Server2Client.enabled) {
-            withTimeoutOrNull(9000L) { server2Deferred.await() }.orEmpty()
+            val more = (2..4).map { p -> async { runCatching { Server2Client.list(p) }.getOrDefault(emptyList()) } }
+            val first = withTimeoutOrNull(9000L) { server2Deferred.await() }.orEmpty()
+            (first + more.flatMap { withTimeoutOrNull(9000L) { it.await() }.orEmpty() }).distinctBy { it.id }
         } else emptyList()
 
         val baseFeed: HomeFeed = if (server2Only.isNotEmpty()) {
@@ -187,8 +189,11 @@ class CinePulseApiClient(
                 banners = server2Only.take(6),
                 sections = listOf(
                     HomeSection("s2_latest", "Latest uploads", server2Only.take(24)),
-                    HomeSection("s2_more", "More to watch", server2Only.drop(24))
-                ).filter { it.items.isNotEmpty() },
+                    HomeSection("s2_series", "Web Series", server2Only.filter { Server2Client.kindOf(it) == "tv" }.take(30)),
+                    HomeSection("s2_movies", "Movies", server2Only.filter { Server2Client.kindOf(it) == "movies" }.take(30)),
+                    HomeSection("s2_drama", "Dramas", server2Only.filter { Server2Client.kindOf(it) == "drama" }.take(30)),
+                    HomeSection("s2_anime", "Anime", server2Only.filter { Server2Client.kindOf(it) == "anime" }.take(30))
+                ).filter { it.items.size >= 3 },
                 trendingItems = server2Only.take(20)
             )
         } else if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
@@ -394,6 +399,11 @@ class CinePulseApiClient(
         lang: String = "en",
         country: String = ""
     ): List<MediaItem> {
+        if (source == ContentSource.MOVIELINKBD && Server2Client.enabled && country.isBlank()) {
+            val kind = when (category.lowercase()) { "tv", "series" -> "tv"; "anime" -> "anime"; "drama" -> "drama"; "movies", "movie" -> "movies"; else -> "" }
+            val own = runCatching { Server2Client.catalog(kind, page) }.getOrDefault(emptyList())
+            if (own.isNotEmpty()) return own
+        }
         if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured || country.isNotBlank()) {
             return movieBoxDirect.filter(category, genre, year, page, lang, safeMode, country)
         }

@@ -356,16 +356,38 @@ class CinePulseViewModel(
                 (pool.filter { looksLikeAnime(it) }.ifEmpty { direct } + mlbd).distinctBy { "${it.source}:${it.id}" }
             }
         } else {
-            runCatching {
-                apiClient.filterCatalog(
-                    source = prefs.source,
-                    category = catParam,
-                    genre = "",
-                    year = "",
-                    page = page,
-                    safeMode = prefs.safeMode
-                )
-            }.getOrDefault(emptyList())
+            kotlinx.coroutines.coroutineScope {
+                val mainJob = async {
+                    runCatching {
+                        apiClient.filterCatalog(
+                            source = prefs.source,
+                            category = catParam,
+                            genre = "",
+                            year = "",
+                            page = page,
+                            safeMode = prefs.safeMode
+                        )
+                    }.getOrDefault(emptyList())
+                }
+                // "All" also pages through every Server 2 title of this kind.
+                val s2Job = async {
+                    if (prefs.source == ContentSource.ALL && com.example.data.remote.Server2Client.enabled) {
+                        runCatching { apiClient.filterCatalog(ContentSource.MOVIELINKBD, catParam, "", "", page, prefs.safeMode) }
+                            .getOrDefault(emptyList())
+                            .filter { it.source.equals("movielinkbd", ignoreCase = true) }
+                    } else emptyList()
+                }
+                val main = mainJob.await()
+                val extra = s2Job.await()
+                if (extra.isEmpty()) main
+                else buildList {
+                    val n = maxOf(main.size, extra.size)
+                    for (i in 0 until n) {
+                        main.getOrNull(i)?.let { add(it) }
+                        extra.getOrNull(i)?.let { add(it) }
+                    }
+                }.distinctBy { "${it.source}:${it.id}" }
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import com.example.data.model.MediaItem
 import com.example.data.model.SeasonInfo
 import com.example.data.model.StreamOption
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -65,7 +66,9 @@ object Server2Client {
             val path = o.optString("path")
             val title = o.optString("title")
             if (path.isBlank() || title.isBlank()) return@mapNotNull null
-            val series = Regex("(?i)season|episode|\\bS\\d+|web.?series|\\bseries\\b").containsMatchIn(title + " " + path)
+            val series = !path.startsWith("/movie/") &&
+                (path.startsWith("/series/") || path.startsWith("/drama/") || path.startsWith("/anime/") ||
+                    Regex("(?i)season|episode|\\bS\\d+|web.?series").containsMatchIn(title))
             MediaItem(
                 id = path,
                 title = title,
@@ -80,6 +83,31 @@ object Server2Client {
     }
 
     suspend fun home(): List<MediaItem> = withContext(Dispatchers.IO) { items(get("/home")) }
+
+    /** One page of the full catalog (page 1 = newest). */
+    suspend fun list(page: Int): List<MediaItem> = withContext(Dispatchers.IO) { items(get("/list?page=${page.coerceAtLeast(1)}")) }
+
+    /** Which kind a title is, from its address on the site (/movie/, /series/, /anime/, /drama/). */
+    fun kindOf(item: MediaItem): String = when {
+        item.id.startsWith("/series/") -> "tv"
+        item.id.startsWith("/anime/") -> "anime"
+        item.id.startsWith("/drama/") -> "drama"
+        else -> "movies"
+    }
+
+    /**
+     * A page of titles of one kind for the endless category tabs. Several site pages are read
+     * together because each site page mixes movies, series, anime and dramas.
+     */
+    suspend fun catalog(kind: String, page: Int): List<MediaItem> = kotlinx.coroutines.coroutineScope {
+        val per = 3
+        val first = (page.coerceAtLeast(1) - 1) * per + 1
+        (first until first + per)
+            .map { p -> async { runCatching { list(p) }.getOrDefault(emptyList()) } }
+            .flatMap { it.await() }
+            .filter { kind.isBlank() || kindOf(it) == kind || (kind == "tv" && kindOf(it) == "drama") }
+            .distinctBy { it.id }
+    }
 
     suspend fun search(query: String): List<MediaItem> = withContext(Dispatchers.IO) {
         if (query.isBlank()) emptyList() else items(get("/search?q=" + URLEncoder.encode(query.trim(), "UTF-8")))
