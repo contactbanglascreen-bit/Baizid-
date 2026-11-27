@@ -77,6 +77,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -204,6 +205,16 @@ fun MeHubScreen(
 ) {
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf(MePage.HUB) }
+    // A notification can open a page inside Me (never the PIN-locked 18+ Zone).
+    val pushPage = com.example.ui.components.PushLink.mePage
+    LaunchedEffect(pushPage) {
+        if (pushPage != null) {
+            MePage.entries.firstOrNull { it.name.equals(pushPage, ignoreCase = true) }
+                ?.takeIf { it != MePage.ADULT && it != MePage.ADMIN }
+                ?.let { page = it }
+            com.example.ui.components.PushLink.mePage = null
+        }
+    }
     val adultMenuToggle = rememberGuardedSafeModeToggle { on ->
         onUpdateSafeMode(on)
         if (!on) {

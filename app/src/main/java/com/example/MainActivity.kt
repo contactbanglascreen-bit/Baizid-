@@ -292,9 +292,55 @@ fun CinedorMainShell() {
     var currentTab by rememberSaveable { mutableStateOf(CinedorTab.HOME) }
     // Tapping a notification opens the movie/series it is about (falls back to search).
     val pushLink = com.example.ui.components.PushLink.pending
+    val linkContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(pushLink) {
         if (!pushLink.isNullOrBlank()) {
             com.example.ui.components.PushLink.pending = null
+            val uri = runCatching { android.net.Uri.parse(pushLink) }.getOrNull()
+            fun param(k: String) = runCatching { uri?.getQueryParameter(k) }.getOrNull().orEmpty()
+            // App pages: cinedor://open?page=tv
+            if (pushLink.startsWith("cinedor://open")) {
+                when (val page = param("page").lowercase()) {
+                    "home" -> currentTab = CinedorTab.HOME
+                    "explore" -> currentTab = CinedorTab.EXPLORE
+                    "tv", "live", "livetv" -> currentTab = CinedorTab.TV
+                    "shorts", "reels" -> currentTab = CinedorTab.REELS
+                    "mylist", "library", "list" -> currentTab = CinedorTab.MY_LIST
+                    "me", "profile" -> currentTab = CinedorTab.ME
+                    else -> { currentTab = CinedorTab.ME; com.example.ui.components.PushLink.mePage = page }
+                }
+                return@LaunchedEffect
+            }
+            // A live TV channel: cinedor://tv?id=tv_atnbangla_bd&t=ATN Bangla
+            if (pushLink.startsWith("cinedor://tv")) {
+                currentTab = CinedorTab.TV
+                val id = param("id")
+                val name = param("t").trim().lowercase()
+                val list = com.example.data.remote.TvChannels.load(linkContext)
+                val ch = list.firstOrNull { id.isNotBlank() && it.id == id }
+                    ?: list.firstOrNull { name.isNotBlank() && it.name.lowercase() == name }
+                    ?: list.firstOrNull { name.isNotBlank() && it.name.lowercase().contains(name) }
+                if (ch != null) viewModel.openTvChannel(ch)
+                return@LaunchedEffect
+            }
+            // Search results: cinedor://search?q=gopal bhar
+            if (pushLink.startsWith("cinedor://search")) {
+                val q = param("q")
+                currentTab = CinedorTab.EXPLORE
+                viewModel.onSearchQueryChanged(q)
+                viewModel.executeSearch(q)
+                return@LaunchedEffect
+            }
+            // Web links open in the browser.
+            if (pushLink.startsWith("http://") || pushLink.startsWith("https://")) {
+                runCatching {
+                    linkContext.startActivity(
+                        android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(pushLink))
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                return@LaunchedEffect
+            }
             val item = viewModel.findForPush(pushLink)
             if (item != null) {
                 viewModel.openMediaDetail(item)

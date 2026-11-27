@@ -301,6 +301,8 @@ object NotificationInbox {
 /** Text from a tapped notification ("Open in app"): the app searches for it. */
 object PushLink {
     var pending by androidx.compose.runtime.mutableStateOf<String?>(null)
+    /** A page inside Me (ai, downloads, premium, settings, history, feedback, about) to open. */
+    var mePage by androidx.compose.runtime.mutableStateOf<String?>(null)
 }
 
 /** Receives FCM messages. Poster (image) notifications are shown with a big picture. */
