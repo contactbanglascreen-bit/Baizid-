@@ -50,6 +50,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
@@ -108,6 +109,14 @@ fun ExploreScreen(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var recentSearches by remember { mutableStateOf(SearchHistory.all(context)) }
+    // Every search is remembered (newest first) so it shows up under the search bar next time.
+    val search: (String?) -> Unit = { q ->
+        val text = (q ?: state.query).trim()
+        if (text.length >= 2) { SearchHistory.add(context, text); recentSearches = SearchHistory.all(context) }
+        onExecuteSearch(q)
+    }
 
     var pullRefreshing by remember { mutableStateOf(false) }
     LaunchedEffect(state.itemsState) { pullRefreshing = false }
@@ -198,7 +207,7 @@ fun ExploreScreen(
                     keyboardActions = KeyboardActions(
                         onSearch = {
                             focusManager.clearFocus()
-                            onExecuteSearch(state.query)
+                            search(state.query)
                         }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -234,7 +243,7 @@ fun ExploreScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     focusManager.clearFocus()
-                                    onExecuteSearch(suggestion)
+                                    search(suggestion)
                                 }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -267,24 +276,29 @@ fun ExploreScreen(
         }
 
         // Hot searches: numbered chips, top 3 highlighted
-        if (state.hotSearches.isNotEmpty() && state.query.isBlank()) {
-            item(key = "hot_searches") {
+        // The user's own recent searches (nothing suggested in advance).
+        if (state.query.isBlank() && recentSearches.isNotEmpty()) {
+            item(key = "recent_searches") {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = CrimsonPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Rounded.History, contentDescription = null, tint = CrimsonPrimary, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Trending searches",
+                        text = "Recent searches",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 17.sp),
-                        color = TextPrimary
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "Clear",
+                        color = CrimsonPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clip(CircleShape).clickable { SearchHistory.clear(context); recentSearches = emptyList() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
@@ -293,52 +307,28 @@ fun ExploreScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    state.hotSearches.take(10).forEachIndexed { idx, hot ->
-                        val top = idx < 3
+                    recentSearches.forEach { q ->
                         Row(
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .background(if (top) CinetorRedSoft else ObsidianCard)
-                                .border(1.dp, if (top) CrimsonPrimary.copy(alpha = 0.35f) else ObsidianBorder, CircleShape)
-                                .clickable { onExecuteSearch(hot) }
-                                .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+                                .background(ObsidianCard)
+                                .border(1.dp, ObsidianBorder, CircleShape)
+                                .clickable { search(q) }
+                                .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(if (top) CrimsonPrimary else ChipBg),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${idx + 1}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.sp),
-                                    color = if (top) OnAccent else TextSecondary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(7.dp))
-                            Text(
-                                text = hot,
-                                style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                                color = TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                            Text(q, style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp), color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Rounded.Close, contentDescription = "Remove", tint = TextSecondary,
+                                modifier = Modifier.size(16.dp).clip(CircleShape).clickable {
+                                    SearchHistory.remove(context, q); recentSearches = SearchHistory.all(context)
+                                }
                             )
                         }
                     }
                 }
             }
-        }
-
-        // Browse by language / country (MovieBox-style)
-        item(key = "browse_language") {
-            Spacer(modifier = Modifier.height(18.dp))
-            com.example.ui.components.BrowseTiles("Browse by language", com.example.ui.components.BrowseCatalog.languages)
-        }
-        item(key = "browse_country") {
-            Spacer(modifier = Modifier.height(18.dp))
-            com.example.ui.components.BrowseTiles("Browse by country", com.example.ui.components.BrowseCatalog.countries)
         }
 
         // OTT platform brand tiles
@@ -684,4 +674,21 @@ private fun ottDomain(label: String): String? {
         "hulu" in l -> "hulu.com"
         else -> null
     }
+}
+
+
+/** The user's recent searches, newest first (kept on the phone). */
+object SearchHistory {
+    private const val KEY = "recent_searches"
+    private fun prefs(c: android.content.Context) = c.getSharedPreferences("cinedor_search", android.content.Context.MODE_PRIVATE)
+    fun all(c: android.content.Context): List<String> =
+        prefs(c).getString(KEY, "").orEmpty().split("\n").filter { it.isNotBlank() }
+    fun add(c: android.content.Context, q: String) {
+        val list = (listOf(q) + all(c).filterNot { it.equals(q, ignoreCase = true) }).take(15)
+        prefs(c).edit().putString(KEY, list.joinToString("\n")).apply()
+    }
+    fun remove(c: android.content.Context, q: String) {
+        prefs(c).edit().putString(KEY, all(c).filterNot { it == q }.joinToString("\n")).apply()
+    }
+    fun clear(c: android.content.Context) = prefs(c).edit().remove(KEY).apply()
 }

@@ -505,8 +505,13 @@ class CinePulseApiClient(
      * the page.
      */
     suspend fun adultCatalog(page: Int, lang: String = "en"): List<MediaItem> = supervisorScope {
-        val strong = listOf("ullu", "kooku", "primeflix", "erotic", "hot web series", "18+", "uncut web series", "hotshots")
-        val broad = listOf("adult", "sensual", "seduction", "unrated", "bold web series", "romance 18")
+        val strong = listOf(
+            "ullu", "kooku", "primeflix", "erotic", "hot web series", "18+", "uncut web series", "hotshots",
+            "primeshots", "hunters", "rabbit movies", "besharams", "cineprime", "nuefliks", "voovi",
+            "tadka prime", "triflicks", "atrangii", "bigshots", "neonx", "moodx", "jalva", "yessma",
+            "altbalaji hot", "fliz movies", "kangan", "uncut", "erotica"
+        )
+        val broad = listOf("adult", "sensual", "seduction", "unrated", "bold web series", "romance 18", "affair", "desire")
         val lists = (strong.map { it to true } + broad.map { it to false }).map { (q, keepAll) ->
             async {
                 val found = runCatching { movieBoxDirect.search(q, page, lang, false) }.getOrDefault(emptyList())
@@ -514,9 +519,14 @@ class CinePulseApiClient(
                 else found.filter { !CinePulseJsonParser.isSafeText(it.title + " " + it.genres.joinToString(" ")) }
             }
         }.map { it.await() }
+        val s2 = if (page == 1 && Server2Client.enabled) {
+            listOf("18+", "uncut", "ullu", "hot").map { q -> async { runCatching { Server2Client.search(q) }.getOrDefault(emptyList()) } }
+                .map { it.await() }
+        } else emptyList()
+        val all = lists + s2
         val out = LinkedHashMap<String, MediaItem>()
-        val longest = lists.maxOfOrNull { it.size } ?: 0
-        for (i in 0 until longest) lists.forEach { l -> l.getOrNull(i)?.let { out.putIfAbsent(it.source + it.id, it) } }
+        val longest = all.maxOfOrNull { it.size } ?: 0
+        for (i in 0 until longest) all.forEach { l -> l.getOrNull(i)?.let { out.putIfAbsent(it.source + it.id, it) } }
         out.values.toList()
     }
 

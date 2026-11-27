@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -72,6 +74,7 @@ import java.time.LocalDate
 /** Where the 18+ section gets its titles from (set in MainActivity). */
 object AdultSection {
     @Volatile var loader: (suspend (page: Int) -> List<MediaItem>)? = null
+    @Volatile var searcher: (suspend (query: String) -> List<MediaItem>)? = null
 }
 
 private val adultTabs = listOf("For You", "Hottest", "Latest", "Rating", "Movies", "Series")
@@ -91,6 +94,17 @@ private fun MediaItem.yearValue(): Int = year.take(4).toIntOrNull() ?: 0
 @Composable
 fun AdultScreen(onBack: () -> Unit, onLock: () -> Unit, onOpenMedia: (MediaItem) -> Unit, modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(adultTabs.first()) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<MediaItem>?>(null) }
+    LaunchedEffect(query) {
+        val q = query.trim()
+        if (q.length < 2) { results = null; return@LaunchedEffect }
+        kotlinx.coroutines.delay(450)
+        results = null
+        val found = runCatching { AdultSection.searcher?.invoke(q).orEmpty() }.getOrDefault(emptyList())
+        com.example.data.local.AdultTitles.addAll(found)
+        results = found
+    }
     var loading by remember { mutableStateOf(false) }
     var reload by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -174,7 +188,31 @@ fun AdultScreen(onBack: () -> Unit, onLock: () -> Unit, onOpenMedia: (MediaItem)
                 Spacer(Modifier.width(8.dp))
             }
             Spacer(Modifier.height(10.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.padding(horizontal = 16.dp).fillMaxWidth().glassBubble(RoundedCornerShape(18.dp)).padding(start = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                androidx.compose.material3.TextField(
+                    value = query,
+                    onValueChange = { query = it.take(60) },
+                    placeholder = { Text("18+ এ খুঁজুন…", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, cursorColor = CinetorRed
+                    )
+                )
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(androidx.compose.material.icons.Icons.Rounded.Close, contentDescription = "Clear", tint = TextMuted)
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            if (query.trim().length < 2) LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(adultTabs, key = { it }) { t ->
                     val sel = t == tab
                     Box(
@@ -190,7 +228,25 @@ fun AdultScreen(onBack: () -> Unit, onLock: () -> Unit, onOpenMedia: (MediaItem)
             }
         }
 
+        val searching = query.trim().length >= 2
         when {
+            searching && results == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = CinetorRed)
+            }
+            searching -> {
+                val found = results.orEmpty()
+                if (found.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("কিছু পাওয়া যায়নি", color = TextSecondary)
+                } else LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 108.dp),
+                    contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 120.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(found, key = { it.source + it.id }) { item -> AdultTile(item) { onOpenMedia(item) } }
+                }
+            }
             adultPool.isEmpty() && loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = CinetorRed)
             }

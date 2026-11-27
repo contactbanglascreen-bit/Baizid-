@@ -180,6 +180,8 @@ class MainActivity : ComponentActivity() {
                 .build()
         }
 
+        // The app shows a black screen in the recent-apps list (nothing on screen can be seen there).
+        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
@@ -415,7 +417,10 @@ fun CinedorMainShell() {
     LaunchedEffect(preferences.safeMode) {
         if (!preferences.safeMode) viewModel.updateSafeMode(true)
     }
-    androidx.compose.runtime.SideEffect { com.example.ui.screens.AdultSection.loader = { page -> viewModel.loadAdult(page) } }
+    androidx.compose.runtime.SideEffect {
+        com.example.ui.screens.AdultSection.loader = { page -> viewModel.loadAdult(page) }
+        com.example.ui.screens.AdultSection.searcher = { q -> viewModel.searchAdult(q) }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(toastMessage) {
@@ -446,13 +451,26 @@ fun CinedorMainShell() {
     // Coming back to the app: if Home failed while the phone had cut the app's network, load again.
     val shellLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     androidx.compose.runtime.DisposableEffect(shellLifecycle) {
+        var lastHomeRefresh = System.currentTimeMillis()
         val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
-            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME &&
-                viewModel.homeState.value.feedState is com.example.ui.viewmodel.UiState.Error
-            ) viewModel.loadHome(forceRefresh = true)
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val stale = System.currentTimeMillis() - lastHomeRefresh > 90_000
+                if (stale || viewModel.homeState.value.feedState is com.example.ui.viewmodel.UiState.Error) {
+                    lastHomeRefresh = System.currentTimeMillis()
+                    viewModel.loadHome(forceRefresh = true)
+                }
+            }
         }
         shellLifecycle.addObserver(obs)
         onDispose { shellLifecycle.removeObserver(obs) }
+    }
+    // New uploads (Server 1 + Server 2) appear on their own: Home quietly refreshes every 3 minutes
+    // while the app is open, and when coming back to the app after a while.
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(180_000)
+            if (shellLifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) viewModel.loadHome(forceRefresh = true)
+        }
     }
     if (!isOnline) {
         com.example.ui.components.OfflineOnlyScreen()

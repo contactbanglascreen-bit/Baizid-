@@ -503,12 +503,6 @@ fun HomeScreen(
                                 }
                             }
 
-                            // Browse by language (MovieBox-style categories)
-                            item(key = "home_browse_language") {
-                                com.example.ui.components.BrowseTiles("Browse by language", com.example.ui.components.BrowseCatalog.languages)
-                                Spacer(modifier = Modifier.height(18.dp))
-                            }
-
                             // Every title sorted into its language automatically (বাংলা, Hindi, English…)
                             val byLanguage = (allPool + homeState.updates24h + homeState.ranking)
                                 .distinctBy { it.title.lowercase().trim() }

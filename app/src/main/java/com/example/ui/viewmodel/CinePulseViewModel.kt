@@ -796,6 +796,12 @@ class CinePulseViewModel(
     }
 
     /** Plays a live TV channel; every link of the channel is a server, tried in turn if one fails. */
+    /** Search inside the 18+ Zone (adult titles are not hidden here). */
+    suspend fun searchAdult(query: String): List<MediaItem> {
+        val prefs = preferences.value
+        return runCatching { apiClient.search(query.trim(), 1, prefs.source, false, prefs.language.code) }.getOrDefault(emptyList())
+    }
+
     /** One page of the PIN-locked 18+ section. */
     suspend fun loadAdult(page: Int): List<MediaItem> =
         runCatching { apiClient.adultCatalog(page, preferences.value.language.code) }.getOrDefault(emptyList())
