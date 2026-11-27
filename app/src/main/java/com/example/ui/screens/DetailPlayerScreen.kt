@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassAccent
+import com.example.ui.components.glassBubble
 import com.example.ui.components.glassBackground
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.rounded.RecordVoiceOver
@@ -807,13 +809,11 @@ fun DetailPlayerScreen(
                                 Column(
                                     modifier = Modifier
                                         .width(104.dp)
-                                        .shadow(if (sel) 6.dp else 1.dp, RoundedCornerShape(16.dp), spotColor = if (sel) CinedorMagenta else Color.Black)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            if (sel) Brush.verticalGradient(listOf(AccentBright, CinetorRedDark))
-                                            else Brush.verticalGradient(listOf(ObsidianCard, ObsidianCard))
+                                        .then(
+                                            if (sel) Modifier.shadow(6.dp, RoundedCornerShape(16.dp), spotColor = CinedorMagenta)
+                                                .glassAccent(RoundedCornerShape(16.dp))
+                                            else Modifier.glassBubble(RoundedCornerShape(16.dp))
                                         )
-                                        .border(1.dp, if (sel) Color.Transparent else ObsidianBorder, RoundedCornerShape(16.dp))
                                         .clickable {
                                             if (match != null) {
                                                 if (match.url != state.selectedStream?.url) onSelectStream(match)
@@ -1434,9 +1434,7 @@ private fun DetailMetaChips(rating: String, chips: List<String>) {
         if (rating.isNotBlank()) {
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(ObsidianCard)
-                    .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
+                    .glassBubble(RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1452,9 +1450,7 @@ private fun DetailMetaChips(rating: String, chips: List<String>) {
         chips.forEach { c ->
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(ObsidianCard)
-                    .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
+                    .glassBubble(RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(

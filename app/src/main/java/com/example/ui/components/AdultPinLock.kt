@@ -229,9 +229,7 @@ fun AdultPinDialog(
             modifier = Modifier
                 .padding(24.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(28.dp))
-                .background(ObsidianCard)
-                .border(1.dp, ObsidianBorder, RoundedCornerShape(28.dp))
+                .glassBubble(RoundedCornerShape(28.dp))
                 .padding(horizontal = 22.dp, vertical = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

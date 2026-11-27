@@ -189,4 +189,30 @@ class GlassScreenshotTest {
             .map { it.config.toString().take(200) }
         println("REPLY $texts")
     }
+
+    @Test fun mePage() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        ThemeState.current = CinedorPalettes[5]
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            CinePulseTheme {
+                com.example.ui.screens.MeHubScreen(
+                    preferences = UserPreferences(), watchlist = emptyList(), history = emptyList(),
+                    onOpenMedia = {}, onResumeHistory = {}, onRemoveHistory = {}, onClearHistory = {},
+                    onUpdateLanguage = {}, onUpdateSafeMode = {}
+                )
+            }
+        }
+        repeat(30) { rule.mainClock.advanceTimeByFrame() }
+        Thread.sleep(800)
+        repeat(5) { rule.mainClock.advanceTimeByFrame() }
+        var bmp: Bitmap? = null
+        rule.activityRule.scenario.onActivity { act ->
+            val v = act.window.decorView
+            val b = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+            v.draw(Canvas(b)); bmp = b
+        }
+        val out = File(System.getenv("SCREENSHOT_DIR") ?: ctx.cacheDir.absolutePath).apply { mkdirs() }
+        File(out, "me-page.png").outputStream().use { bmp!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
 }

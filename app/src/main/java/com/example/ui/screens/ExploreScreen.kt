@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBubble
 import com.example.ui.components.glassBackground
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -224,9 +225,7 @@ fun ExploreScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(ObsidianCard)
-                        .border(1.dp, ObsidianBorder, RoundedCornerShape(20.dp))
+                        .glassBubble(RoundedCornerShape(20.dp))
                         .padding(vertical = 4.dp)
                 ) {
                     state.suggestions.take(6).forEach { suggestion ->

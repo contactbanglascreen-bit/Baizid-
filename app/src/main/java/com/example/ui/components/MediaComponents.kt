@@ -184,7 +184,7 @@ private fun GlassMetaChip(text: String, modifier: Modifier = Modifier, solid: Bo
                 fontWeight = if (solid) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 11.sp
             ),
-            color = if (solid) TextPrimary else OnMediaText,
+            color = if (solid) Color(0xFF16090C) else OnMediaText,
             maxLines = 1
         )
     }

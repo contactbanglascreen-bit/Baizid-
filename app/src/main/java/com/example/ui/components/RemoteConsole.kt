@@ -917,9 +917,7 @@ private fun AnnouncementPopup(p: PopupConfig, onClose: () -> Unit, onAction: () 
             modifier = Modifier
                 .padding(24.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp))
-                .background(ObsidianCard)
-                .border(1.dp, ObsidianBorder, RoundedCornerShape(26.dp))
+                .glassBubble(RoundedCornerShape(26.dp))
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

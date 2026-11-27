@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBubble
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.ui.components.glassBackground
 import android.text.format.DateUtils
@@ -425,10 +426,7 @@ private fun ProfileCard(watchlistCount: Int, watchedCount: Int, onEdit: () -> Un
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .shadow(3.dp, RoundedCornerShape(24.dp))
-            .clip(RoundedCornerShape(24.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(24.dp))
+            .glassBubble(RoundedCornerShape(24.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -469,9 +467,7 @@ private fun MenuCard(content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(24.dp))
+            .glassBubble(RoundedCornerShape(24.dp))
             .padding(vertical = 4.dp)
     ) { content() }
 }
@@ -663,9 +659,7 @@ private fun HistoryRow(entry: WatchHistoryItem, onResume: (WatchHistoryItem) -> 
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(20.dp))
+            .glassBubble(RoundedCornerShape(20.dp))
             .clickable { onResume(entry) }
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -750,9 +744,7 @@ private fun SettingsCard(title: String, content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(22.dp))
+            .glassBubble(RoundedCornerShape(22.dp))
             .padding(16.dp)
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 17.sp), color = TextPrimary)
@@ -1060,9 +1052,7 @@ private fun SettingsPage(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(22.dp))
+            .glassBubble(RoundedCornerShape(22.dp))
             .clickable { confirmReset = true }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1126,9 +1116,7 @@ private fun AboutPage(onOpenAdmin: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(24.dp))
+            .glassBubble(RoundedCornerShape(24.dp))
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

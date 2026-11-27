@@ -302,9 +302,7 @@ private fun DownloadRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(16.dp))
+            .glassBubble(RoundedCornerShape(16.dp))
             .clickable(enabled = done, onClick = onPlay)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically

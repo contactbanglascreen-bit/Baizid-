@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 
 // ---------------------------------------------------------------------------
@@ -138,8 +139,11 @@ val SolidSurfaceVariant: Color get() = P.surfaceVariant
  * bright; alpha stays high enough that text is always easy to read.
  */
 private fun liquid(c: Color, darkAlpha: Float, lightAlpha: Float): Color =
-    if (P.isDark) lerp(c, Color.White, 0.04f).copy(alpha = darkAlpha)
-    else lerp(c, Color.White, 0.35f).copy(alpha = lightAlpha)
+    // Solid colour that looks like the glass tint over the background. (See-through colours made
+    // phones draw pale boxes where a card has a shadow, so the real glass is drawn by the
+    // glass modifiers in LiquidGlass.kt instead.)
+    if (P.isDark) lerp(c, Color.White, 0.04f).copy(alpha = darkAlpha).compositeOver(P.background)
+    else lerp(c, Color.White, 0.35f).copy(alpha = lightAlpha).compositeOver(P.background)
 val ObsidianBorder: Color get() = P.border
 
 // Former logo gradient tokens -> accent family

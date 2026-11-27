@@ -99,9 +99,7 @@ fun AdBanner(modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .fillMaxWidth()
             .aspectRatio(3.2f)
-            .clip(RoundedCornerShape(18.dp))
-            .background(ObsidianCard)
-            .border(1.dp, ObsidianBorder, RoundedCornerShape(18.dp))
+            .glassBubble(RoundedCornerShape(18.dp))
             .clickable { openCinedorLink(context, ad.link) }
     ) {
         AsyncImage(model = ad.image, contentDescription = ad.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())

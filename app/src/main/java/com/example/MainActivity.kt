@@ -385,6 +385,17 @@ fun CinedorMainShell() {
         if (!isOnline) wasOffline = true
         else if (wasOffline) { wasOffline = false; viewModel.loadHome(forceRefresh = true) }
     }
+    // Coming back to the app: if Home failed while the phone had cut the app's network, load again.
+    val shellLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(shellLifecycle) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME &&
+                viewModel.homeState.value.feedState is com.example.ui.viewmodel.UiState.Error
+            ) viewModel.loadHome(forceRefresh = true)
+        }
+        shellLifecycle.addObserver(obs)
+        onDispose { shellLifecycle.removeObserver(obs) }
+    }
     if (!isOnline) {
         com.example.ui.components.OfflineOnlyScreen()
         return

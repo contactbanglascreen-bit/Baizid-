@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.runtime.LaunchedEffect
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -46,24 +47,54 @@ private fun Context.isOnlineNow(): Boolean {
     return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
-/** Live "is the phone online" state. */
+/**
+ * Live "is the phone online" state.
+ * Some phones cut an app's network while it is in the background (battery / data saver), and
+ * Android doesn't always say "online again" when you come back. So the state is re-checked every
+ * time the app returns to the screen, re-checked every 2 s while offline, and "offline" is only
+ * shown after it has lasted a few seconds (no false "no internet" after switching apps).
+ */
 @Composable
 fun rememberIsOnline(): Boolean {
     val context = LocalContext.current
-    var online by remember { mutableStateOf(context.isOnlineNow()) }
+    var rawOnline by remember { mutableStateOf(context.isOnlineNow()) }
+    var shownOnline by remember { mutableStateOf(true) }
     DisposableEffect(Unit) {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) { online = true }
-            override fun onLost(network: Network) { online = context.isOnlineNow() }
+            override fun onAvailable(network: Network) { rawOnline = true }
+            override fun onLost(network: Network) { rawOnline = context.isOnlineNow() }
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                online = context.isOnlineNow()
+                rawOnline = context.isOnlineNow()
             }
         }
         runCatching { cm?.registerDefaultNetworkCallback(callback) }
         onDispose { runCatching { cm?.unregisterNetworkCallback(callback) } }
     }
-    return online
+    // Re-check whenever the app comes back to the front.
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) rawOnline = context.isOnlineNow()
+        }
+        lifecycle.addObserver(obs)
+        onDispose { lifecycle.removeObserver(obs) }
+    }
+    LaunchedEffect(rawOnline) {
+        if (rawOnline) {
+            shownOnline = true
+        } else {
+            // Keep checking; only call it "offline" if it is still offline after ~4 seconds.
+            repeat(2) {
+                kotlinx.coroutines.delay(2000)
+                if (context.isOnlineNow()) { rawOnline = true; return@LaunchedEffect }
+            }
+            shownOnline = false
+            while (!context.isOnlineNow()) kotlinx.coroutines.delay(2000)
+            rawOnline = true
+        }
+    }
+    return shownOnline
 }
 
 /** Shown when there is no internet: everything else needs a connection, downloads still play. */
