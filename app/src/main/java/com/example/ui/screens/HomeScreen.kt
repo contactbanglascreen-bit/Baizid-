@@ -356,7 +356,7 @@ fun HomeScreen(
                                     )
                                 }
                             } else {
-                                items(feed.sportsMatches, key = { it.id }) { match ->
+                                items(feed.sportsMatches.distinctBy { it.id }, key = { it.id }) { match ->
                                     SportsMatchCard(
                                         match = match,
                                         onClick = { onSportsClick(match) },
@@ -525,7 +525,7 @@ fun HomeScreen(
                                             contentPadding = PaddingValues(horizontal = 12.dp),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            items(list.take(20), key = { "lr_${lang.value}_${it.source}_${it.id}" }) { item ->
+                                            items(list.take(20).distinctBy { "lr_${lang.value}_${it.source}_${it.id}" }, key = { "lr_${lang.value}_${it.source}_${it.id}" }) { item ->
                                                 PosterCard(item = item, onClick = { onOpenMedia(item) })
                                             }
                                         }
@@ -552,7 +552,7 @@ fun HomeScreen(
                                         contentPadding = PaddingValues(horizontal = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        items(feed.sportsMatches.take(10), key = { it.id }) { match ->
+                                        items(feed.sportsMatches.distinctBy { it.id }.take(10), key = { it.id }) { match ->
                                             SportsMatchCard(match = match, onClick = { onSportsClick(match) })
                                         }
                                     }
@@ -719,7 +719,7 @@ fun HomeScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         items(
-                                            homeState.updates24h.take(15),
+                                            homeState.updates24h.distinctBy { "${it.source}_${it.id}" }.take(15),
                                             key = { "u24_${it.source}_${it.id}" }
                                         ) { item ->
                                             PosterCard(item = item, onClick = { onOpenMedia(item) })
@@ -730,7 +730,7 @@ fun HomeScreen(
                             }
 
                             // 8. Dynamic API Sections (Gems for you, Bollywood, Hollywood, K-Drama, C-Drama...)
-                            items(feed.sections, key = { it.id }) { section ->
+                            items(feed.sections.distinctBy { it.id }, key = { it.id }) { section ->
                                 SectionHeaderRow(
                                     title = section.title,
                                     actionLabel = "All",
@@ -768,7 +768,7 @@ fun HomeScreen(
                                         contentPadding = PaddingValues(horizontal = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        items(feed.upcomingItems.take(12), key = { "up_${it.id}" }) { item ->
+                                        items(feed.upcomingItems.take(12).distinctBy { "up_${it.id}" }, key = { "up_${it.id}" }) { item ->
                                             val docId = sanitizeLocalDocId(item.id, item.title)
                                             UpcomingReleaseCard(
                                                 item = item,
@@ -833,7 +833,7 @@ fun HomeScreen(
                                             contentPadding = PaddingValues(horizontal = 12.dp),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            items(list.take(18), key = { "g_${genre}_${it.id}" }) { m ->
+                                            items(list.take(18).distinctBy { "g_${genre}_${it.id}" }, key = { "g_${genre}_${it.id}" }) { m ->
                                                 PosterCard(item = m, onClick = { onOpenMedia(m) })
                                             }
                                         }
@@ -1079,7 +1079,7 @@ private fun ContinueWatchingSection(
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(history.take(10), key = { it.id }) { entry ->
+            items(history.distinctBy { it.id }.take(10), key = { it.id }) { entry ->
                 ContinueWatchingCard(
                     history = entry,
                     onClick = { onResumeHistory(entry) },

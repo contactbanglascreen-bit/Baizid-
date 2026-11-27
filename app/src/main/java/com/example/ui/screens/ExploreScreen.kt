@@ -426,7 +426,7 @@ fun ExploreScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.categories.take(40), key = { it.id }) { chip ->
+                    items(state.categories.take(40).distinctBy { it.id }, key = { it.id }) { chip ->
                         ExplorePill(
                             label = chip.name,
                             selected = state.selectedCategoryChip?.id == chip.id,

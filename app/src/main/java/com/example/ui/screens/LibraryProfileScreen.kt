@@ -374,7 +374,7 @@ fun LibraryProfileScreen(
                             }
                         }
                     }
-                    items(history, key = { it.id }) { h ->
+                    items(history.distinctBy { it.id }, key = { it.id }) { h ->
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = ObsidianCard,
@@ -451,7 +451,7 @@ fun LibraryProfileScreen(
                         )
                     }
                 } else {
-                    items(reminders, key = { it.id }) { rem ->
+                    items(reminders.distinctBy { it.id }, key = { it.id }) { rem ->
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = ObsidianCard,

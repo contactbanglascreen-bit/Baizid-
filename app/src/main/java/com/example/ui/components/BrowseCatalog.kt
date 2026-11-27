@@ -179,7 +179,7 @@ fun BrowseTiles(title: String, targets: List<BrowseTarget>) {
         Text(title, color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(Modifier.height(10.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(targets, key = { it.kind + it.value }) { t ->
+            items(targets.distinctBy { it.kind + it.value }, key = { it.kind + it.value }) { t ->
                 Box(
                     Modifier
                         .width(112.dp)
@@ -280,7 +280,7 @@ fun BrowsePage(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(items, key = { it.source + it.id + it.title }) { item ->
+                    items(items.distinctBy { it.source + it.id + it.title }, key = { it.source + it.id + it.title }) { item ->
                         PosterCard(item = item, onClick = { onOpen(item) }, modifier = Modifier.fillMaxWidth())
                     }
                     item(span = { GridItemSpan(3) }) {

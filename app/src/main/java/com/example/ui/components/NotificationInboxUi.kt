@@ -174,7 +174,7 @@ fun NotificationInboxDialog(onClose: () -> Unit) {
                     }
                 } else {
                     LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 30.dp)) {
-                        items(items, key = { it.at.toString() + it.title }) { n ->
+                        items(items.distinctBy { it.at.toString() + it.title }, key = { it.at.toString() + it.title }) { n ->
                             val shape = RoundedCornerShape(24.dp)
                             Column(
                                 Modifier

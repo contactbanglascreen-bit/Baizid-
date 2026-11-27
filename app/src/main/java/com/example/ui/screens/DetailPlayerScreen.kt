@@ -455,7 +455,7 @@ fun DetailPlayerScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    items(detail.cast, key = { it.id }) { member ->
+                                    items(detail.cast.distinctBy { it.id.ifBlank { it.name } }, key = { it.id.ifBlank { it.name } }) { member ->
                                         Column(
                                             modifier = Modifier
                                                 .width(76.dp)
@@ -947,7 +947,7 @@ fun DetailPlayerScreen(
                                     label = { Text("Off", style = MaterialTheme.typography.labelMedium) }
                                 )
                             }
-                            items(state.captions, key = { it.url }) { track ->
+                            items(state.captions.distinctBy { it.url }, key = { it.url }) { track ->
                                 FilterChip(
                                     selected = state.selectedCaption?.url == track.url,
                                     onClick = { onSelectCaption(track) },
@@ -1208,7 +1208,7 @@ fun DetailPlayerScreen(
                                 )
                             }
                         } else {
-                            items(detail.comments, key = { it.id }) { comment ->
+                            items(detail.comments.distinctBy { it.id }, key = { it.id }) { comment ->
                                 CommentCard(comment = comment)
                             }
                         }
