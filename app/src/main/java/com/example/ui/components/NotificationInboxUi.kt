@@ -71,9 +71,8 @@ fun NotificationBellButton(size: Int = 40) {
         Box(
             modifier = Modifier
                 .size(size.dp)
-                .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
-                .clip(CircleShape)
-                .background(ObsidianSurface)
+                .shadow(6.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.18f))
+                .glassBubble(CircleShape)
                 .clickable { open = true },
             contentAlignment = Alignment.Center
         ) {

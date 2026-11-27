@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.glassBubble
+import com.example.ui.components.glassAccent
 import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.liquidGlass
 import com.example.ui.components.glassBackground
@@ -937,9 +939,8 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
-                        .clip(CircleShape)
-                        .background(ObsidianSurface)
+                        .shadow(6.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.18f))
+                        .glassBubble(CircleShape)
                         .clickable {
                             pullRefreshing = true
                             onRetry()
@@ -970,9 +971,8 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.25f))
-                        .clip(CircleShape)
-                        .background(ObsidianSurface)
+                        .shadow(6.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.18f))
+                        .glassBubble(CircleShape)
                         .clickable(onClick = onOpenSearch)
                         .testTag("home_search_button"),
                     contentAlignment = Alignment.Center
@@ -1006,9 +1006,7 @@ fun HomeScreen(
                                     Modifier
                                 }
                             )
-                            .clip(CircleShape)
-                            .background(if (selected) CinetorRed else ChipBg)
-                            .border(1.dp, if (selected) CinetorRed else ChipBorder, CircleShape)
+                            .then(if (selected) Modifier.glassAccent(CircleShape) else Modifier.glassBubble(CircleShape))
                             .clickable { onSelectTab(tabKey) }
                             .padding(horizontal = 16.dp)
                             .testTag("home_tab_${tabKey.lowercase().replace(" ", "_")}"),

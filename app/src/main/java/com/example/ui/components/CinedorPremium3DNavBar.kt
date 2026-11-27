@@ -165,13 +165,8 @@ private fun RowScope.NavPillSlot(
                     .height(28.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(indicatorColor)
-                    .then(
-                        if (selected) {
-                            Modifier.border(1.dp, CinetorRed.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                        } else {
-                            Modifier
-                        }
-                    ),
+                    // Selected tab sits under a little glass lens
+                    .then(if (selected) Modifier.glassBubble(RoundedCornerShape(14.dp)) else Modifier),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
