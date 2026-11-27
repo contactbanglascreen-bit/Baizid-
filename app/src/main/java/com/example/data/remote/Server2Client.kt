@@ -28,8 +28,9 @@ object Server2Client {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
     private val http = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(25, TimeUnit.SECONDS)
+        .connectTimeout(12, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
 
     /** Built-in Server 2 address, used until (or unless) the Console config gives another one. */
@@ -52,15 +53,34 @@ object Server2Client {
         val episodeStreams: Map<Pair<Int, Int>, List<StreamOption>> = emptyMap()
     )
 
-    private fun get(path: String): JSONObject? {
-        if (!enabled) return null
-        val req = Request.Builder().url(baseUrl.trimEnd('/') + path).header("Accept", "application/json").build()
+    /** Last good answer per address, so a slow or failed request still shows titles. */
+    private val lastGood = java.util.concurrent.ConcurrentHashMap<String, JSONObject>()
+
+    private fun fetch(base: String, path: String): JSONObject? {
+        val req = Request.Builder().url(base.trimEnd('/') + path).header("Accept", "application/json").build()
         return runCatching {
             http.newCall(req).execute().use { r ->
                 val body = r.body?.string().orEmpty()
                 if (!r.isSuccessful) null else JSONObject(body)
             }
         }.getOrNull()
+    }
+
+    /**
+     * Asks Server 2; on failure tries once more, then the built-in address (in case the Console
+     * has a wrong link), then the last good answer for the same request.
+     */
+    private fun get(path: String): JSONObject? {
+        if (!enabled) return null
+        val bases = listOf(baseUrl, baseUrl, DEFAULT_URL).distinct().let { if (it.size == 1) listOf(it[0], it[0]) else it }
+        for (b in bases) {
+            val j = fetch(b, path)
+            if (j != null && !j.has("error") && (j.optJSONArray("items")?.length() ?: 1) > 0) {
+                lastGood[path] = j
+                return j
+            }
+        }
+        return lastGood[path] ?: fetch(DEFAULT_URL, path)
     }
 
     private fun items(j: JSONObject?): List<MediaItem> {

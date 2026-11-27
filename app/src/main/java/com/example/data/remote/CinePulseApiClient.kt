@@ -180,8 +180,8 @@ class CinePulseApiClient(
         }
         val server2Only = if (source == ContentSource.MOVIELINKBD && Server2Client.enabled) {
             val more = (2..4).map { p -> async { runCatching { Server2Client.list(p) }.getOrDefault(emptyList()) } }
-            val first = withTimeoutOrNull(9000L) { server2Deferred.await() }.orEmpty()
-            (first + more.flatMap { withTimeoutOrNull(9000L) { it.await() }.orEmpty() }).distinctBy { it.id }
+            val first = withTimeoutOrNull(15000L) { server2Deferred.await() }.orEmpty()
+            (first + more.flatMap { withTimeoutOrNull(15000L) { it.await() }.orEmpty() }).distinctBy { it.id }
         } else emptyList()
 
         val baseFeed: HomeFeed = if (server2Only.isNotEmpty()) {
@@ -225,8 +225,8 @@ class CinePulseApiClient(
             // MovieBox answers fast; the worker (which brings MovieLinkBD) gets up to 6.5 s in total
             // so its titles are not dropped when it is a little slow.
             val homeStart = System.currentTimeMillis()
-            val directFeed = withTimeoutOrNull(4500L) { directDeferred.await() }
-            val workerFeed = withTimeoutOrNull((6500L - (System.currentTimeMillis() - homeStart)).coerceAtLeast(1500L)) { workerDeferred.await() }
+            val directFeed = withTimeoutOrNull(8000L) { directDeferred.await() }
+            val workerFeed = withTimeoutOrNull((9000L - (System.currentTimeMillis() - homeStart)).coerceAtLeast(1500L)) { workerDeferred.await() }
 
             val primary = when {
                 workerFeed != null && (workerFeed.sections.isNotEmpty() || workerFeed.banners.isNotEmpty()) -> workerFeed
@@ -283,7 +283,8 @@ class CinePulseApiClient(
         }
 
         val feed: HomeFeed = if (server2Only.isEmpty() && source == ContentSource.ALL && Server2Client.enabled) {
-            val extra = withTimeoutOrNull(4000L) { server2Deferred.await() }.orEmpty()
+            // Server 2 can be slow on mobile networks: give it time instead of dropping its titles.
+            val extra = withTimeoutOrNull(15000L) { server2Deferred.await() }.orEmpty()
             if (extra.isEmpty()) baseFeed
             else baseFeed.copy(sections = listOf(HomeSection("s2_latest", "Latest uploads", extra.take(24))) + baseFeed.sections)
         } else baseFeed
@@ -483,7 +484,7 @@ class CinePulseApiClient(
             }
 
             // Interleave MovieLinkBD + MovieBox results cleanly so BOTH sites are immediately visible!
-            val server2List = withTimeoutOrNull(6000L) { server2Deferred.await() }.orEmpty()
+            val server2List = withTimeoutOrNull(12000L) { server2Deferred.await() }.orEmpty()
             val mlbdItems = (server2List + workerList.filter { it.source.equals("movielinkbd", ignoreCase = true) })
                 .distinctBy { it.title.lowercase().trim() }
             val workerMbItems = workerList.filterNot { it.source.equals("movielinkbd", ignoreCase = true) }
