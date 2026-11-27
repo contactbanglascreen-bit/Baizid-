@@ -202,9 +202,9 @@ class CinePulseViewModel(
             val active = apiClient.isApiKeyConfigured
             _isDualSiteActive.value = active
             _toastMessage.value = if (active) {
-                "Dual-Site activated (MovieBox + MovieLinkBD)"
+                "Both servers are on"
             } else {
-                "Using Direct MovieBox mode"
+                "Using Server 1"
             }
             loadHome(forceRefresh = true)
             loadExploreMetadata()

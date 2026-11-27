@@ -1,9 +1,10 @@
 package com.example.data.model
 
 enum class ContentSource(val apiValue: String, val label: String) {
-    ALL("all", "All Sources"),
-    MOVIEBOX("moviebox", "MovieBox"),
-    MOVIELINKBD("movielinkbd", "MovieLinkBD");
+    // Labels are what viewers see: the content providers' names are not shown in the app.
+    ALL("all", "All Servers"),
+    MOVIEBOX("moviebox", "Server 1"),
+    MOVIELINKBD("movielinkbd", "Server 2");
 
     companion object {
         fun fromApi(value: String?): ContentSource =

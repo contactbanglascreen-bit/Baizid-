@@ -255,7 +255,11 @@ object CinePulseJsonParser {
                 sections.add(
                     HomeSection(
                         id = dedupKey,
-                        title = cleanTitle,
+                        // Shelf titles sent by the servers sometimes carry their own brand name;
+                        // viewers only ever see Cinedor.
+                        title = cleanTitle
+                            .replace(Regex("(?i)movie\\s*link\\s*bd"), "Cinedor")
+                            .replace(Regex("(?i)movie\\s*box"), "Cinedor"),
                         items = parsed,
                         categoryPath = categoryPath,
                         isRanked = "top" in lower || "trending" in lower || "rank" in lower,
@@ -1032,7 +1036,7 @@ object CinePulseJsonParser {
             data.optJSONArray(k)?.let { parseArray(it) }
         }
 
-        listOf("moviebox" to "MBox", "movielinkbd" to "MLBD").forEach { (srcKey, tag) ->
+        listOf("moviebox" to "S1", "movielinkbd" to "S2").forEach { (srcKey, tag) ->
             val sub = data.optJSONObject(srcKey)
             if (sub != null) {
                 listOf("streams", "processedSources", "sources", "links", "urls").forEach { k ->

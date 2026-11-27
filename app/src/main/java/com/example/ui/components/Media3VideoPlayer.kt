@@ -789,7 +789,7 @@ fun CinePulseVideoPlayer(
                         val diagLine = lastCdnErrorDiagnostic.ifBlank { "Chromium error: $errDetail" }
                         playbackError = Triple(
                             "CDN Blocked This Network (HTTP 426)",
-                            "MovieBox CDN rejected this cloud preview IP. Install APK on your phone or add CINEPULSE_API_KEY in Secrets.\n$diagLine",
+                            "The video server refused this network. Try another network or Wi-Fi.\n$diagLine",
                             426
                         )
                     }

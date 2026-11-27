@@ -724,8 +724,8 @@ class CinePulseApiClient(
                 }.getOrNull()
                 if (parsed != null && parsed.first.isNotEmpty()) {
                     val labeled = parsed.first.map { opt ->
-                        val tagged = if (isMovieLinkBdItem && !opt.label.contains("MLBD", ignoreCase = true) && !opt.label.contains("MovieLink", ignoreCase = true)) {
-                            opt.copy(label = "${opt.quality} • MovieLinkBD")
+                        val tagged = if (isMovieLinkBdItem && !opt.label.contains("S2", ignoreCase = false)) {
+                            opt.copy(label = "${opt.quality} • Server 2")
                         } else {
                             opt
                         }
