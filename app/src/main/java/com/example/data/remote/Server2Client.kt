@@ -32,8 +32,12 @@ object Server2Client {
         .readTimeout(25, TimeUnit.SECONDS)
         .build()
 
-    /** Set from the Console config (RemoteConsole). Blank = Server 2 worker not set up. */
-    @Volatile var baseUrl: String = ""
+    /** Built-in Server 2 address, used until (or unless) the Console config gives another one. */
+    const val DEFAULT_URL = "https://cinedor-server2.khanbhai19u.workers.dev"
+
+    /** From the Console config (RemoteConsole); falls back to [DEFAULT_URL] so Server 2 always works. */
+    @Volatile var baseUrl: String = DEFAULT_URL
+        set(v) { field = v.trim().ifBlank { DEFAULT_URL } }
 
     val enabled: Boolean get() = baseUrl.startsWith("https://")
 
