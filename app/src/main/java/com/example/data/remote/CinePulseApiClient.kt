@@ -441,19 +441,22 @@ class CinePulseApiClient(
     suspend fun search(query: String, page: Int, source: ContentSource, safeMode: Boolean, lang: String = "en"): List<MediaItem> =
         supervisorScope {
             val cleanQuery = query.trim()
-            if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
-                return@supervisorScope movieBoxDirect.search(cleanQuery, page, lang, safeMode)
-            }
-            if (source == ContentSource.MOVIELINKBD && Server2Client.enabled) {
-                val own = runCatching { Server2Client.search(cleanQuery) }.getOrDefault(emptyList())
-                if (own.isNotEmpty()) return@supervisorScope own
+            // MovieLink (Server 2) is searched on every server setting, so its titles always show up.
+            val s2Search = async {
+                if (page == 1 && Server2Client.enabled) runCatching { Server2Client.search(cleanQuery) }.getOrDefault(emptyList()) else emptyList()
             }
             if (source == ContentSource.MOVIELINKBD) {
+                val own = s2Search.await()
+                if (own.isNotEmpty()) return@supervisorScope own
                 val (body, _) = getJson(
                     "/api/v1/search",
                     mapOf("q" to cleanQuery, "page" to page.toString(), "source" to "movielinkbd")
                 )
                 return@supervisorScope CinePulseJsonParser.parseMediaList(body, safeMode, "movielinkbd")
+            }
+            if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
+                val mb = runCatching { movieBoxDirect.search(cleanQuery, page, lang, safeMode) }.getOrDefault(emptyList())
+                return@supervisorScope rankByQuery(cleanQuery, s2Search.await() + mb)
             }
 
             // Dual-Site Parallel Search (ALL): query BOTH MovieBox Direct + CinePulse Unified Worker (MovieBox + MovieLinkBD)
@@ -470,10 +473,8 @@ class CinePulseApiClient(
                 }.getOrNull()
             }
 
-            val server2Deferred = async {
-                if (Server2Client.enabled) runCatching { Server2Client.search(cleanQuery) }.getOrDefault(emptyList()) else emptyList()
-            }
-            val directList = withTimeoutOrNull(4500L) { directDeferred.await() }.orEmpty()
+            val server2Deferred = s2Search
+            val directList = withTimeoutOrNull(9000L) { directDeferred.await() }.orEmpty()
             val workerList = if (directList.isNotEmpty()) {
                 withTimeoutOrNull(6000L) { workerDeferred.await() }.orEmpty()
             } else {
@@ -481,12 +482,14 @@ class CinePulseApiClient(
             }
 
             if (directList.isEmpty() && workerList.isEmpty()) {
-                // Retry once without swallowing the error if both failed
+                // MovieBox gave nothing: still show MovieLink's titles, or retry MovieBox once.
+                val own = server2Deferred.await()
+                if (own.isNotEmpty()) return@supervisorScope rankByQuery(cleanQuery, own)
                 return@supervisorScope movieBoxDirect.search(cleanQuery, page, lang, safeMode)
             }
 
             // Interleave MovieLinkBD + MovieBox results cleanly so BOTH sites are immediately visible!
-            val server2List = withTimeoutOrNull(12000L) { server2Deferred.await() }.orEmpty()
+            val server2List = withTimeoutOrNull(20000L) { server2Deferred.await() }.orEmpty()
             val mlbdItems = (server2List + workerList.filter { it.source.equals("movielinkbd", ignoreCase = true) })
                 .distinctBy { it.title.lowercase().trim() }
             val workerMbItems = workerList.filterNot { it.source.equals("movielinkbd", ignoreCase = true) }
@@ -499,7 +502,31 @@ class CinePulseApiClient(
                     if (i < mlbdItems.size) add(mlbdItems[i])
                 }
             }.distinctBy { "${it.source.lowercase()}:${it.id.ifBlank { it.title.lowercase() }}" }
+                .let { rankByQuery(cleanQuery, it) }
         }
+
+    /**
+     * Puts titles that really match the search first (exact name, then starts with, then contains
+     * every word); everything else keeps its order after them. Stable, so servers stay mixed.
+     */
+    private fun rankByQuery(query: String, items: List<MediaItem>): List<MediaItem> {
+        fun norm(t: String) = t.lowercase().replace(Regex("[^a-z0-9\\u0980-\\u09ff ]"), " ").replace(Regex("\\s+"), " ").trim()
+        val q = norm(query)
+        if (q.isBlank()) return items
+        val words = q.split(' ').filter { it.isNotBlank() }
+        fun score(it: MediaItem): Int {
+            val t = norm(it.title.substringBefore(" ("))
+            val full = norm(it.title)
+            return when {
+                t == q -> 0
+                t.startsWith(q) || full.startsWith(q) -> 1
+                words.all { w -> full.contains(w) } -> 2
+                else -> 3
+            }
+        }
+        return items.distinctBy { "${it.source.lowercase()}:${it.id.ifBlank { it.title.lowercase() }}" }
+            .withIndex().sortedWith(compareBy({ score(it.value) }, { it.index })).map { it.value }
+    }
 
     /**
      * Titles for the PIN-locked 18+ section. The rest of the app always hides these. Several
