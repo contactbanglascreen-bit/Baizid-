@@ -148,6 +148,10 @@ object BrowseCatalog {
             else -> null
         }
         pick(tag)?.let { return it }
+        // Server 2 titles say it in the name: "… Hindi ORG", "… Bengali Dubbed", "… S13 Bangla"
+        val words = Regex("\\b(bangla|bengali|hindi|tamil|telugu|korean|chinese|japanese|english)\\b")
+            .findAll(item.title.lowercase()).joinToString(" ") { it.value }
+        pick(words)?.let { return it }
         // first language in the badge ("English,Es" -> english)
         pick(badge.substringBefore(',').substringBefore('/'))?.let { return it }
         val c = item.country.lowercase()

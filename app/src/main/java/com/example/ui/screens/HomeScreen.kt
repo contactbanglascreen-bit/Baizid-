@@ -503,6 +503,23 @@ fun HomeScreen(
                                 }
                             }
 
+                            // Newest uploads from Server 2 (MovieLink) right at the top.
+                            feed.sections.firstOrNull { it.id == "s2_latest" && it.items.isNotEmpty() }?.let { latest ->
+                                item(key = "s2_latest_top") {
+                                    SectionHeaderRow(title = "🆕 New uploads", actionLabel = "All", onActionClick = onOpenSearch)
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(latest.items.distinctBy { it.source + it.id }, key = { "s2top_" + it.source + it.id }) { item ->
+                                            PosterCard(item = item, onClick = { onOpenMedia(item) })
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                }
+                            }
+
                             // Every title sorted into its language automatically (বাংলা, Hindi, English…)
                             val byLanguage = (allPool + homeState.updates24h + homeState.ranking)
                                 .distinctBy { it.title.lowercase().trim() }
@@ -726,7 +743,7 @@ fun HomeScreen(
                             }
 
                             // 8. Dynamic API Sections (Gems for you, Bollywood, Hollywood, K-Drama, C-Drama...)
-                            items(feed.sections.distinctBy { it.id }, key = { it.id }) { section ->
+                            items(feed.sections.distinctBy { it.id }.filter { it.id != "s2_latest" }, key = { it.id }) { section ->
                                 SectionHeaderRow(
                                     title = section.title,
                                     actionLabel = "All",
