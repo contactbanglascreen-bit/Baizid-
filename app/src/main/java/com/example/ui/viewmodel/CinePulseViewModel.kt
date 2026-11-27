@@ -796,6 +796,10 @@ class CinePulseViewModel(
     }
 
     /** Plays a live TV channel; every link of the channel is a server, tried in turn if one fails. */
+    /** One page of the PIN-locked 18+ section. */
+    suspend fun loadAdult(page: Int): List<MediaItem> =
+        runCatching { apiClient.adultCatalog(page, preferences.value.language.code) }.getOrDefault(emptyList())
+
     fun openTvChannel(channel: com.example.data.remote.TvChannel) {
         if (channel.sources.isEmpty()) return
         val item = MediaItem(

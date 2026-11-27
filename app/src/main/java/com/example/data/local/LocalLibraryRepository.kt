@@ -50,6 +50,9 @@ class LocalLibraryRepository(
         positionMs: Long,
         durationMs: Long
     ): Result<Unit> {
+        // Titles from the PIN-locked 18+ Zone are never saved, so they can't show up in
+        // Continue Watching or history outside it.
+        if (AdultTitles.contains(item)) return Result.success(Unit)
         val docId = sanitizeLocalDocId(item.id, item.title)
         return try {
             dao.upsertHistory(

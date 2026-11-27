@@ -148,18 +148,8 @@ object CinedorAi {
     }
 }
 
-private val suggestions = listOf(
-    "ছেলে আর মেয়ের শরীর বদলে যায় এমন অ্যানিমে",
-    "Gopal Bhar cartoon",
-    "নতুন হিন্দি অ্যাকশন মুভি",
-    "ভূতের বাংলা মুভি",
-    "Korean drama like Crash Landing on You"
-)
-
 /** Chat kept while the app is open, so leaving and coming back keeps the conversation. */
-private val chatHistory = mutableStateListOf(
-    AiMessage(false, "আসসালামু আলাইকুম! আমি Cinedor Ai।\nকোন মুভি বা সিরিজ খুঁজে পাচ্ছেন না? নাম মনে না থাকলেও গল্পটা একটু বলুন, আমি খুঁজে দেব।")
-)
+private val chatHistory = mutableStateListOf<AiMessage>()
 
 /**
  * Full-screen Cinedor Ai chat, like a messenger: header with the Cinedor logo, chat bubbles,
@@ -184,7 +174,7 @@ fun CinedorAiScreen(
         onDispose { CinedorAi.isOpen = false }
     }
     LaunchedEffect(messages.size, busy) {
-        val last = messages.size + (if (busy) 1 else 0) + (if (messages.size == 1) 1 else 0) - 1
+        val last = messages.size + (if (busy) 1 else 0) - 1
         if (last >= 0) listState.animateScrollToItem(last)
     }
 
@@ -254,9 +244,9 @@ fun CinedorAiScreen(
                 Text("Cinedor Ai", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
                 Text(if (busy) "লিখছে…" else "অনলাইন • মুভি খুঁজে দেয়", color = if (busy) CinetorRed else TextSecondary, fontSize = 12.sp)
             }
-            if (messages.size > 1) {
+            if (messages.isNotEmpty()) {
                 androidx.compose.material3.IconButton(onClick = {
-                    if (!busy) { val first = messages.first(); messages.clear(); messages.add(first) }
+                    if (!busy) messages.clear()
                 }) { Icon(Icons.Rounded.Refresh, contentDescription = "New chat", tint = TextSecondary) }
             }
         }
@@ -268,19 +258,6 @@ fun CinedorAiScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             itemsIndexed(messages) { _, m -> AiBubble(m, onOpenMedia) }
-            if (messages.size == 1 && !busy) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 40.dp, top = 2.dp)) {
-                        Text("যেমন জিজ্ঞেস করতে পারেন:", color = TextMuted, fontSize = 12.sp)
-                        suggestions.forEach { s ->
-                            Box(
-                                Modifier.glassBubble(RoundedCornerShape(16.dp)).clickable { send(s) }
-                                    .padding(horizontal = 14.dp, vertical = 9.dp)
-                            ) { Text(s, color = TextPrimary, fontSize = 13.5.sp) }
-                        }
-                    }
-                }
-            }
             if (busy) item { TypingBubble() }
         }
 

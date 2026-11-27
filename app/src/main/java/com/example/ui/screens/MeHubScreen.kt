@@ -184,7 +184,7 @@ fun ProfileAvatar(style: Int, name: String, size: Dp, modifier: Modifier = Modif
 // Me hub
 // ---------------------------------------------------------------------------
 
-private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK, PREMIUM, AI }
+private enum class MePage { HUB, LIBRARY, HISTORY, DOWNLOADS, SETTINGS, ABOUT, ADMIN, FEEDBACK, PREMIUM, AI, ADULT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,6 +215,38 @@ fun MeHubScreen(
     val guardedSafeMode = rememberGuardedSafeModeToggle(onUpdateSafeMode)
 
     BackHandler(enabled = page != MePage.HUB) { page = MePage.HUB }
+
+    // 18+ Zone: asks for the PIN (or to create one) every time the app has been restarted.
+    var adultPin by remember { mutableStateOf<PinMode?>(null) }
+    adultPin?.let { mode ->
+        AdultPinDialog(
+            mode = mode,
+            title = if (mode == PinMode.CREATE) "Set 18+ PIN" else "Unlock 18+",
+            onSuccess = {
+                adultPin = null
+                AdultLock.sessionUnlocked = true
+                page = MePage.ADULT
+            },
+            onDismiss = { adultPin = null }
+        )
+    }
+    val openAdult = {
+        if (AdultLock.sessionUnlocked && AdultLock.hasPin) page = MePage.ADULT
+        else adultPin = if (AdultLock.hasPin) PinMode.VERIFY else PinMode.CREATE
+    }
+    if (page == MePage.ADULT) {
+        if (!AdultLock.sessionUnlocked) { page = MePage.HUB; return }
+        AdultScreen(
+            onBack = { page = MePage.HUB },
+            onLock = {
+                AdultLock.sessionUnlocked = false
+                page = MePage.HUB
+                Toast.makeText(context, "18+ locked", Toast.LENGTH_SHORT).show()
+            },
+            onOpenMedia = onOpenMedia
+        )
+        return
+    }
 
     // Cinedor Ai is a full-screen chat, not part of the scrolling Me page.
     if (page == MePage.AI) {
@@ -261,6 +293,7 @@ fun MeHubScreen(
                     MePage.FEEDBACK -> "Feedback"
                     MePage.PREMIUM -> "Premium"
                     MePage.AI -> "Cinedor Ai"
+                    MePage.ADULT -> "18+ Zone"
                 },
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 24.sp),
                 color = TextPrimary,
@@ -341,9 +374,9 @@ fun MeHubScreen(
                     MenuRow(Icons.Rounded.Download, "Downloads", "$downloadedCount downloaded") { page = MePage.DOWNLOADS }
                     MenuDivider()
                     AdultMenuRow(
-                        unlocked = !preferences.safeMode,
+                        unlocked = AdultLock.sessionUnlocked && AdultLock.hasPin,
                         hasPin = AdultLock.hasPin,
-                        onClick = { adultMenuToggle(!preferences.safeMode) }
+                        onClick = openAdult
                     )
                     MenuDivider()
                     MenuRow(Icons.Rounded.Feedback, "Feedback & help", "Report a problem or request a title") { page = MePage.FEEDBACK }
@@ -412,6 +445,7 @@ fun MeHubScreen(
             MePage.FEEDBACK -> FeedbackPage()
             MePage.PREMIUM -> com.example.ui.components.PremiumPage()
             MePage.AI -> Unit
+            MePage.ADULT -> Unit
         }
     }
 
@@ -979,18 +1013,12 @@ private fun SettingsPage(
     }
 
     SettingsCard("Content & Privacy") {
-        SettingSwitchRow(
-            title = "Family-Safe Mode",
-            subtitle = if (AdultLock.hasPin) "Hides 18+ content · PIN needed to turn off" else "Hides 18+ content · you'll set a PIN to turn off",
-            checked = preferences.safeMode,
-            onChange = onUpdateSafeMode
-        )
+        // 18+ titles only appear inside the PIN-locked 18+ Zone (Me page), never elsewhere.
         if (AdultLock.hasPin) {
             var pinFlow by remember { mutableStateOf<String?>(null) }
-            HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
             SettingLinkRow("Change 18+ PIN", "Enter your current PIN, then choose a new one") { pinFlow = "change_verify" }
             HorizontalDivider(color = ObsidianBorder.copy(alpha = 0.7f))
-            SettingLinkRow("Remove 18+ PIN", "Turns Family-Safe Mode back on and deletes the PIN") { pinFlow = "remove_verify" }
+            SettingLinkRow("Remove 18+ PIN", "Deletes the PIN (you will set a new one next time)") { pinFlow = "remove_verify" }
             when (pinFlow) {
                 "change_verify" -> AdultPinDialog(
                     mode = PinMode.VERIFY,
@@ -1014,7 +1042,7 @@ private fun SettingsPage(
                         pinFlow = null
                         AdultLock.removePin(context)
                         onLockNow(true)
-                        Toast.makeText(context, "PIN removed · Family-Safe Mode on", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "PIN removed", Toast.LENGTH_SHORT).show()
                     },
                     onDismiss = { pinFlow = null }
                 )
@@ -1284,15 +1312,15 @@ private fun AdultMenuRow(unlocked: Boolean, hasPin: Boolean, onClick: () -> Unit
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Adult Content",
+                "18+ Zone",
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
                 color = TextPrimary
             )
             Text(
                 text = when {
-                    unlocked -> "Unlocked · tap to lock again"
-                    hasPin -> "Locked with PIN · tap to unlock"
-                    else -> "Locked · tap to set a PIN"
+                    unlocked -> "Unlocked · tap to open"
+                    hasPin -> "Locked with PIN · tap to open"
+                    else -> "Set a PIN to open the 18+ section"
                 },
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                 color = if (unlocked) CinetorRed else TextSecondary,

@@ -116,10 +116,11 @@ fun TvScreen(onPlay: (TvChannel) -> Unit, modifier: Modifier = Modifier) {
                 .padding(top = 10.dp, bottom = 12.dp)
         ) {
             Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(40.dp).glassAccent(RoundedCornerShape(13.dp)),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Rounded.LiveTv, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp)) }
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
+                    contentDescription = "Cinedor",
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(Color.White).padding(4.dp)
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Live TV", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)

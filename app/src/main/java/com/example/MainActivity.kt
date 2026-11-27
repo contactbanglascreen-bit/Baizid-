@@ -150,9 +150,19 @@ class MainActivity : ComponentActivity() {
                 .connectionPool(okhttp3.ConnectionPool(24, 5, java.util.concurrent.TimeUnit.MINUTES))
                 .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                // Some image hosts (e.g. Wikipedia, where many TV logos live) refuse requests
+                // without a normal browser name.
+                .addInterceptor { chain ->
+                    val req = chain.request()
+                    chain.proceed(
+                        if (req.header("User-Agent") != null) req
+                        else req.newBuilder().header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36").build()
+                    )
+                }
                 .build()
             ImageLoader.Builder(applicationContext)
                 .okHttpClient(imageClient)
+                .components { add(coil.decode.SvgDecoder.Factory()) }
                 .memoryCache {
                     MemoryCache.Builder(applicationContext)
                         .maxSizePercent(0.30)
@@ -355,12 +365,11 @@ fun CinedorMainShell() {
     val notifierContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { com.example.ui.components.DownloadNotifier.run(notifierContext) }
 
-    // 18+ content re-locks every time the app starts: it needs the PIN again.
+    // 18+ titles are always hidden in the normal app; they only appear in the PIN-locked 18+ Zone.
     LaunchedEffect(preferences.safeMode) {
-        if (!preferences.safeMode && !com.example.ui.components.AdultLock.sessionUnlocked) {
-            viewModel.updateSafeMode(true)
-        }
+        if (!preferences.safeMode) viewModel.updateSafeMode(true)
     }
+    androidx.compose.runtime.SideEffect { com.example.ui.screens.AdultSection.loader = { page -> viewModel.loadAdult(page) } }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(toastMessage) {

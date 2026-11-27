@@ -124,6 +124,7 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
+  implementation(libs.coil.svg)
   // On-device subtitle translation (models download once per language)
   implementation("com.google.mlkit:translate:17.0.3")
   // Encrypted storage for the admin Console token

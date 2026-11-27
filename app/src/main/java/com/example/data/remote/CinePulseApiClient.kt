@@ -498,6 +498,28 @@ class CinePulseApiClient(
             }.distinctBy { "${it.source.lowercase()}:${it.id.ifBlank { it.title.lowercase() }}" }
         }
 
+    /**
+     * Titles for the PIN-locked 18+ section. The rest of the app always hides these. Several
+     * searches run together; results from the clearly-adult searches are all kept, the others
+     * only when the title itself is marked as adult. Results are mixed so one search doesn't fill
+     * the page.
+     */
+    suspend fun adultCatalog(page: Int, lang: String = "en"): List<MediaItem> = supervisorScope {
+        val strong = listOf("ullu", "kooku", "primeflix", "erotic", "hot web series", "18+", "uncut web series", "hotshots")
+        val broad = listOf("adult", "sensual", "seduction", "unrated", "bold web series", "romance 18")
+        val lists = (strong.map { it to true } + broad.map { it to false }).map { (q, keepAll) ->
+            async {
+                val found = runCatching { movieBoxDirect.search(q, page, lang, false) }.getOrDefault(emptyList())
+                if (keepAll) found
+                else found.filter { !CinePulseJsonParser.isSafeText(it.title + " " + it.genres.joinToString(" ")) }
+            }
+        }.map { it.await() }
+        val out = LinkedHashMap<String, MediaItem>()
+        val longest = lists.maxOfOrNull { it.size } ?: 0
+        for (i in 0 until longest) lists.forEach { l -> l.getOrNull(i)?.let { out.putIfAbsent(it.source + it.id, it) } }
+        out.values.toList()
+    }
+
     suspend fun suggest(query: String, source: ContentSource, safeMode: Boolean, lang: String = "en"): List<String> {
         if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
             return movieBoxDirect.suggest(query, lang, safeMode)

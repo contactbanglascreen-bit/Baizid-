@@ -93,13 +93,31 @@ object TvChannels {
         if (logos.isEmpty()) return@withContext channels
         channels.map { ch ->
             if (ch.logo.isNotBlank()) ch
-            else ch.copy(logo = logos[ch.tvgId.lowercase()].orEmpty())
+            else ch.copy(logo = findLogo(logos, ch))
         }.also { cache = it }
+    }
+
+    /** Short form used to match names: "Zee Bangla HD" and "ZeeBangla.in" both become "zeebangla". */
+    private fun norm(s: String): String = s.lowercase()
+        .replace("&", "and").replace("+", "plus")
+        .replace(Regex("\\b(hd|sd|uhd|4k|tv|channel|television|live|india|uk|bd)\\b"), "")
+        .replace(Regex("[^a-z0-9]"), "")
+
+    /** Exact channel id first, then the same channel in another country, then by its name. */
+    private fun findLogo(logos: Map<String, String>, ch: TvChannel): String {
+        val id = ch.tvgId.lowercase()
+        if (id.isNotBlank()) {
+            logos[id]?.let { return it }
+            logos["#" + id.substringBeforeLast(".")]?.let { return it }
+        }
+        val n = norm(ch.name)
+        if (n.length >= 4) logos["~$n"]?.let { return it }
+        return ""
     }
 
     private fun logos(context: Context): Map<String, String> {
         logoCache?.let { return it }
-        val file = File(context.filesDir, "tv_logos.txt")
+        val file = File(context.filesDir, "tv_logos2.txt")
         val stale = !file.exists() || System.currentTimeMillis() - file.lastModified() > LOGO_MAX_AGE_MS
         if (stale) downloadLogos(file)
         val map = runCatching {
@@ -114,14 +132,18 @@ object TvChannels {
 
     /**
      * The logo list is large, so it is read piece by piece and only a small "channel → logo" file
-     * is kept. SVG logos are skipped (the image loader can't draw them); the main logo (no feed)
-     * and wider logos are preferred.
+     * is kept. Each logo is stored under its exact id ("zeebangla.in"), under the id without the
+     * country ("#zeebangla") and under its short name ("~zeebangla"), so channels from playlists
+     * with other ids still find their logo. PNG/JPG and the main logo (no feed) are preferred.
      */
     private fun downloadLogos(target: File) {
         runCatching {
             http.newCall(Request.Builder().url(LOGOS_URL).build()).execute().use { r ->
                 if (!r.isSuccessful) return
                 val best = HashMap<String, Pair<Int, String>>()
+                fun offer(key: String, score: Int, url: String) {
+                    if ((best[key]?.first ?: -1) < score) best[key] = score to url
+                }
                 JsonReader(r.body!!.charStream()).use { jr ->
                     jr.beginArray()
                     while (jr.hasNext()) {
@@ -141,10 +163,15 @@ object TvChannels {
                         }
                         jr.endObject()
                         if (channel.isBlank() || !url.startsWith("http")) continue
-                        if (format.equals("SVG", true) || url.endsWith(".svg", true)) continue
-                        val score = (if (feed.isBlank()) 100_000 else 0) + width.coerceAtMost(99_999)
-                        val key = channel.lowercase()
-                        if ((best[key]?.first ?: -1) < score) best[key] = score to url
+                        val svg = format.equals("SVG", true) || url.endsWith(".svg", true)
+                        val score = (if (feed.isBlank()) 200_000 else 0) + (if (svg) 0 else 100_000) + width.coerceIn(0, 99_999)
+                        val id = channel.lowercase()
+                        offer(id, score, url)
+                        offer("#" + id.substringBeforeLast("."), score, url)
+                        // "AnandaTV" -> "Ananda TV" so it matches the playlist name "Ananda TV".
+                        val words = channel.substringBeforeLast(".").replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
+                        val n = norm(words)
+                        if (n.length >= 4) offer("~$n", score, url)
                     }
                     jr.endArray()
                 }

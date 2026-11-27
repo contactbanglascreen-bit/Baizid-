@@ -7,6 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -405,102 +410,205 @@ fun ConsolePrompts() {
     }
 }
 
-/** Featured title popup sent from the admin app: big poster, title, story and Watch now. */
+/**
+ * Featured title popup sent from the admin app: the poster fills the card as a soft blurred
+ * background, the sharp poster floats in front with a glow, then title, story and two buttons.
+ */
 @Composable
 private fun SpotlightPopup(p: PopupConfig, onClose: () -> Unit, onWatch: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         DialogBackdropBlur()
-        Column(
+        // Pops in, then the poster gently floats and a shine runs across the button.
+        val appear = remember { androidx.compose.animation.core.Animatable(0f) }
+        LaunchedEffect(Unit) {
+            appear.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.72f, stiffness = 260f))
+        }
+        val loop = androidx.compose.animation.core.rememberInfiniteTransition(label = "spot")
+        val float by loop.animateFloat(
+            initialValue = -5f, targetValue = 5f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(2600, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                androidx.compose.animation.core.RepeatMode.Reverse
+            ),
+            label = "float"
+        )
+        val shine by loop.animateFloat(
+            initialValue = -0.6f, targetValue = 1.6f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(2400, delayMillis = 600)
+            ),
+            label = "shine"
+        )
+        val title = p.title.replace(Regex("^[\\p{So}\\p{Cn}\\s]+"), "").ifBlank { p.title }
+        Box(
             modifier = Modifier
-                .padding(22.dp)
+                .padding(horizontal = 24.dp)
                 .fillMaxWidth()
-                .shadow(28.dp, RoundedCornerShape(30.dp))
-                .clip(RoundedCornerShape(30.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xE61A0D10), Color(0xEB0C0809))))
-                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
+                .graphicsLayer {
+                    val v = appear.value
+                    alpha = v.coerceIn(0f, 1f)
+                    scaleX = 0.88f + 0.12f * v
+                    scaleY = 0.88f + 0.12f * v
+                }
+                .shadow(34.dp, RoundedCornerShape(34.dp), ambientColor = CinetorRed, spotColor = CinetorRed)
+                .clip(RoundedCornerShape(34.dp))
+                .background(Color(0xFF0E0809))
         ) {
-            Box(Modifier.fillMaxWidth().height(300.dp)) {
-                val bg = p.backdrop.ifBlank { p.image }
-                if (bg.startsWith("http")) {
-                    coil.compose.AsyncImage(
-                        model = bg,
-                        contentDescription = null,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().blur(18.dp).alpha(0.55f)
-                    )
-                }
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.2f), 0.6f to Color.Transparent, 1f to Color(0xFF130A0C))
-                    )
+            // Background: the same poster, big and blurred, fading to dark at the bottom.
+            val bg = p.backdrop.ifBlank { p.image }
+            if (bg.startsWith("http")) {
+                coil.compose.AsyncImage(
+                    model = bg,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.matchParentSize().blur(28.dp).alpha(0.7f)
                 )
-                // Whole poster, never cut
-                if (p.image.startsWith("http")) {
-                    coil.compose.AsyncImage(
-                        model = p.image,
-                        contentDescription = p.title,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(top = 24.dp, bottom = 10.dp)
-                            .fillMaxHeight()
-                            .shadow(18.dp, RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                    )
-                }
-                Text(
-                    "✨ Featured",
-                    color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(14.dp)
-                        .clip(CircleShape)
-                        .background(CinetorRed.copy(alpha = 0.85f))
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.4f))
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                        .clickable(onClick = onClose),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
-                }
             }
-            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 20.dp)) {
-                Text(p.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                if (p.message.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(p.message, color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp, maxLines = 4)
-                }
-                Spacer(modifier = Modifier.height(18.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Brush.horizontalGradient(listOf(AccentBright, CinetorRedDark)))
-                        .clickable(onClick = onWatch),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("▶  " + p.buttonText.ifBlank { "Watch now" }, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                }
-                Text(
-                    "Maybe later",
-                    color = Color.White.copy(alpha = 0.55f),
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onClose)
-                        .padding(8.dp)
+            Box(
+                Modifier.matchParentSize().background(
+                    Brush.verticalGradient(
+                        0f to Color.Black.copy(alpha = 0.15f),
+                        0.45f to Color(0x660E0809),
+                        0.72f to Color(0xEE0E0809),
+                        1f to Color(0xFF0E0809)
+                    )
                 )
+            )
+            Box(
+                Modifier.matchParentSize().border(
+                    1.dp,
+                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))),
+                    RoundedCornerShape(34.dp)
+                )
+            )
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                // Top bar: badge and close
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        Modifier.clip(CircleShape)
+                            .background(Brush.horizontalGradient(listOf(AccentBright, CinetorRedDark)))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("★", color = Color(0xFFFFD54F), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.width(6.dp))
+                        Text("FEATURED", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.14f))
+                            .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                            .clickable(onClick = onClose),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                // The poster, whole and never cut, floating with a glow behind it
+                if (p.image.startsWith("http")) {
+                    Box(
+                        Modifier
+                            .padding(top = 14.dp)
+                            .fillMaxWidth(0.62f)
+                            .aspectRatio(2f / 3f)
+                            .graphicsLayer { translationY = float * density }
+                            .shadow(30.dp, RoundedCornerShape(22.dp), ambientColor = CinetorRed, spotColor = Color.Black)
+                            .clip(RoundedCornerShape(22.dp))
+                            .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(22.dp))
+                    ) {
+                        coil.compose.AsyncImage(
+                            model = p.image,
+                            contentDescription = title,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        // Soft light across the top of the poster
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.verticalGradient(0f to Color.White.copy(alpha = 0.14f), 0.35f to Color.Transparent)
+                            )
+                        )
+                    }
+                }
+
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(top = 18.dp, bottom = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        title,
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 23.sp,
+                        lineHeight = 27.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    if (p.message.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            p.message,
+                            color = Color.White.copy(alpha = 0.72f),
+                            fontSize = 13.5.sp,
+                            lineHeight = 18.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            maxLines = 3,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                                .clickable(onClick = onClose),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Later", color = Color.White.copy(alpha = 0.85f), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(2f)
+                                .height(50.dp)
+                                .shadow(14.dp, CircleShape, ambientColor = CinetorRed, spotColor = CinetorRed)
+                                .clip(CircleShape)
+                                .background(Brush.horizontalGradient(listOf(AccentBright, CinetorRedDark)))
+                                .drawWithContent {
+                                    drawContent()
+                                    // A light sweep across the button now and then
+                                    val x = size.width * shine
+                                    drawRect(
+                                        Brush.linearGradient(
+                                            listOf(Color.Transparent, Color.White.copy(alpha = 0.35f), Color.Transparent),
+                                            start = androidx.compose.ui.geometry.Offset(x - 60f, 0f),
+                                            end = androidx.compose.ui.geometry.Offset(x + 60f, size.height)
+                                        )
+                                    )
+                                }
+                                .clickable(onClick = onWatch),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(p.buttonText.ifBlank { "Watch now" }, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
