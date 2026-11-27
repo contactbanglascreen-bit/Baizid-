@@ -177,7 +177,7 @@
       const year = (it.release_date || it.first_air_date || "").slice(0, 4);
       const type = it.media_type === "tv" ? "Series" : "Movie";
       const rate = it.vote_average ? it.vote_average.toFixed(1) : "";
-      return '<a class="card" href="#get" aria-label="' + title + '"><div class="poster" style="background-image:' + grad(i) + '"><img src="' + IMG + (window.innerWidth < 640 ? "w185" : "w342") + it.poster_path + '" alt="" loading="lazy" decoding="async">' +
+      return '<a class="card" href="#get" aria-label="' + title + '"><div class="poster" style="background-image:' + grad(i) + '"><img src="' + IMG + (window.innerWidth < 640 ? "w185" : "w342") + String(it.poster_path || "").replace(/[^\w./-]/g, "") + '" alt="" loading="lazy" decoding="async">' +
         '<span class="num glass-chip">' + (i + 1) + "</span>" +
         (rate ? '<span class="rate glass-chip"><svg class="ic"><use href="#i-star"/></svg>' + rate + "</span>" : "") +
         "</div><h4>" + title + "</h4><small>" + type + (year ? " · " + year : "") + "</small></a>";
