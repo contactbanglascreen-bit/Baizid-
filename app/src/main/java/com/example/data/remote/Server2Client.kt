@@ -43,7 +43,8 @@ object Server2Client {
         val referer: String,
         val streams: List<StreamOption>,
         val episodes: List<EpisodeInfo>,
-        val episodePaths: Map<Pair<Int, Int>, String>
+        val episodePaths: Map<Pair<Int, Int>, String>,
+        val episodeStreams: Map<Pair<Int, Int>, List<StreamOption>> = emptyMap()
     )
 
     private fun get(path: String): JSONObject? {
@@ -93,33 +94,39 @@ object Server2Client {
             put("User-Agent", UA)
             if (referer.isNotBlank()) put("Referer", "$referer/")
         }
-        val sArr = j.optJSONArray("streams") ?: JSONArray()
-        val streams = (0 until sArr.length()).mapNotNull { i ->
-            val o = sArr.optJSONObject(i) ?: return@mapNotNull null
-            val url = o.optString("url")
-            if (!url.startsWith("http")) return@mapNotNull null
-            val hls = o.optString("type").equals("hls", true) || url.contains(".m3u8")
-            val quality = o.optString("quality").ifBlank { if (hls) "Auto" else "HD" }
-            StreamOption(
-                id = "s2_$i",
-                label = "$quality • Server 2",
-                quality = quality,
-                url = url,
-                format = if (hls) "HLS" else "MP4",
-                headers = headers
-            )
+        fun parseStreams(arr: JSONArray?, prefix: String): List<StreamOption> {
+            if (arr == null) return emptyList()
+            return (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                val url = o.optString("url")
+                if (!url.startsWith("http")) return@mapNotNull null
+                val hls = o.optString("type").equals("hls", true) || url.contains(".m3u8") || url.contains("/m/")
+                val quality = o.optString("quality").ifBlank { if (hls) "Auto" else "HD" }
+                StreamOption(
+                    id = "${prefix}_$i",
+                    label = "$quality • Server 2",
+                    quality = quality,
+                    url = url,
+                    format = if (hls) "HLS" else "MP4",
+                    headers = headers
+                )
+            }
         }
+        val streams = parseStreams(j.optJSONArray("streams"), "s2")
         val eArr = j.optJSONArray("episodes") ?: JSONArray()
         val paths = LinkedHashMap<Pair<Int, Int>, String>()
+        val epStreams = LinkedHashMap<Pair<Int, Int>, List<StreamOption>>()
         val episodes = (0 until eArr.length()).mapNotNull { i ->
             val o = eArr.optJSONObject(i) ?: return@mapNotNull null
             val se = o.optInt("season", 1).coerceAtLeast(1)
             val ep = o.optInt("episode", 0)
             if (ep <= 0) return@mapNotNull null
-            paths[se to ep] = o.optString("path")
+            o.optString("path").takeIf { it.isNotBlank() }?.let { paths[se to ep] = it }
+            // The worker gives each episode's own video addresses, so no extra lookup is needed.
+            parseStreams(o.optJSONArray("streams"), "s2e${se}_$ep").takeIf { it.isNotEmpty() }?.let { epStreams[se to ep] = it }
             EpisodeInfo(season = se, episode = ep, title = o.optString("title").ifBlank { "Episode $ep" })
-        }
-        Detail(j.optString("title"), j.optString("poster"), j.optString("synopsis"), referer, streams, episodes, paths)
+        }.distinctBy { it.season to it.episode }
+        Detail(j.optString("title"), j.optString("poster"), j.optString("synopsis"), referer, streams, episodes, paths, epStreams)
     }
 
     /** Detail page for the app's title screen. */
@@ -147,6 +154,12 @@ object Server2Client {
     /** Playable links for a movie, or for one episode of a series. */
     suspend fun streams(item: MediaItem, season: Int, episode: Int): List<StreamOption> {
         val main = detail(item.detailPath.ifBlank { item.id }) ?: return emptyList()
+        if (episode > 0) {
+            main.episodeStreams[season.coerceAtLeast(1) to episode]?.let { return it }
+            // Seasons on this server can start at any number (e.g. season 13, episode 1221).
+            main.episodeStreams.entries.firstOrNull { it.key.second == episode }?.let { return it.value }
+            main.episodes.getOrNull(episode - 1)?.let { e -> main.episodeStreams[e.season to e.episode]?.let { return it } }
+        }
         if (episode <= 0 || main.episodePaths.isEmpty()) return main.streams
         val epPath = main.episodePaths[season.coerceAtLeast(1) to episode] ?: return main.streams
         return detail(epPath)?.streams?.ifEmpty { main.streams } ?: main.streams
