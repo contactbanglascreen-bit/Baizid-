@@ -22,6 +22,10 @@ android {
     versionName = "1.0.$ciBuild"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    // Smaller APK: only real phone chips. x86 / x86_64 are used by emulators, not phones,
+    // and the subtitle translator's engine alone is ~17 MB per chip type.
+    ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
@@ -57,6 +61,11 @@ android {
       signingConfig = signingConfigs.getByName("debugConfig")
       // Security: the shared APK can't be debugged and its private data can't be read with run-as.
       isDebuggable = false
+      // Smaller APK: R8 removes library code and icons the app never uses (the CI build that
+      // users install is this build type). App code itself is kept as-is by proguard-rules.pro.
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
   }
   compileOptions {
@@ -68,6 +77,9 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+  // Store the translator engine compressed inside the APK (much smaller download; Android
+  // unpacks it once at install).
+  packaging { jniLibs { useLegacyPackaging = true } }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
