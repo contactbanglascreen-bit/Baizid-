@@ -504,7 +504,10 @@ fun HomeScreen(
                             }
 
                             // Newest uploads from Server 2 (MovieLink) right at the top.
-                            feed.sections.firstOrNull { it.id == "s2_latest" && it.items.isNotEmpty() }?.let { latest ->
+                            val newUploads = homeState.newUploads.ifEmpty {
+                                feed.sections.firstOrNull { it.id == "s2_latest" }?.items.orEmpty()
+                            }
+                            if (newUploads.isNotEmpty()) newUploads.let { latestItems ->
                                 item(key = "s2_latest_top") {
                                     SectionHeaderRow(title = "🆕 New uploads", actionLabel = "All", onActionClick = onOpenSearch)
                                     Spacer(modifier = Modifier.height(10.dp))
@@ -512,7 +515,7 @@ fun HomeScreen(
                                         contentPadding = PaddingValues(horizontal = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        items(latest.items.distinctBy { it.source + it.id }, key = { "s2top_" + it.source + it.id }) { item ->
+                                        items(latestItems.distinctBy { it.source + it.id }, key = { "s2top_" + it.source + it.id }) { item ->
                                             PosterCard(item = item, onClick = { onOpenMedia(item) })
                                         }
                                     }

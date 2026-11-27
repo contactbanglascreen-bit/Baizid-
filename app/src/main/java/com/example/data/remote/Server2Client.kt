@@ -38,7 +38,16 @@ object Server2Client {
 
     /** From the Console config (RemoteConsole); falls back to [DEFAULT_URL] so Server 2 always works. */
     @Volatile var baseUrl: String = DEFAULT_URL
-        set(v) { field = v.trim().ifBlank { DEFAULT_URL } }
+        set(v) {
+            // Several addresses can be given (comma / space / new line): the first is used, the
+            // others are backups tried automatically when it fails.
+            val list = v.split(',', ' ', '\n', ';').map { it.trim().trimEnd('/') }.filter { it.startsWith("https://") }
+            backups = (list.drop(1) + DEFAULT_URL).distinct()
+            field = list.firstOrNull() ?: DEFAULT_URL
+        }
+
+    /** Backup worker addresses (from the Console link list, plus the built-in one). */
+    @Volatile private var backups: List<String> = listOf(DEFAULT_URL)
 
     val enabled: Boolean get() = baseUrl.startsWith("https://")
 
@@ -85,7 +94,8 @@ object Server2Client {
      */
     private fun get(path: String): JSONObject? {
         if (!enabled) return null
-        val bases = listOf(baseUrl, baseUrl, DEFAULT_URL).distinct().let { if (it.size == 1) listOf(it[0], it[0]) else it }
+        // Main address twice (a quick second try), then every backup address in turn.
+        val bases = listOf(baseUrl, baseUrl) + backups.filter { it != baseUrl }
         for (b in bases) {
             val j = fetch(b, path)
             if (j != null && !j.has("error") && (j.optJSONArray("items")?.length() ?: 1) > 0) {

@@ -58,7 +58,9 @@ data class HomeUiState(
     val categoryLoadingMore: Boolean = false,
     val categoryEnd: Boolean = false,
     val updates24h: List<MediaItem> = emptyList(),
-    val ranking: List<MediaItem> = emptyList()
+    val ranking: List<MediaItem> = emptyList(),
+    /** Newest Server 2 (MovieLink) uploads; kept on its own so Home refreshes never remove it. */
+    val newUploads: List<MediaItem> = emptyList()
 )
 
 data class ExploreUiState(
@@ -272,16 +274,15 @@ class CinePulseViewModel(
                 shownFeedKey = feedKey
                 _homeState.update { it.copy(feedState = UiState.Success(feed)) }
                 launch { feedCache?.write(feedKey, feed) }
-                // Fresh Server 2 (MovieLink) titles slot in as soon as they arrive, without holding Home back.
-                if (prefs.source == com.example.data.model.ContentSource.ALL) launch {
-                    val fresh = runCatching { com.example.data.remote.Server2Client.home() }.getOrDefault(emptyList())
-                    if (fresh.isNotEmpty()) _homeState.update { st ->
-                        val cur = (st.feedState as? UiState.Success)?.data ?: return@update st
-                        val shelf = com.example.data.model.HomeSection("s2_latest", "Latest uploads", fresh.take(24))
-                        val merged = cur.copy(sections = listOf(shelf) + cur.sections.filter { it.id != "s2_latest" })
-                        launch { feedCache?.write(feedKey, merged) }
-                        st.copy(feedState = UiState.Success(merged))
+                // New uploads (Server 2 / MovieLink) live in their own list: shown from the phone's copy
+                // at once, replaced by the fresh list when it arrives, and never cleared by a refresh.
+                if (prefs.source != com.example.data.model.ContentSource.MOVIEBOX) launch {
+                    if (_homeState.value.newUploads.isEmpty()) {
+                        val saved = com.example.data.remote.Server2Client.cachedHome()
+                        if (saved.isNotEmpty()) _homeState.update { it.copy(newUploads = saved.take(30)) }
                     }
+                    val fresh = runCatching { com.example.data.remote.Server2Client.home() }.getOrDefault(emptyList())
+                    if (fresh.isNotEmpty()) _homeState.update { it.copy(newUploads = fresh.take(30)) }
                 }
                 updatesJob.join()
             } catch (e: CancellationException) {
