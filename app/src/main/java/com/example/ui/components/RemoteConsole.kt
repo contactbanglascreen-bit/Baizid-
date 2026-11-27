@@ -93,7 +93,9 @@ data class ConsoleConfig(
     val spotlight: PopupConfig? = null,
     val ads: AdsConfig = AdsConfig(),
     val audioDubsOn: Boolean = true,
-    val audioDubsTitle: String = "Audio & Dubs"
+    val audioDubsTitle: String = "Audio & Dubs",
+    /** Link of the Server 2 worker (set in the Console's config as "server2Url"). */
+    val server2Url: String = ""
 )
 
 /** One ad made in the admin app: a banner on Home or a full-screen ad before videos. */
@@ -250,6 +252,7 @@ object RemoteConsole {
 
     private fun parse(root: JSONObject): ConsoleConfig {
         val m = root.optJSONObject("maintenance")
+        com.example.data.remote.Server2Client.baseUrl = root.optString("server2Url", "").trim()
         return ConsoleConfig(
             premium = popup(root.optJSONObject("premium")),
             announcement = popup(root.optJSONObject("announcement")),
@@ -261,7 +264,8 @@ object RemoteConsole {
             spotlight = popup(root.optJSONObject("spotlight")),
             ads = parseAds(root.optJSONObject("ads")),
             audioDubsOn = root.optJSONObject("audioDubs")?.optBoolean("enabled", true) ?: true,
-            audioDubsTitle = root.optJSONObject("audioDubs")?.optString("title", "Audio & Dubs") ?: "Audio & Dubs"
+            audioDubsTitle = root.optJSONObject("audioDubs")?.optString("title", "Audio & Dubs") ?: "Audio & Dubs",
+            server2Url = root.optString("server2Url", "").trim()
         )
     }
 

@@ -10,6 +10,7 @@ import com.example.data.model.ContentLanguage
 import com.example.data.model.ContentSource
 import com.example.data.model.FilterOptions
 import com.example.data.model.HomeFeed
+import com.example.data.model.HomeSection
 import com.example.data.model.MediaDetail
 import com.example.data.model.MediaItem
 import com.example.data.model.CastMember
@@ -171,7 +172,26 @@ class CinePulseApiClient(
             homeCache.getFresh(cacheKey)?.let { return@supervisorScope it }
         }
 
-        val feed: HomeFeed = if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
+        // Server 2 (the user's own worker) runs alongside; its titles become their own shelf.
+        val server2Deferred = async {
+            if (source != ContentSource.MOVIEBOX && Server2Client.enabled) {
+                runCatching { Server2Client.home() }.getOrDefault(emptyList())
+            } else emptyList()
+        }
+        val server2Only = if (source == ContentSource.MOVIELINKBD && Server2Client.enabled) {
+            withTimeoutOrNull(9000L) { server2Deferred.await() }.orEmpty()
+        } else emptyList()
+
+        val baseFeed: HomeFeed = if (server2Only.isNotEmpty()) {
+            HomeFeed(
+                banners = server2Only.take(6),
+                sections = listOf(
+                    HomeSection("s2_latest", "Latest uploads", server2Only.take(24)),
+                    HomeSection("s2_more", "More to watch", server2Only.drop(24))
+                ).filter { it.items.isNotEmpty() },
+                trendingItems = server2Only.take(20)
+            )
+        } else if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
             movieBoxDirect.getHome(language.code, safeMode)
         } else {
             // Query Worker + Direct MovieBox in parallel inside supervisorScope so HTTP 502 never cancels failover!
@@ -256,6 +276,12 @@ class CinePulseApiClient(
                 }
             }
         }
+
+        val feed: HomeFeed = if (server2Only.isEmpty() && source == ContentSource.ALL && Server2Client.enabled) {
+            val extra = withTimeoutOrNull(4000L) { server2Deferred.await() }.orEmpty()
+            if (extra.isEmpty()) baseFeed
+            else baseFeed.copy(sections = listOf(HomeSection("s2_latest", "Latest uploads", extra.take(24))) + baseFeed.sections)
+        } else baseFeed
 
         if (feed.banners.isNotEmpty() || feed.sections.isNotEmpty() || feed.trendingItems.isNotEmpty()) {
             homeCache[cacheKey] = TimedCacheEntry(feed, System.currentTimeMillis() + CACHE_TTL_MS)
@@ -405,6 +431,10 @@ class CinePulseApiClient(
             if (source == ContentSource.MOVIEBOX || !isApiKeyConfigured) {
                 return@supervisorScope movieBoxDirect.search(cleanQuery, page, lang, safeMode)
             }
+            if (source == ContentSource.MOVIELINKBD && Server2Client.enabled) {
+                val own = runCatching { Server2Client.search(cleanQuery) }.getOrDefault(emptyList())
+                if (own.isNotEmpty()) return@supervisorScope own
+            }
             if (source == ContentSource.MOVIELINKBD) {
                 val (body, _) = getJson(
                     "/api/v1/search",
@@ -427,6 +457,9 @@ class CinePulseApiClient(
                 }.getOrNull()
             }
 
+            val server2Deferred = async {
+                if (Server2Client.enabled) runCatching { Server2Client.search(cleanQuery) }.getOrDefault(emptyList()) else emptyList()
+            }
             val directList = withTimeoutOrNull(4500L) { directDeferred.await() }.orEmpty()
             val workerList = if (directList.isNotEmpty()) {
                 withTimeoutOrNull(6000L) { workerDeferred.await() }.orEmpty()
@@ -440,7 +473,9 @@ class CinePulseApiClient(
             }
 
             // Interleave MovieLinkBD + MovieBox results cleanly so BOTH sites are immediately visible!
-            val mlbdItems = workerList.filter { it.source.equals("movielinkbd", ignoreCase = true) }
+            val server2List = withTimeoutOrNull(6000L) { server2Deferred.await() }.orEmpty()
+            val mlbdItems = (server2List + workerList.filter { it.source.equals("movielinkbd", ignoreCase = true) })
+                .distinctBy { it.title.lowercase().trim() }
             val workerMbItems = workerList.filterNot { it.source.equals("movielinkbd", ignoreCase = true) }
             val combinedMb = (directList + workerMbItems).distinctBy { it.id.ifBlank { it.title.lowercase() } }
 
@@ -486,6 +521,15 @@ class CinePulseApiClient(
 
         val isMovieBoxSource = item.source.equals("moviebox", ignoreCase = true) || item.source.isBlank()
         val hasNumericId = item.id.isNotBlank() && item.id.all(Char::isDigit)
+
+        // Server 2 titles come from the user's own worker when it is set up.
+        if (item.source.equals(Server2Client.SOURCE, ignoreCase = true) && Server2Client.enabled && item.id.startsWith("/")) {
+            val own = runCatching { Server2Client.mediaDetail(item) }.getOrNull()
+            if (own != null) {
+                detailCache[cacheKey] = TimedCacheEntry(own, System.currentTimeMillis() + CACHE_TTL_MS)
+                return@supervisorScope own
+            }
+        }
 
         if (isMovieBoxSource && hasNumericId) {
             val directDetail = runCatching { movieBoxDirect.getDetails(item, lang, safeMode) }.getOrNull()
@@ -596,6 +640,15 @@ class CinePulseApiClient(
         val streamCacheKey = "${item.source}:${item.id}:${item.title}:$effectiveSe:$effectiveEp:$lang"
         if (!forceRefresh) {
             streamCache.getFresh(streamCacheKey)?.let { return@supervisorScope it }
+        }
+
+        if (isMovieLinkBdItem && Server2Client.enabled && item.id.startsWith("/")) {
+            val own = runCatching { Server2Client.streams(item, effectiveSe, effectiveEp) }.getOrDefault(emptyList())
+            if (own.isNotEmpty()) {
+                val result = own to emptyList<CaptionTrack>()
+                streamCache[streamCacheKey] = TimedCacheEntry(result, System.currentTimeMillis() + CACHE_TTL_MS)
+                return@supervisorScope result
+            }
         }
 
         fun decorateStream(option: StreamOption): StreamOption {
