@@ -847,11 +847,11 @@ private fun SettingsPage(
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier.size(46.dp).clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFFF5A6A), Color(0xFF7B5CFF)))),
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Color.White) }
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
+                contentDescription = null,
+                modifier = Modifier.size(46.dp).clip(CircleShape).background(Color.White).padding(5.dp)
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text("Cinedor Ai", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)

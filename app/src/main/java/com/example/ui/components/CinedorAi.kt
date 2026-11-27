@@ -149,7 +149,7 @@ fun CinedorAiPage(
     val scope = rememberCoroutineScope()
     val messages = remember {
         mutableStateListOf(
-            AiMessage(false, "আসসালামু আলাইকুম! আমি Cinedor Ai 🤖\nকোন মুভি বা সিরিজ খুঁজে পাচ্ছেন না? নাম মনে না থাকলেও গল্পটা একটু বলুন, আমি খুঁজে দেব।")
+            AiMessage(false, "আসসালামু আলাইকুম! আমি Cinedor Ai।\nকোন মুভি বা সিরিজ খুঁজে পাচ্ছেন না? নাম মনে না থাকলেও গল্পটা একটু বলুন, আমি খুঁজে দেব।")
         )
     }
     var input by remember { mutableStateOf("") }
@@ -246,10 +246,12 @@ private fun AiBubble(m: AiMessage, onOpenMedia: (MediaItem) -> Unit) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start) {
         if (!m.fromUser) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) {
-                Box(
-                    Modifier.size(22.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Color(0xFFFF5A6A), Color(0xFF7B5CFF)))),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp)) }
+                // Cinedor's own logo as the AI's face
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(com.example.R.drawable.cinedor_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp).clip(CircleShape).background(Color.White).padding(2.dp)
+                )
                 Spacer(Modifier.width(6.dp))
                 Text("Cinedor Ai", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
