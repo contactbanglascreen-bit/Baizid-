@@ -24,6 +24,7 @@
         android:theme="@style/Theme.MyApplication">
         <activity
             android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"

@@ -1,5 +1,11 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.rounded.Refresh
@@ -126,7 +132,9 @@ object CinedorAi {
     suspend fun findPosters(answer: Answer, search: suspend (String) -> List<MediaItem>): List<MediaItem> = coroutineScope {
         val queries = (answer.titles + answer.keywords).map { it.replace(Regex("\\s*\\(\\d{4}\\)\\s*$"), "").trim() }
             .filter { it.length >= 2 }.distinct().take(8)
-        val results = queries.map { q -> async { q to runCatching { search(q) }.getOrDefault(emptyList()) } }.awaitAll()
+        val results = queries.map { q ->
+            async { q to (kotlinx.coroutines.withTimeoutOrNull(12_000) { runCatching { search(q) }.getOrDefault(emptyList()) } ?: emptyList()) }
+        }.awaitAll()
         fun norm(s: String) = s.lowercase().replace(Regex("[^a-z0-9\\u0980-\\u09ff]+"), " ").trim()
         val out = LinkedHashMap<String, MediaItem>()
         // First pass: titles that really match what the AI named.
@@ -188,8 +196,9 @@ fun CinedorAiScreen(
         busy = true
         scope.launch {
             val reply = runCatching {
-                val answer = CinedorAi.ask(context, messages.toList())
-                val posters = CinedorAi.findPosters(answer, onSearch)
+                val answer = kotlinx.coroutines.withTimeout(50_000) { CinedorAi.ask(context, messages.toList()) }
+                // Poster lookup never holds the answer back for long.
+                val posters = kotlinx.coroutines.withTimeoutOrNull(20_000) { CinedorAi.findPosters(answer, onSearch) }.orEmpty()
                 val text2 = when {
                     posters.isNotEmpty() -> answer.reply.ifBlank { "এগুলো দেখুন 👇" }
                     answer.titles.isNotEmpty() -> answer.reply +
@@ -197,7 +206,11 @@ fun CinedorAiScreen(
                     else -> answer.reply.ifBlank { "দুঃখিত, বুঝতে পারিনি। আরেকটু বিস্তারিত বলবেন?" }
                 }
                 AiMessage(false, text2.trim(), posters)
-            }.getOrElse { AiMessage(false, "⚠️ " + (it.message ?: "Cinedor Ai এখন ব্যস্ত। একটু পরে আবার চেষ্টা করুন।")) }
+            }.getOrElse {
+                val msg = if (it is kotlinx.coroutines.TimeoutCancellationException) "Cinedor Ai উত্তর দিতে দেরি করছে। একটু পরে আবার চেষ্টা করুন।"
+                else it.message ?: "Cinedor Ai এখন ব্যস্ত। একটু পরে আবার চেষ্টা করুন।"
+                AiMessage(false, "⚠️ $msg")
+            }
             messages.add(reply)
             busy = false
         }
@@ -207,6 +220,11 @@ fun CinedorAiScreen(
         Modifier
             .fillMaxSize()
             .glassBackground()
+            // Shrink above the keyboard (or the phone's navigation bar), never push the header away.
+            .windowInsetsPadding(
+                WindowInsets.ime.union(WindowInsets.navigationBars)
+                    .only(androidx.compose.foundation.layout.WindowInsetsSides.Bottom)
+            )
     ) {
         // Header
         Row(
@@ -270,8 +288,6 @@ fun CinedorAiScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding()
                 .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 10.dp)
                 .liquidGlass(RoundedCornerShape(28.dp))
                 .padding(start = 4.dp, end = 6.dp),

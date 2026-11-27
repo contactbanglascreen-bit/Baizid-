@@ -182,10 +182,10 @@ class GlassScreenshotTest {
         rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Gopal Bhar")
         rule.onNodeWithContentDescription("Send").performClick()
         rule.waitUntil(timeoutMillis = 60_000) {
-            rule.onAllNodes(androidx.compose.ui.test.hasText("⚠️", substring = true) or androidx.compose.ui.test.hasText("এগুলো", substring = true))
+            rule.onAllNodes(androidx.compose.ui.test.hasText("⚠️", substring = true) or androidx.compose.ui.test.hasText("এগুলো", substring = true) or androidx.compose.ui.test.hasText("Cinedor এ নেই", substring = true))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        val texts = rule.onAllNodes(androidx.compose.ui.test.hasText("⚠️", substring = true)).fetchSemanticsNodes()
+        val texts = rule.onAllNodes(androidx.compose.ui.test.hasText("Cinedor", substring = true)).fetchSemanticsNodes()
             .map { it.config.toString().take(200) }
         println("REPLY $texts")
     }
