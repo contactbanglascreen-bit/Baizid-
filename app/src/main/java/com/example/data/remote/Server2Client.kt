@@ -79,7 +79,7 @@ object Server2Client {
                 detailPath = path,
                 year = Regex("(19|20)\\d{2}").find(title)?.value.orEmpty()
             )
-        }.distinctBy { it.id }
+        }.distinctBy { it.id }.distinctBy { it.title.lowercase().trim() }
     }
 
     suspend fun home(): List<MediaItem> = withContext(Dispatchers.IO) { items(get("/home")) }
@@ -157,9 +157,26 @@ object Server2Client {
         Detail(j.optString("title"), j.optString("poster"), j.optString("synopsis"), referer, streams, episodes, paths, epStreams)
     }
 
+    /**
+     * The site gives every title a fresh address now and then (/movie/mKs_…), so an address saved
+     * earlier (My List, history, a notification) can stop working. Then the title is looked up
+     * again by its name and the new address is used.
+     */
+    private suspend fun detailFor(item: MediaItem): Detail? {
+        detail(item.detailPath.ifBlank { item.id })?.let { if (it.title.isNotBlank() || it.streams.isNotEmpty()) return it }
+        val name = item.title.substringBefore(" (").substringBefore(" [").trim()
+        if (name.length < 2) return null
+        val hits = runCatching { search(name) }.getOrDefault(emptyList())
+        val norm = { t: String -> t.lowercase().replace(Regex("[^a-z0-9]+"), " ").trim() }
+        val best = hits.firstOrNull { norm(it.title) == norm(item.title) }
+            ?: hits.firstOrNull { norm(it.title).startsWith(norm(name)) && kindOf(it) == kindOf(item) }
+            ?: return null
+        return detail(best.id)
+    }
+
     /** Detail page for the app's title screen. */
     suspend fun mediaDetail(item: MediaItem): MediaDetail? {
-        val d = detail(item.detailPath.ifBlank { item.id }) ?: return null
+        val d = detailFor(item) ?: return null
         val seasons = d.episodes.groupBy { it.season }.toSortedMap().map { (se, eps) ->
             SeasonInfo(seasonNumber = se, title = "Season $se", episodes = eps.sortedBy { it.episode })
         }
@@ -181,7 +198,7 @@ object Server2Client {
 
     /** Playable links for a movie, or for one episode of a series. */
     suspend fun streams(item: MediaItem, season: Int, episode: Int): List<StreamOption> {
-        val main = detail(item.detailPath.ifBlank { item.id }) ?: return emptyList()
+        val main = detailFor(item) ?: return emptyList()
         if (episode > 0) {
             main.episodeStreams[season.coerceAtLeast(1) to episode]?.let { return it }
             // Seasons on this server can start at any number (e.g. season 13, episode 1221).
