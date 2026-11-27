@@ -813,8 +813,15 @@ class CinePulseViewModel(
                 label = "Live • ${src.quality} • Server ${i + 1}",
                 quality = src.quality,
                 url = src.url,
-                format = if (src.url.contains(".mp4", ignoreCase = true) && !src.url.contains(".m3u8", ignoreCase = true)) "MP4" else "HLS",
-                headers = mapOf("User-Agent" to src.userAgent.ifBlank { MovieBoxDirectClient.CHROME_USER_AGENT })
+                format = when {
+                    src.url.contains(".mpd", ignoreCase = true) -> "DASH"
+                    src.url.contains(".mp4", ignoreCase = true) && !src.url.contains(".m3u8", ignoreCase = true) -> "MP4"
+                    else -> "HLS"
+                },
+                headers = buildMap {
+                    put("User-Agent", src.userAgent.ifBlank { MovieBoxDirectClient.CHROME_USER_AGENT })
+                    if (src.referer.isNotBlank()) put("Referer", src.referer)
+                }
             )
         }
         _detailState.value = DetailUiState(

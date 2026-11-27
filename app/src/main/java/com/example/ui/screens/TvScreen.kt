@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,11 +76,18 @@ fun TvScreen(onPlay: (TvChannel) -> Unit, modifier: Modifier = Modifier) {
     var channels by remember { mutableStateOf<List<TvChannel>?>(null) }
     var group by rememberSaveable { mutableStateOf("All") }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(Unit) { channels = TvChannels.load(context) }
+    LaunchedEffect(Unit) {
+        val list = TvChannels.load(context)
+        channels = list
+        // Official logos are filled in as soon as they are ready (first time needs a download).
+        channels = TvChannels.withLogos(context, list)
+    }
 
     val all = channels.orEmpty()
-    val groups = remember(all) { TvChannels.groups.filter { g -> g == "All" || all.any { it.group == g } } }
-    val shown = all.filter { (group == "All" || it.group == group) && (query.isBlank() || it.name.contains(query, ignoreCase = true)) }
+    val groups = remember(all) { TvChannels.groups.filter { g -> g == "All" || all.any { g in it.tags } } }
+    val shown = remember(all, group, query) {
+        all.filter { (group == "All" || group in it.tags) && (query.isBlank() || it.name.contains(query.trim(), ignoreCase = true)) }
+    }
 
     Column(modifier.fillMaxSize().glassBackground()) {
         // Header
@@ -162,26 +170,37 @@ fun TvScreen(onPlay: (TvChannel) -> Unit, modifier: Modifier = Modifier) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(if (group == "All") "সব চ্যানেল" else group, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
                 }
-                items(shown, key = { it.id }) { ch -> ChannelTile(ch, all.indexOf(ch)) { onPlay(ch) } }
+                items(shown, key = { it.id }) { ch -> ChannelTile(ch) { onPlay(ch) } }
             }
         }
     }
 }
 
 @Composable
-private fun ChannelTile(ch: TvChannel, index: Int, onClick: () -> Unit) {
-    val colors = tilePalettes[(if (index < 0) ch.name.hashCode() else index).mod(tilePalettes.size)]
+private fun ChannelTile(ch: TvChannel, onClick: () -> Unit) {
+    val colors = tilePalettes[ch.name.hashCode().mod(tilePalettes.size)]
+    var logoFailed by remember(ch.logo) { mutableStateOf(false) }
+    val showLogo = ch.logo.isNotBlank() && !logoFailed
     Column(
         Modifier.glassBubble(RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             Modifier.fillMaxWidth().aspectRatio(1.35f).clip(RoundedCornerShape(14.dp))
-                .background(Brush.linearGradient(colors)),
+                .background(
+                    if (showLogo) Brush.linearGradient(listOf(Color(0xFFF7F7FA), Color(0xFFE4E6EE)))
+                    else Brush.linearGradient(colors)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            if (ch.logo.isNotBlank()) {
-                AsyncImage(model = ch.logo, contentDescription = ch.name, modifier = Modifier.fillMaxSize().padding(10.dp))
+            if (showLogo) {
+                AsyncImage(
+                    model = ch.logo,
+                    contentDescription = ch.name,
+                    contentScale = ContentScale.Fit,
+                    onError = { logoFailed = true },
+                    modifier = Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 8.dp)
+                )
             } else {
                 val initials = ch.name.split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.take(1) }.uppercase()
                 Text(initials, color = Color.White, fontWeight = FontWeight.Black, fontSize = 26.sp, modifier = Modifier.padding(top = 12.dp))
